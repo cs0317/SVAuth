@@ -29,7 +29,6 @@ namespace SVAuth
                     .UseUrls("http://localhost:" + Config.config.AuthJSSettings.port + "/")
                     .UseKestrel()
                     .UseContentRoot(Directory.GetCurrentDirectory())
-                    .UseIISIntegration()
                     .UseStartup<Startup>()
                     .Build();
 
