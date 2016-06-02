@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using System;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
+using System.Security.Cryptography.X509Certificates;
 
 namespace SVAuth
 {
@@ -26,8 +27,22 @@ namespace SVAuth
                 // TODO: Implement SSL.
 
                 var host = new WebHostBuilder()
-                    .UseUrls("http://localhost:" + Config.config.AuthJSSettings.port + "/")
-                    .UseKestrel()
+                    // The scheme specified here appears to make no difference
+                    // to the server, but it's displayed on the console, so
+                    // let's set it correctly. ~ Matt 2016-06-02
+                    .UseUrls(Config.config.AuthJSSettings.scheme + "://localhost:" + Config.config.AuthJSSettings.port + "/")
+                    .UseKestrel((kestrelOptions) => {
+                        switch (Config.config.AuthJSSettings.scheme)
+                        {
+                            case "https":
+                                kestrelOptions.UseHttps(new X509Certificate2("ssl-cert/certkey.p12"));
+                                break;
+                            case "http":
+                                break;
+                            default:
+                                throw new Exception("Unknown scheme " + Config.config.AuthJSSettings.scheme);
+                        }
+                    })
                     .UseContentRoot(Directory.GetCurrentDirectory())
                     .UseStartup<Startup>()
                     .Build();
