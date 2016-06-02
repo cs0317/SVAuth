@@ -39,7 +39,7 @@ namespace SVAuth.ServiceProviders.Facebook
         }
 
         /*** implementing the methods for AuthorizationRequest ***/
-        public override OAuth20.AuthorizationRequest createAuthorizationRequest(CST.CST_MSG inputMSG)
+        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG)
         {
             FBAuthorizationRequest _FBAuthorizationRequest = new FBAuthorizationRequest();
             _FBAuthorizationRequest.client_id = client_id;
@@ -59,7 +59,7 @@ namespace SVAuth.ServiceProviders.Facebook
         }
 
         /*** implementing the methods for AccessTokenRequest ***/
-        public override OAuth20.AccessTokenRequest createAccessTokenRequest(CST.CST_MSG inputMSG)
+        public override OAuth20.AccessTokenRequest createAccessTokenRequest(SVX.SVX_MSG inputMSG)
         {
             OAuth20.AccessTokenRequest _AccessTokenRequest = new OAuth20.AccessTokenRequest();
             // How does this ever pass verification against the modeled IdP
@@ -81,7 +81,7 @@ namespace SVAuth.ServiceProviders.Facebook
         }
 
         /*** implementing the methods for UserProfileRequest ***/
-        public override OAuth20.UserProfileRequest createUserProfileRequest(CST.CST_MSG inputMSG)
+        public override OAuth20.UserProfileRequest createUserProfileRequest(SVX.SVX_MSG inputMSG)
         {
             OAuth20.UserProfileRequest _UserProfileRequest = new OAuth20.UserProfileRequest();
             _UserProfileRequest.access_token = ((OAuth20.AccessTokenResponse)inputMSG).access_token;
@@ -97,7 +97,7 @@ namespace SVAuth.ServiceProviders.Facebook
 
         /*** implementing the methods for AuthenticationConclusion ***/
         protected override Type UserProfileResponseType { get { return typeof(FBUserProfileResponse); } }
-        public override GenericAuth.AuthenticationConclusion createConclusion(CST.CST_MSG inputMSG)
+        public override GenericAuth.AuthenticationConclusion createConclusion(SVX.SVX_MSG inputMSG)
         {
             var _FBAuthConclusion = new FBAuthConclusion();
             _FBAuthConclusion.UserID = ((FBUserProfileResponse)inputMSG).id;

@@ -5,7 +5,7 @@ namespace SVAuth.GenericAuth
     /***********************************************************/
     /*               Messages between parties                  */
     /***********************************************************/
-    public abstract class SignInIdP_Req : CST.CST_MSG
+    public abstract class SignInIdP_Req : SVX.SVX_MSG
     {
         // Ignoring this is right for the one caller so far, in Facebook.  When
         // we have another caller that needs something different, we'll figure
@@ -17,11 +17,11 @@ namespace SVAuth.GenericAuth
         public abstract string Realm { get; set; }
     }
 
-    public abstract class SignInIdP_Resp_SignInRP_Req : CST.CST_MSG
+    public abstract class SignInIdP_Resp_SignInRP_Req : SVX.SVX_MSG
     {
     }
 
-    public abstract class SignInRP_Resp : CST.CST_MSG
+    public abstract class SignInRP_Resp : SVX.SVX_MSG
     {
     }
 
@@ -66,7 +66,7 @@ namespace SVAuth.GenericAuth
         public abstract SignInIdP_Resp_SignInRP_Req Redir(string dest, ID_Claim _ID_Claim);
     }
 
-    public class AuthenticationConclusion : CST.CST_MSG
+    public class AuthenticationConclusion : SVX.SVX_MSG
     {
         // Should this rather be an abstract property for consistency with the
         // design of the other abstract messages? ~ Matt 2016-06-01
@@ -78,13 +78,13 @@ namespace SVAuth.GenericAuth
         public abstract string Domain { get; set; }
         public abstract string Realm { get; set; }
         public bool AuthenticationDone(AuthenticationConclusion conclusion) {
-          //  bool CST_verified = CST_Ops.Certify(conclusion);
+          //  bool SVX_verified = SVX_Ops.Certify(conclusion);
             /*
             if (CurrentSession["UserID"] != null)
-                CurrentSession["UserID"] = CST_verified ? conclusion.SessionUID : "";
+                CurrentSession["UserID"] = SVX_verified ? conclusion.SessionUID : "";
             else
-                CurrentSession.Add("UserID", CST_verified ? conclusion.SessionUID : "");
-            return CST_verified;*/
+                CurrentSession.Add("UserID", SVX_verified ? conclusion.SessionUID : "");
+            return SVX_verified;*/
             return true;
         }
     }

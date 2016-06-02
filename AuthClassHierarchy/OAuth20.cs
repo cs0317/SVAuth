@@ -55,7 +55,7 @@ namespace SVAuth.OAuth20
         protected string state = null;
     }
 
-    public class AccessTokenRequest : CST.CST_MSG
+    public class AccessTokenRequest : SVX.SVX_MSG
     {
         public string grant_type;
         public string code;
@@ -65,7 +65,7 @@ namespace SVAuth.OAuth20
         public string refresh_token = null;
     }
 
-    public class AccessTokenResponse : CST.CST_MSG
+    public class AccessTokenResponse : SVX.SVX_MSG
     {
         public string access_token;
         public string token_type;
@@ -85,12 +85,12 @@ namespace SVAuth.OAuth20
         }
     }
 
-    public class UserProfileRequest : CST.CST_MSG
+    public class UserProfileRequest : SVX.SVX_MSG
     {
         public string fields;
         public string access_token;
     }
-    public class UserProfileResponse : CST.CST_MSG
+    public class UserProfileResponse : SVX.SVX_MSG
     {
     }
     public class LoginResponse : GenericAuth.SignInRP_Resp
@@ -178,53 +178,53 @@ namespace SVAuth.OAuth20
         }
 
         /*** Methods about AuthorizationRequest ***/
-        public abstract AuthorizationRequest createAuthorizationRequest(CST.CST_MSG inputMSG);
-        public AuthorizationRequest _createAuthorizationRequest(CST.CST_MSG inputMSG)
+        public abstract AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG);
+        public AuthorizationRequest _createAuthorizationRequest(SVX.SVX_MSG inputMSG)
         {
             var outputMSG = createAuthorizationRequest(inputMSG);
-            //CST_Ops.recordme();
+            //SVX_Ops.recordme();
             return outputMSG;
         }
         public abstract string /*Uri*/ marshalCreateAuthorizationRequest(AuthorizationRequest _AuthorizationRequest);
 
         /*** Methods about AccessTokenRequest ***/
         protected virtual Type LoginCallbackRequestType { get { return typeof(AuthorizationResponse); } }
-        public abstract AccessTokenRequest createAccessTokenRequest(CST.CST_MSG inputMSG);
-        public AccessTokenRequest _createAccessTokenRequest(CST.CST_MSG inputMSG)
+        public abstract AccessTokenRequest createAccessTokenRequest(SVX.SVX_MSG inputMSG);
+        public AccessTokenRequest _createAccessTokenRequest(SVX.SVX_MSG inputMSG)
         {
             var outputMSG = this.createAccessTokenRequest(inputMSG);
-            //CST_Ops.recordme();
+            //SVX_Ops.recordme();
             return outputMSG;
         }
         public abstract HttpRequestMessage marshalCreateAccessTokenRequest(AccessTokenRequest _AccessTokenRequest);
 
         /*** Methods about UserProfileRequest ***/
         protected virtual Type AccessTokenResponseType { get { return typeof(AccessTokenResponse); } }
-        public abstract UserProfileRequest createUserProfileRequest(CST.CST_MSG inputMSG);
-        public UserProfileRequest _createUserProfileRequest(CST.CST_MSG inputMSG)
+        public abstract UserProfileRequest createUserProfileRequest(SVX.SVX_MSG inputMSG);
+        public UserProfileRequest _createUserProfileRequest(SVX.SVX_MSG inputMSG)
         {
             var outputMSG = this.createUserProfileRequest(inputMSG);
-            //CST_Ops.recordme();
+            //SVX_Ops.recordme();
             return outputMSG;
         }
         public abstract HttpRequestMessage marshalCreateUserProfileRequest(UserProfileRequest _UserProfileRequest);
 
         /*** Methods about Conclusion ***/
         protected virtual Type UserProfileResponseType { get { return typeof(UserProfileResponse); } }
-        public abstract GenericAuth.AuthenticationConclusion createConclusion(CST.CST_MSG inputMSG);
-        GenericAuth.AuthenticationConclusion _createConclusion(CST.CST_MSG inputMSG)
+        public abstract GenericAuth.AuthenticationConclusion createConclusion(SVX.SVX_MSG inputMSG);
+        GenericAuth.AuthenticationConclusion _createConclusion(SVX.SVX_MSG inputMSG)
         {
             var outputMSG = this.createConclusion(inputMSG);
-            //CST_Ops.recordme();
+            //SVX_Ops.recordme();
             return outputMSG;
         }
 
         /*************** Start defining OAuth flows ************************/
         public Task AuthorizationCodeFlow_Login_StartAsync(HttpContext context)
         {
-            CST.CST_MSG inputMSG = new CST.CST_MSG();
+            SVX.SVX_MSG inputMSG = new SVX.SVX_MSG();
             // This message should never contain meaningful data.
-            //JsonConvert.DeserializeObject<CST.CST_MSG>(Utils.ReadStream(context.Request.Body));
+            //JsonConvert.DeserializeObject<SVX.SVX_MSG>(Utils.ReadStream(context.Request.Body));
             var _AuthorizationRequest = _createAuthorizationRequest(inputMSG);
             var rawReq = marshalCreateAuthorizationRequest(_AuthorizationRequest);
             context.Response.Redirect(rawReq);
@@ -241,7 +241,7 @@ namespace SVAuth.OAuth20
             // parseHttpMessage supports both requests (query) and responses,
             // but here we know which is which.
             // ~ Matt 2016-06-01
-            CST.CST_MSG inputMSG = (CST.CST_MSG)Utils.UnreflectObject(
+            SVX.SVX_MSG inputMSG = (SVX.SVX_MSG)Utils.UnreflectObject(
                 new JObject(context.Request.Query.Select((q) => new JProperty(q.Key, q.Value.Single()))),
                 LoginCallbackRequestType);
             var _AccessTokenRequest = _createAccessTokenRequest(inputMSG);
@@ -249,14 +249,14 @@ namespace SVAuth.OAuth20
             var RawAccessTokenResponse = await Utils.PerformHttpRequestAsync(rawReq);
             Trace.Write("Got AccessTokenResponse");
 
-            CST.CST_MSG inputMSG2 = (CST.CST_MSG)JsonConvert.DeserializeObject(
+            SVX.SVX_MSG inputMSG2 = (SVX.SVX_MSG)JsonConvert.DeserializeObject(
                 Utils.ReadContent(RawAccessTokenResponse.Content), AccessTokenResponseType);
             var _UserProfileRequest = _createUserProfileRequest(inputMSG2);
             var rawReq2 = marshalCreateUserProfileRequest(_UserProfileRequest);
             var RawUserProfileResponse = await Utils.PerformHttpRequestAsync(rawReq2);
             Trace.Write("Got UserProfileResponse");
 
-            CST.CST_MSG inputMSG3 = (CST.CST_MSG)JsonConvert.DeserializeObject(
+            SVX.SVX_MSG inputMSG3 = (SVX.SVX_MSG)JsonConvert.DeserializeObject(
                 Utils.ReadContent(RawUserProfileResponse.Content), UserProfileResponseType);
             var conclusion = createConclusion(inputMSG3);
             await Utils.AbandonAndCreateSessionAsync(conclusion, context);
@@ -323,7 +323,7 @@ namespace SVAuth.OAuth20
             string IdPSessionSecret;
             if (req == null) return null;
             AccessTokenResponse resp = new AccessTokenResponse();
-            //CST_Ops.recordme(this, req, resp);
+            //SVX_Ops.recordme(this, req, resp);
             switch (req.grant_type)
             {
                 case "authorization_code":

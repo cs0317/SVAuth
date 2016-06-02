@@ -2,11 +2,11 @@
 
 // Keep a namespace structure mirroring the TypeScript external modules, for the moment.
 // ~ Matt 2016-05-31
-namespace SVAuth.CST
+namespace SVAuth.SVX
 {
-    public class CST_MSG
+    public class SVX_MSG
     {
-        // For now, none of the real IdPs support CST, so we don't want to
+        // For now, none of the real IdPs support SVX, so we don't want to
         // actually send these fields to them.
         // NOTE: This is a behavior change for Facebook
         // marshalCreateAuthorizationRequest, but should be OK.
