@@ -1,0 +1,36 @@
+{
+  "__SECTION_1__": "This section configures the web server.",
+  "WebAppSettings": {
+    "hostname": "a.local.test",
+    "scheme": "http",
+    "port": "80",
+    "platform": {
+      "name": "aspx",
+      "fileExtension": "aspx"
+    }
+  },
+
+  "AuthJSSettings": {
+    "scheme": "http",
+    "port": "3000"
+  },
+
+  "SessionIDCookieProperties": {
+    "domain": "a.local.test",
+    "persistent": false
+  },
+
+  "__SECTION_2__": "This section provides the registration info of each 3rd-party service.",
+  "AppRegistration": {
+    "Facebook": {
+      "appId": "460545824136907",
+      "appSecret": "ef3bd2f183e07b694645c94afbc1549b"
+    },
+    "Microsoft": {
+      "clientId": "000000004418D51C",
+      "clientSecret": "LdngRmwoVTfcQXU4HvEkb9c"
+    }
+  },
+
+  "__SECTION_3__": "Do not modify this section unless you know what you are doing."
+ }
