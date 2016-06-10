@@ -24,6 +24,8 @@ namespace SVAuth
                 // properties should match. ~ Matt 2016-06-01
                 Config.Init();
 
+                SVX.SVX_Ops.Init();
+
                 // TODO: Implement SSL.
 
                 var host = new WebHostBuilder()

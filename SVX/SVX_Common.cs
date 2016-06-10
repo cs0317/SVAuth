@@ -1,8 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-// Keep a namespace structure mirroring the TypeScript external modules, for the moment.
-// ~ Matt 2016-05-31
-namespace SVAuth.SVX
+namespace SVX
 {
     public class SVX_MSG
     {

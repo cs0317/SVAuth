@@ -9,6 +9,14 @@ namespace SVAuth
 {
     public class Config
     {
+        // Ideally we'd like this to be read-only, but it's not worth writing a
+        // lot of boilerplate code just to ensure that. ~ Matt 2016-06-01
+        public static Config config;
+
+        // Individual setting groups:
+
+        public SVX.SVXSettings SVXSettings;
+
         public WebAppSettings_ WebAppSettings;
         public class WebAppSettings_
         {
@@ -49,9 +57,7 @@ namespace SVAuth
         public string rootUrl;
         public string MainPageUrl;
 
-        // Ideally we'd like this to be read-only, but it's not worth writing a
-        // lot of boilerplate code just for that. ~ Matt 2016-06-01
-        public static Config config;
+        // Configuration loader:
 
         public static void Init()
         {
@@ -62,6 +68,8 @@ namespace SVAuth
             config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("config.json"));
             config.rootUrl = config.AuthJSSettings.scheme + "://" + config.WebAppSettings.hostname + ':' + config.AuthJSSettings.port + '/';
             config.MainPageUrl = "http://" + config.WebAppSettings.hostname + ':' + config.WebAppSettings.port + '/' + "Auth.JS/platforms/aspx/AllInOne.aspx";
+
+            SVX.SVXSettings.settings = config.SVXSettings;
         }
     }
 }

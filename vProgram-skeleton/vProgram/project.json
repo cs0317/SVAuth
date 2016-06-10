@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "SVAuth": "1.0.0-*",
+    "Microsoft.NETCore.App": {
+      "version": "1.0.0-rc2-3002702",
+      "type": "platform"
+    }
+  },
+
+  "frameworks": {
+    "netcoreapp1.0": {
+      "imports": [
+        "dnxcore50"
+      ]
+    }
+  },
+
+  "buildOptions": {
+    "emitEntryPoint": true
+  }
+}

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Reflection;
 
 namespace SVAuth.OAuth20
 {
@@ -147,6 +148,35 @@ namespace SVAuth.OAuth20
         string findISSByClientIDAndRefreshToken(string client_id, string refresh_token);
     }
 
+    // For interim use testing SVX_OPS.  Obviously this won't pass verification.
+    // ~ Matt 2016-06-07
+    public class DummyConcreteAuthorizationServer : GenericAuth.AS
+    {
+        public SVX.SVX_MSG DummyGetAccessToken(SVX.SVX_MSG input)
+        {
+            return new SVX.SVX_MSG();
+        }
+        public SVX.SVX_MSG DummyGetUserProfile(SVX.SVX_MSG input)
+        {
+            return new SVX.SVX_MSG();
+        }
+
+        public override GenericAuth.ID_Claim Process_SignInIdP_req(GenericAuth.SignInIdP_Req req)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override GenericAuth.SignInIdP_Resp_SignInRP_Req Redir(string dest, GenericAuth.ID_Claim _ID_Claim)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public interface NondetOAuth20
+    {
+        SVX.SVX_MSG SVX_MSG();
+    }
+
     /***********************************************************/
     /*                          Parties                        */
     /***********************************************************/
@@ -182,7 +212,7 @@ namespace SVAuth.OAuth20
         public AuthorizationRequest _createAuthorizationRequest(SVX.SVX_MSG inputMSG)
         {
             var outputMSG = createAuthorizationRequest(inputMSG);
-            //SVX_Ops.recordme();
+            SVX.SVX_Ops.recordme(this, inputMSG, outputMSG);
             return outputMSG;
         }
         public abstract string /*Uri*/ marshalCreateAuthorizationRequest(AuthorizationRequest _AuthorizationRequest);
@@ -193,7 +223,7 @@ namespace SVAuth.OAuth20
         public AccessTokenRequest _createAccessTokenRequest(SVX.SVX_MSG inputMSG)
         {
             var outputMSG = this.createAccessTokenRequest(inputMSG);
-            //SVX_Ops.recordme();
+            SVX.SVX_Ops.recordme(this, inputMSG, outputMSG);
             return outputMSG;
         }
         public abstract HttpRequestMessage marshalCreateAccessTokenRequest(AccessTokenRequest _AccessTokenRequest);
@@ -204,7 +234,8 @@ namespace SVAuth.OAuth20
         public UserProfileRequest _createUserProfileRequest(SVX.SVX_MSG inputMSG)
         {
             var outputMSG = this.createUserProfileRequest(inputMSG);
-            //SVX_Ops.recordme();
+            // The input is the AccessTokenResponse, which is server-to-server.
+            SVX.SVX_Ops.recordme(this, inputMSG, outputMSG, false, true);
             return outputMSG;
         }
         public abstract HttpRequestMessage marshalCreateUserProfileRequest(UserProfileRequest _UserProfileRequest);
@@ -212,10 +243,14 @@ namespace SVAuth.OAuth20
         /*** Methods about Conclusion ***/
         protected virtual Type UserProfileResponseType { get { return typeof(UserProfileResponse); } }
         public abstract GenericAuth.AuthenticationConclusion createConclusion(SVX.SVX_MSG inputMSG);
-        GenericAuth.AuthenticationConclusion _createConclusion(SVX.SVX_MSG inputMSG)
+        public GenericAuth.AuthenticationConclusion _createConclusion(SVX.SVX_MSG inputMSG)
         {
             var outputMSG = this.createConclusion(inputMSG);
-            //SVX_Ops.recordme();
+            // The input is the UserProfileResponse, which is server-to-server.
+            //
+            // The conclusion is consumed locally.  I think treating it as
+            // signed will give the right result. ~ Matt 2016-06-06
+            SVX.SVX_Ops.recordme(this, inputMSG, outputMSG, true, true);
             return outputMSG;
         }
 
@@ -251,6 +286,9 @@ namespace SVAuth.OAuth20
 
             SVX.SVX_MSG inputMSG2 = (SVX.SVX_MSG)JsonConvert.DeserializeObject(
                 Utils.ReadContent(RawAccessTokenResponse.Content), AccessTokenResponseType);
+            // TODO: Figure out the correct receiver and method name.
+            SVX.SVX_Ops.recordCustom(new DummyConcreteAuthorizationServer(), _AccessTokenRequest, inputMSG2,
+                nameof(DummyConcreteAuthorizationServer.DummyGetAccessToken), "AS", false, false);
             var _UserProfileRequest = _createUserProfileRequest(inputMSG2);
             var rawReq2 = marshalCreateUserProfileRequest(_UserProfileRequest);
             var RawUserProfileResponse = await Utils.PerformHttpRequestAsync(rawReq2);
@@ -258,8 +296,34 @@ namespace SVAuth.OAuth20
 
             SVX.SVX_MSG inputMSG3 = (SVX.SVX_MSG)JsonConvert.DeserializeObject(
                 Utils.ReadContent(RawUserProfileResponse.Content), UserProfileResponseType);
-            var conclusion = createConclusion(inputMSG3);
-            await Utils.AbandonAndCreateSessionAsync(conclusion, context);
+            SVX.SVX_Ops.recordCustom(new DummyConcreteAuthorizationServer(), _UserProfileRequest, inputMSG3,
+                nameof(DummyConcreteAuthorizationServer.DummyGetUserProfile), "AS", false, false);
+            var conclusion = _createConclusion(inputMSG3);
+
+            SVX.VProgramGenerator.Program_cs = @"
+namespace SVAuth.VProgram {
+
+class GlobalObjectsForSVX : GenericAuth.GlobalObjects_base
+{
+    static public void init()
+    {
+        AS = new OAuth20.DummyConcreteAuthorizationServer();
+        RP = new ServiceProviders.Facebook.Facebook_RP();
+    }
+}
+class PoirotMain
+{
+    public static OAuth20.NondetOAuth20 Nondet;
+
+    static void Main()
+    {
+        GlobalObjectsForSVX.init();
+        SynthesizedPortion.SynthesizedSequence();
+    }
+}
+
+}";
+            await AuthenticationDone(conclusion, context);
         }
     }
 

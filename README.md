@@ -1,39 +1,27 @@
-# Welcome to ASP.NET Core
+# SVAuth: Self-verifying single-sign-on solutions
 
-We've made some big updates in this release, so it’s **important** that you spend a few minutes to learn what’s new.
+This is an effort by
+[Matt McCutchen](mailto:%22Matt%20McCutchen%22%20%3Ct-mattmc@microsoft.com%3E)
+and [Shuo Chen](http://research.microsoft.com/en-us/people/shuochen/) to build a
+relying party framework that aims to accommodate all major web-based single
+sign-on (SSO) solutions. SVAuth is designed to be platform independent -- it
+works with PHP, ASP.NET, Python, etc. The framework enables "self-verifying
+execution" (SVX). An earlier version of SVX, called "Certification of Symbolic
+Transactions", was described in
+[this paper](http://research.microsoft.com/apps/pubs/default.aspx?id=241150).   
 
-You've created a new ASP.NET Core project. [Learn what's new](https://go.microsoft.com/fwlink/?LinkId=518016)
+This codebase is not yet ready for others to use. Please contact us if you'd
+like more information.
 
-## This application consists of:
+## Status notes
 
-*   Sample pages using ASP.NET Core MVC
-*   [Gulp](https://go.microsoft.com/fwlink/?LinkId=518007) and [Bower](https://go.microsoft.com/fwlink/?LinkId=518004) for managing client-side libraries
-*   Theming using [Bootstrap](https://go.microsoft.com/fwlink/?LinkID=398939)
+* Facebook SSO works if you comment out the SVX_Ops.Certify call.
+* The vProgram for Facebook SSO has some missing pieces.
+* SVX gets as far as calling Bytecode Translator but triggers an internal error
+  in Bytecode Translator. We're not bothering to investigate the error until the
+  vProgram stabilizes a bit.
 
-## How to
+## Earlier repositories (discontinued)
 
-*   [Add a Controller and View](https://go.microsoft.com/fwlink/?LinkID=398600)
-*   [Add an appsetting in config and access it in app.](https://go.microsoft.com/fwlink/?LinkID=699562)
-*   [Manage User Secrets using Secret Manager.](https://go.microsoft.com/fwlink/?LinkId=699315)
-*   [Use logging to log a message.](https://go.microsoft.com/fwlink/?LinkId=699316)
-*   [Add packages using NuGet.](https://go.microsoft.com/fwlink/?LinkId=699317)
-*   [Add client packages using Bower.](https://go.microsoft.com/fwlink/?LinkId=699318)
-*   [Target development, staging or production environment.](https://go.microsoft.com/fwlink/?LinkId=699319)
-
-## Overview
-
-*   [Conceptual overview of what is ASP.NET Core](https://go.microsoft.com/fwlink/?LinkId=518008)
-*   [Fundamentals of ASP.NET Core such as Startup and middleware.](https://go.microsoft.com/fwlink/?LinkId=699320)
-*   [Working with Data](https://go.microsoft.com/fwlink/?LinkId=398602)
-*   [Security](https://go.microsoft.com/fwlink/?LinkId=398603)
-*   [Client side development](https://go.microsoft.com/fwlink/?LinkID=699321)
-*   [Develop on different platforms](https://go.microsoft.com/fwlink/?LinkID=699322)
-*   [Read more on the documentation site](https://go.microsoft.com/fwlink/?LinkID=699323)
-
-## Run & Deploy
-
-*   [Run your app](https://go.microsoft.com/fwlink/?LinkID=517851)
-*   [Run tools such as EF migrations and more](https://go.microsoft.com/fwlink/?LinkID=517853)
-*   [Publish to Microsoft Azure Web Apps](https://go.microsoft.com/fwlink/?LinkID=398609)
-
-We would love to hear your [feedback](https://go.microsoft.com/fwlink/?LinkId=518015)
+* [AuthPlatelet](https://github.com/AuthPlatelet/AuthPlatelet)
+* [AuthJS] (https://github.com/cs0317/AuthClassLib)

@@ -1,5 +1,11 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using System;
+using System.Diagnostics.Contracts;
+using System.Threading.Tasks;
 
+// Keep a namespace structure mirroring the TypeScript external modules, for the moment.
+// ~ Matt 2016-05-31
 namespace SVAuth.GenericAuth
 {
     /***********************************************************/
@@ -37,8 +43,8 @@ namespace SVAuth.GenericAuth
 
     public interface IdPAuthRecords_Base
     {
-         ID_Claim getEntry(string IdPSessionSecret, string Realm);
-         bool setEntry(string IdPSessionSecret, string Realm, ID_Claim _ID_Claim);
+        ID_Claim getEntry(string IdPSessionSecret, string Realm);
+        bool setEntry(string IdPSessionSecret, string Realm, ID_Claim _ID_Claim);
     }
 
     /***********************************************************/
@@ -52,7 +58,8 @@ namespace SVAuth.GenericAuth
     {
         public IdPAuthRecords_Base IdentityRecords;
 
-        public SignInIdP_Resp_SignInRP_Req SignInIdP(SignInIdP_Req req) {
+        public SignInIdP_Resp_SignInRP_Req SignInIdP(SignInIdP_Req req)
+        {
             GlobalObjects_base.SignInIdP_Req = req;
 
             if (req == null) return null;
@@ -77,15 +84,30 @@ namespace SVAuth.GenericAuth
     {
         public abstract string Domain { get; set; }
         public abstract string Realm { get; set; }
-        public bool AuthenticationDone(AuthenticationConclusion conclusion) {
-          //  bool SVX_verified = SVX_Ops.Certify(conclusion);
-            /*
-            if (CurrentSession["UserID"] != null)
-                CurrentSession["UserID"] = SVX_verified ? conclusion.SessionUID : "";
-            else
-                CurrentSession.Add("UserID", SVX_verified ? conclusion.SessionUID : "");
-            return SVX_verified;*/
-            return true;
+        public void VerifyAuthentication(AuthenticationConclusion conclusion)
+        {
+            GlobalObjects_base.BadPersonCannotSignInAsGoodPerson(conclusion);
+        }
+        public async Task AuthenticationDone(AuthenticationConclusion conclusion, HttpContext context)
+        {
+            /* Compared to the original AuthPlatelet, I'm choosing to record a
+             * separate SVX method right here for the certification.  Otherwise,
+             * it would be easy for a new protocol class (like OAuth20) to
+             * accidentally do the certification outside the last SVX method so
+             * that the vProgram doesn't include the verification, which would
+             * completely nullify SVX in a way that's hard to notice.  Of
+             * course, we have more to do to try to prevent other similarly
+             * devastating mistakes in setting up SVX.
+             * ~ Matt 2016-06-07
+             */
+            var verifiedMsg = new SVX.SVX_MSG();
+            SVX.SVX_Ops.recordCustom(this, conclusion, verifiedMsg, nameof(VerifyAuthentication),
+                SVX.SVXSettings.settings.MyPartyName, false, false);
+            if (!SVX.SVX_Ops.Certify(verifiedMsg))
+            {
+                throw new Exception("SVX certification failed.");
+            }
+            await Utils.AbandonAndCreateSessionAsync(conclusion, context);
         }
     }
 
@@ -100,11 +122,12 @@ namespace SVAuth.GenericAuth
         public static RP RP;
 
         // TODO (Matt): Rename to NecessaryCondition1.
-        public static void BadPersonCannotSignInAsGoodPerson(AuthenticationConclusion conclusion) {
+        public static void BadPersonCannotSignInAsGoodPerson(AuthenticationConclusion conclusion)
+        {
             ID_Claim ID_claim = AS.IdentityRecords.getEntry(
                                         SignInIdP_Req.IdPSessionSecret,
                                         RP.Realm);
-           // Contract.Assert(ID_claim.Redir_dest == this.RP.Domain && ID_claim.UserID == conclusion.SessionUID);
+            Contract.Assert(ID_claim.Redir_dest == RP.Domain && ID_claim.UserID == conclusion.UserID);
         }
     }
 }

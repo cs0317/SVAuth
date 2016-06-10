@@ -32,5 +32,14 @@
     }
   },
 
-  "__SECTION_3__": "Do not modify this section unless you know what you are doing."
- }
+  "__SECTION_3__": "Do not modify this section unless you know what you are doing.",
+  "SVXSettings": {
+    "MyPartyName": "RP",
+    "TrustedParties": [ "RP", "AS" ],
+    "SVXFolderPath": "C:\\SVX",
+    "CertifyLocally": true,
+    "DLLServerAddress": "http://protoagnostic.cloudapp.net:8700/",
+    "Token": "NRhFVgSo0khCjh+lhPuhSKb/8wHntjI+",
+    "PoirotRoot": "C:\\PoirotEnlistment"
+  }
+}
