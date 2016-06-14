@@ -103,10 +103,10 @@ namespace SVAuth.GenericAuth
             var verifiedMsg = new SVX.SVX_MSG();
             SVX.SVX_Ops.recordCustom(this, conclusion, verifiedMsg, nameof(VerifyAuthentication),
                 SVX.SVXSettings.settings.MyPartyName, false, false);
-            if (!SVX.SVX_Ops.Certify(verifiedMsg))
+        /*    if (!SVX.SVX_Ops.Certify(verifiedMsg))
             {
                 throw new Exception("SVX certification failed.");
-            }
+            }*/
             await Utils.AbandonAndCreateSessionAsync(conclusion, context);
         }
     }
@@ -129,5 +129,12 @@ namespace SVAuth.GenericAuth
                                         RP.Realm);
             Contract.Assert(ID_claim.Redir_dest == RP.Domain && ID_claim.UserID == conclusion.UserID);
         }
+    }
+
+    public interface Nondet_Base
+    {
+        int Int();
+        string String();
+        bool Bool();
     }
 }

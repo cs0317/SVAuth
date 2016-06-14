@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Routing;
 using System;
 using System.Net.Http;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 
 namespace SVAuth.ServiceProviders.Facebook
 {
@@ -29,6 +31,28 @@ namespace SVAuth.ServiceProviders.Facebook
         public string name;
         public string email;
     }
+
+    public class ID_Claim : OAuth20.ID_Claim
+    {
+        public string email, FB_ID, FullName;
+        public string UserID_Field_Name;
+        public override string  UserID
+        {
+            get
+            {
+                switch (UserID_Field_Name)
+                {
+                    case "email":
+                        return email;
+                    default: return FB_ID;
+                }
+            }
+        }
+        public ID_Claim(string UserID_Field_Name1)
+        {
+            UserID_Field_Name = UserID_Field_Name = UserID_Field_Name1;
+        }
+    }
     public class Facebook_RP : OAuth20.Client
     {
         public string UserProfileUrl;
@@ -43,7 +67,7 @@ namespace SVAuth.ServiceProviders.Facebook
         {
             FBAuthorizationRequest _FBAuthorizationRequest = new FBAuthorizationRequest();
             _FBAuthorizationRequest.client_id = client_id;
-
+            
             _FBAuthorizationRequest.response_type = "code";
 
             _FBAuthorizationRequest.scope = "user_about_me email";
@@ -120,5 +144,75 @@ namespace SVAuth.ServiceProviders.Facebook
             routeBuilder.MapRoute("login/Facebook", RP.AuthorizationCodeFlow_Login_StartAsync);
             routeBuilder.MapRoute("callback/Facebook", RP.AuthorizationCodeFlow_Login_CallbackAsync);
         }
+    }
+    public class Facebook_IdP_Default : OAuth20.AuthorizationServer
+    {
+        static OAuth20.NondetOAuth20 Nondet;
+        string UserID_Field_Name = "FB_ID";
+
+        class ID_Claims: GenericAuth.IdPAuthRecords_Base
+        {
+            Dictionary<string, Dictionary<string, ID_Claim>> ID_Claims_Dictionary = new Dictionary<string, Dictionary<string, ID_Claim>>();
+            public GenericAuth.ID_Claim getEntry(string IdPSessionSecret, string client_id)
+            {
+                ID_Claim ID_Claim = ID_Claims_Dictionary[IdPSessionSecret][client_id];
+                Contract.Assume(ID_Claim.GetType() == typeof(ID_Claim));  //This "Assume" is needed because we cannot "new OAuth20.ID_Claim" here.
+                return ID_Claim;
+            }
+            public bool setEntry(string IdPSessionSecret, string client_id, GenericAuth.ID_Claim ID_Claim1)
+            {
+                ID_Claim ID_Claim = (ID_Claim)ID_Claim1;
+                if (ID_Claim == null)
+                    return false;
+                ID_Claims_Dictionary[IdPSessionSecret] = new Dictionary<string, ID_Claim>();
+                ID_Claims_Dictionary[IdPSessionSecret][client_id] = ID_Claim;
+                return true;
+            }
+        }
+
+        public Facebook_IdP_Default()
+        {
+            IdentityRecords = new ID_Claims();
+        }
+
+        public override string createAccessToken(OAuth20.AuthorizationCodeEntry AuthorizationCodeEntry)
+        {
+            string AccessToken = Nondet.String();
+            OAuth20.AccessTokenEntry AccessTokenEntry = new OAuth20.AccessTokenEntry();
+            AccessTokenEntry.IdPSessionSecret = AuthorizationCodeEntry.IdPSessionSecret;
+            AccessTokenEntry.client_id = AuthorizationCodeEntry.client_id;
+            AccessTokenEntry.redirect_uri = AuthorizationCodeEntry.redirect_uri;
+            AccessTokenEntry.scope = AuthorizationCodeEntry.scope;
+            AccessTokens[AccessToken] = AccessTokenEntry;
+            ID_Claim ID_Claim = (ID_Claim)IdentityRecords.getEntry(AccessTokenEntry.IdPSessionSecret, AccessTokenEntry.client_id);
+            Contract.Assume(ID_Claim.UserID_Field_Name == UserID_Field_Name);
+            return AccessToken;
+        }
+        public override OAuth20.UserProfileResponse createUserProfileResponse(OAuth20.ID_Claim ID_Claim1)
+        {
+            ID_Claim ID_Claim = (ID_Claim)ID_Claim1;
+            if (ID_Claim == null)
+                return null;
+            FBUserProfileResponse UserProfileResponse = new FBUserProfileResponse();
+            UserProfileResponse.id = ID_Claim.FB_ID;
+            UserProfileResponse.email = ID_Claim.email;
+            UserProfileResponse.name = ID_Claim.FullName;
+            return UserProfileResponse;
+        }
+
+        //Currently, the following two methods are essentially "unimplemented", because the SignInIdP call will be tossed away from the onion anyways. 
+        //Perhaps there are some future scenarios in which these two methods need to be implemented. 
+        public override GenericAuth.SignInIdP_Resp_SignInRP_Req Redir(string dest, GenericAuth.ID_Claim _ID_Claim)
+        {
+            return null;
+        }
+        public override OAuth20.ID_Claim get_ID_Claim_From_Authorization_Request(OAuth20.AuthorizationRequest req)
+        {
+            return null;
+        }
+    }
+    public class Facebook_IdP_Email_As_UserID : Facebook_IdP_Default
+    {
+        string UserID_Field_Name = "email";
     }
 }

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace SVAuth.OAuth20
@@ -103,40 +104,33 @@ namespace SVAuth.OAuth20
     /*               Data structures on parties                */
     /***********************************************************/
 
-    // Change to abstract because UserID is not yet defined. ~ Matt 2016-05-31
-    public abstract class AuthorizationCodeEntry : GenericAuth.ID_Claim
+    //The data strctures of AuthorizationCodeEntry and AccessTokenEntry are the same, but the procedures handling them are different.
+    public class AuthorizationCodeEntry
     {
-        //Note: property UserID is not defined in OAuth. It is supposed to be defined at a more concrete level.
-        public string code;
-        public string primaryUID;
+        public string IdPSessionSecret;
+        public string client_id;
         public string redirect_uri;
+        public string scope;
+    }
+
+    public class AccessTokenEntry
+    {
+        public string IdPSessionSecret;
+        public string client_id;
+        public string redirect_uri;
+        public string scope;
+    }
+
+    public abstract class ID_Claim : GenericAuth.ID_Claim
+    {
+        string IdP_UID, email, FullName;
+        string redirect_uri;
         public override string Redir_dest
         {
             get { return redirect_uri; }
         }
-        public string scope;
-        public string state;
     }
-
-    public abstract class AccessTokenEntry : GenericAuth.ID_Claim
-    {
-        //Note: property UserID is not defined in OAuth. It is supposed to be defined at a more concrete level.
-        public string access_token;
-        public string primaryUID;
-        public string redirect_uri;
-        public override string Redir_dest
-        {
-            get { return redirect_uri; }
-        }
-        public string scope;
-        public string refresh_token = null;
-        public string state;
-        /* string client_id;
-         get Realm(): string { return this.client_id; };
-         set Realm(string value) { this.client_id = value; };
-         */
-    }
-
+    /*
     public interface AuthorizationCodeRecs : GenericAuth.IdPAuthRecords_Base
     {
         string findISSByClientIDAndCode(string client_id, string authorization_code);
@@ -147,7 +141,7 @@ namespace SVAuth.OAuth20
         string findISSByClientIDAndAccessToken(string client_id, string access_token);
         string findISSByClientIDAndRefreshToken(string client_id, string refresh_token);
     }
-
+    */
     // For interim use testing SVX_OPS.  Obviously this won't pass verification.
     // ~ Matt 2016-06-07
     public class DummyConcreteAuthorizationServer : GenericAuth.AS
@@ -171,11 +165,11 @@ namespace SVAuth.OAuth20
             throw new NotImplementedException();
         }
     }
-
+    /*
     public interface NondetOAuth20
     {
         SVX.SVX_MSG SVX_MSG();
-    }
+    }*/
 
     /***********************************************************/
     /*                          Parties                        */
@@ -329,53 +323,16 @@ class PoirotMain
 
     public abstract class AuthorizationServer : GenericAuth.AS
     {
-        public AuthorizationCodeRecs AuthorizationCodeRecs
-        {
-            get { return (AuthorizationCodeRecs)IdentityRecords; }
-            set { IdentityRecords = value; }
-        }
-
-        public AccessTokenRecs AccessTokenRecs;
-
-        public void init(AuthorizationCodeRecs AuthorizationCodeRecs1 = null, AccessTokenRecs AccessTokenRecs1 = null)
-        {
-            AuthorizationCodeRecs = AuthorizationCodeRecs1;
-            AccessTokenRecs = AccessTokenRecs1;
-        }
-
-        /*
-        //This method seems useless. Perhaps Daniel didn't understand that SignInIdP is implemnted in the base class.
-        //It is supposed to be a concrete method, not to be overridden.
-        SignInIdP(req: GenericAuth.SignInIdP_Req ): GenericAuth.SignInIdP_Resp_SignInRP_Req{
-            GenericAuth.GlobalObjects_base.SignInIdP_Req = req;
-
-            if (req == null) return null;
-            let req1: AuthorizationRequest = <AuthorizationRequest>req;
-            var _ID_Claim: GenericAuth.ID_Claim ;
-
-            switch (req1.response_type) {
-                case "code":
-                    _ID_Claim = createAuthorizationCodeEntry(req1);
-                    if (this.IdentityRecords.setEntry(req1.IdPSessionSecret, req1.Realm, _ID_Claim) == false)
-                        return null;
-                    break;
-                case "token":
-
-                    break;
-                default:
-                    return null;
-            }
-
-            return this.Redir(_ID_Claim.Redir_dest, _ID_Claim);
-        }
-        */
-        public override GenericAuth.ID_Claim Process_SignInIdP_req(GenericAuth.SignInIdP_Req req1)
+        public Dictionary<string, AuthorizationCodeEntry> AuthorizationCodes = new Dictionary<string, AuthorizationCodeEntry>();
+        public Dictionary<string, AccessTokenEntry> AccessTokens = new Dictionary<string, AccessTokenEntry>();
+        
+       public override GenericAuth.ID_Claim Process_SignInIdP_req(GenericAuth.SignInIdP_Req req1)
         {
             AuthorizationRequest req = (AuthorizationRequest)req1;
             switch (req.response_type)
             {
                 case "code":
-                    return createAuthorizationCodeEntry(req);
+                    return get_ID_Claim_From_Authorization_Request(req);
                 default:
                     return null;
             }
@@ -383,44 +340,47 @@ class PoirotMain
 
         protected AccessTokenResponse TokenEndpoint(AccessTokenRequest req)
         {
-            AccessTokenEntry AccessTokenEntry;
-            string IdPSessionSecret;
+            AuthorizationCodeEntry AuthorizationCodeEntry;
+
             if (req == null) return null;
             AccessTokenResponse resp = new AccessTokenResponse();
             //SVX_Ops.recordme(this, req, resp);
             switch (req.grant_type)
             {
                 case "authorization_code":
-                    IdPSessionSecret = AuthorizationCodeRecs.findISSByClientIDAndCode(req.client_id, req.code);
-                    if (IdPSessionSecret == null)
+                    AuthorizationCodeEntry = AuthorizationCodes[req.code];
+                    if (AuthorizationCodeEntry == null)
                         return null;
-                    AuthorizationCodeEntry AuthCodeEntry = (AuthorizationCodeEntry)AuthorizationCodeRecs.getEntry(IdPSessionSecret, req.client_id);
-                    if (AuthCodeEntry.redirect_uri != req.redirect_uri)
+                    if (AuthorizationCodeEntry.client_id != req.client_id)
                         return null;
-                    AccessTokenEntry = createAccessTokenEntry(AuthCodeEntry.redirect_uri, AuthCodeEntry.scope, AuthCodeEntry.state);
-                    if (AccessTokenRecs.setEntry(AccessTokenEntry.access_token, req.client_id, AccessTokenEntry) == false)
-                        return null;
-
-                    resp.access_token = AccessTokenEntry.access_token;
-                    resp.refresh_token = AccessTokenEntry.refresh_token;
+                    string AccessToken = createAccessToken(AuthorizationCodeEntry);
+                    resp.access_token = AccessToken;
+                    resp.refresh_token = "access_token";
+                    resp.expires_in = "";
+                    resp.refresh_token = null;
                     return resp;
                 case "refresh_token":
-                    IdPSessionSecret = AccessTokenRecs.findISSByClientIDAndRefreshToken(req.client_id, req.refresh_token);
-                    if (IdPSessionSecret == null)
-                        return null;
-                    AccessTokenEntry = (AccessTokenEntry)AccessTokenRecs.getEntry(IdPSessionSecret, req.client_id);
-                    AccessTokenEntry newAccessTokenEntry = createAccessTokenEntry(AccessTokenEntry.redirect_uri, AccessTokenEntry.scope, AccessTokenEntry.state);
-                    if (AccessTokenRecs.setEntry(newAccessTokenEntry.access_token, req.client_id, newAccessTokenEntry) == false)
-                        return null;
-                    resp.access_token = AccessTokenEntry.access_token;
-                    resp.refresh_token = AccessTokenEntry.refresh_token;
-                    return resp;
+                    return null;
                 default:
                     return null;
             }
         }
-        public abstract AuthorizationCodeEntry createAuthorizationCodeEntry(AuthorizationRequest req);
-        public abstract AccessTokenEntry createAccessTokenEntry(string redirect_uri, string scope, string state);
+
+        protected UserProfileResponse UserProfileEndpoint(UserProfileRequest req)
+        {
+            AccessTokenEntry AccessTokenEntry = AccessTokens[req.access_token];
+            if (AccessTokenEntry == null) return null;
+
+            //SVX_Ops.recordme(this, req, resp);
+            return createUserProfileResponse((OAuth20.ID_Claim)IdentityRecords.getEntry(AccessTokenEntry.IdPSessionSecret,AccessTokenEntry.client_id));
+        }
+        public abstract ID_Claim get_ID_Claim_From_Authorization_Request(AuthorizationRequest req);
+        public abstract string createAccessToken(AuthorizationCodeEntry AuthorizationCodeEntry);
+        public abstract UserProfileResponse createUserProfileResponse(ID_Claim ID_Claim);
     }
 
+    public interface NondetOAuth20 : GenericAuth.Nondet_Base
+    {
+
+    }
 }
