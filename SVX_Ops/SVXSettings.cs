@@ -14,6 +14,10 @@ namespace SVX
         public string MyPartyName;
         public string[] TrustedParties;
 
+        // Set this if you want to test the protocol before you have the
+        // verification working.
+        public bool BypassCertification = false;
+
         // We do not yet have a certification server compatible with the current
         // version of SVAuth, so better leave this set to true.
         public bool CertifyLocally;

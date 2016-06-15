@@ -216,10 +216,12 @@ namespace SVX
                 {
                     mr = methodSHADictKEYSHA[stripped_method];
                 }
+#if false
                 if (!Directory.Exists(Path.Combine(SVXSettings.settings.dllsFolder, mr.SHA_of_DLL)))
                 {
                     DLLServerDownloader.downloadDLLandDep(mr.SHA_of_DLL);
                 }
+#endif
 
                 mrList.Add(mr);
             }

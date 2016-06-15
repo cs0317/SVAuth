@@ -1,4 +1,5 @@
-﻿using SVX;
+﻿using Newtonsoft.Json;
+using SVX;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
+using System.Reflection;
 
 namespace SVX
 {
@@ -151,12 +153,36 @@ namespace SVX
             Process copyProcess = new Process();
             copyProcess.StartInfo.UseShellExecute = false;
             copyProcess.StartInfo.FileName = @"C:\WINDOWS\system32\xcopy.exe";
-            // vProgram-skeleton is relative to working directory, assumed to be SVAuth project root.
-            copyProcess.StartInfo.Arguments = @"/E /I vProgram-skeleton " + tempVProgramPath;
+            // vProgram-skeleton is relative to working directory, assumed to be
+            // SVAuth project root (not solution root).
+            copyProcess.StartInfo.Arguments = @"/E /I ..\vProgram-skeleton " + tempVProgramPath;
             copyProcess.Start();
             copyProcess.WaitForExit();
             if (copyProcess.ExitCode != 0)
                 throw new Exception("xcopy of vProgram skeleton failed");
+
+            // Simple string substitutor.  If you know a better library for
+            // this, be my guest. ~ t-mattmc@microsoft.com 2016-06-14
+            var substitutions = new Dictionary<string, string> {
+                { "POIROT_ROOT", SVXSettings.settings.PoirotRoot },
+                // This definitely needs escaping of backslashes.  May as well
+                // do the real thing rather than hard-coding it.
+                { "SVAUTH_PATH_JSON", JsonConvert.ToString(Path.GetDirectoryName(Directory.GetCurrentDirectory())) },
+                // For now, we build against the .NET Core runtime being used by
+                // the certifier.  Reconsider when we update the certification
+                // server.  Anyone know a proper API to get this?
+                { "DOTNET_CORE_LIBPATH", Path.GetDirectoryName(typeof(object).GetTypeInfo().Module.FullyQualifiedName) }
+            };
+            foreach (var relativePath in new List<string> { "global.json", "vProgram/run.bat" })
+            {
+                string path = Path.Combine(tempVProgramPath, relativePath);
+                string content = File.ReadAllText(path);
+                foreach (var kvp in substitutions)
+                {
+                    content = content.Replace("@" + kvp.Key + "@", kvp.Value);
+                }
+                File.WriteAllText(path, content);
+            }
 
 #if false
             Directory.CreateDirectory(path);

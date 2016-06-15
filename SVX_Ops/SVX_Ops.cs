@@ -33,6 +33,14 @@ namespace SVX
             myPartyName = SVXSettings.settings.MyPartyName;
             trustedParties = new HashSet<string>(SVXSettings.settings.TrustedParties);
 
+            // OK, we've proved the concept of a runtime upload, but now we have
+            // 3 DLLs.  Until we decide on the upload API, disable this and have
+            // the certifier grab the DLLs directly from the original solution.
+            // ~ t-mattmc@microsoft.com 2016-06-14
+#if true
+            // In case anything looks at the format.
+            singleDllNameAndSha = "SVAuth.0000000000000000000000000000000000000000";
+#else
             // For now, we assume all code used by the VProgram is in the same
             // assembly as SVX, and we upload this assembly every time the
             // process starts.
@@ -62,6 +70,7 @@ namespace SVX
             {
                 uploader.uploadDllDepData(name + ".dll", dllData, name + ".dep", depData, singleDllNameAndSha);
             }
+#endif
         }
 
         // There is currently no good way to get the caller's MethodInfo in .NET
@@ -139,7 +148,10 @@ namespace SVX
 
                 MethodHasher.saveMethod(mr);
 
-                uploader.uploadMethodRecord(Path.Combine(SVXSettings.settings.methodsFolder, mr.getSHA() + ".txt"), mr.getSHA());
+                if (!SVXSettings.settings.CertifyLocally)
+                {
+                    uploader.uploadMethodRecord(Path.Combine(SVXSettings.settings.methodsFolder, mr.getSHA() + ".txt"), mr.getSHA());
+                }
 
                 methodSHADict.AddOrUpdate(methodkey, mr, (k, v) => v);
                 methodSHADictKEYSHA.AddOrUpdate(mr.getSHA(), mr, (k, v) => v);
@@ -193,7 +205,11 @@ namespace SVX
             if (!SymTResultCache.ContainsKey(msg.SymT))
             {
                 bool resultOfVerification;
-                if (SVXSettings.settings.CertifyLocally)
+                if (SVXSettings.settings.BypassCertification)
+                {
+                    resultOfVerification = true;
+                }
+                else if (SVXSettings.settings.CertifyLocally)
                 {
                     List<MethodRecord> mrList = MethodHasher.getDehashedRecords(methodSHADictKEYSHA, msg);
 

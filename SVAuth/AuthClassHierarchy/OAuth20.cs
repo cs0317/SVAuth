@@ -165,11 +165,6 @@ namespace SVAuth.OAuth20
             throw new NotImplementedException();
         }
     }
-    /*
-    public interface NondetOAuth20
-    {
-        SVX.SVX_MSG SVX_MSG();
-    }*/
 
     /***********************************************************/
     /*                          Parties                        */
