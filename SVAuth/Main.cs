@@ -23,7 +23,6 @@ namespace SVAuth
                 // be specified in config.json.  The "Launch URL" in the project
                 // properties should match. ~ t-mattmc@microsoft.com 2016-06-01
                 Config.Init();
-
                 SVX.SVX_Ops.Init();
 
                 // TODO: Implement SSL.
@@ -62,11 +61,6 @@ namespace SVAuth
     // XXX This is not a very meaningful name in our context.
     public class Startup
     {
-
-        public Startup()
-        {
-            Utils.InitForReal();
-        }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940

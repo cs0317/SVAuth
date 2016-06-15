@@ -28,6 +28,8 @@ namespace SVX
 
         public static void Init()
         {
+            Utils.InitForReal();
+
             myPartyName = SVXSettings.settings.MyPartyName;
             trustedParties = new HashSet<string>(SVXSettings.settings.TrustedParties);
 

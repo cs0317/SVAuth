@@ -275,7 +275,7 @@ namespace SVAuth.OAuth20
                 LoginCallbackRequestType);
             var _AccessTokenRequest = _createAccessTokenRequest(inputMSG);
             var rawReq = marshalCreateAccessTokenRequest(_AccessTokenRequest);
-            var RawAccessTokenResponse = await Utils.PerformHttpRequestAsync(rawReq);
+            var RawAccessTokenResponse = await SVX.Utils.PerformHttpRequestAsync(rawReq);
             Trace.Write("Got AccessTokenResponse");
 
             SVX.SVX_MSG inputMSG2 = (SVX.SVX_MSG)JsonConvert.DeserializeObject(
@@ -285,7 +285,7 @@ namespace SVAuth.OAuth20
                 nameof(DummyConcreteAuthorizationServer.DummyGetAccessToken), "AS", false, false);
             var _UserProfileRequest = _createUserProfileRequest(inputMSG2);
             var rawReq2 = marshalCreateUserProfileRequest(_UserProfileRequest);
-            var RawUserProfileResponse = await Utils.PerformHttpRequestAsync(rawReq2);
+            var RawUserProfileResponse = await SVX.Utils.PerformHttpRequestAsync(rawReq2);
             Trace.Write("Got UserProfileResponse");
 
             SVX.SVX_MSG inputMSG3 = (SVX.SVX_MSG)JsonConvert.DeserializeObject(

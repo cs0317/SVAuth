@@ -13,6 +13,8 @@ namespace SVAuth
 {
     public static class Utils
     {
+        // Currently, nothing here requires initialization. ~ t-mattmc@microsoft.com 2016-06-14
+
         public static JObject ReflectObject(object o)
         {
             var writer = new JTokenWriter();
@@ -54,23 +56,6 @@ namespace SVAuth
             return content.ReadAsStringAsync().Result;
         }
 
-        // XXX Better place to put it?
-        // XXX Where to dispose?
-        static HttpClient httpClient;
-
-        // Should only be called by Startup.
-        public static void InitForReal()
-        {
-            httpClient = new HttpClient();
-        }
-
-        public static async Task<HttpResponseMessage> PerformHttpRequestAsync(HttpRequestMessage req)
-        {
-            HttpResponseMessage resp = await httpClient.SendAsync(req);
-            resp.EnsureSuccessStatusCode();
-            return resp;
-        }
-
         public static async Task AbandonAndCreateSessionAsync(GenericAuth.AuthenticationConclusion conclusion, HttpContext context)
         {
             Console.WriteLine(JsonConvert.SerializeObject(conclusion));
@@ -81,12 +66,12 @@ namespace SVAuth
                 "/CreateNewSession." + Config.config.WebAppSettings.platform.fileExtension;
 
             var abandonSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);
-            await PerformHttpRequestAsync(abandonSessionRequest);
+            await SVX.Utils.PerformHttpRequestAsync(abandonSessionRequest);
             Trace.Write("Abandoned session");
 
             var createSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);
             createSessionRequest.Content = ObjectToUrlEncodedContent(conclusion);
-            HttpResponseMessage createSessionResponse = await PerformHttpRequestAsync(createSessionRequest);
+            HttpResponseMessage createSessionResponse = await SVX.Utils.PerformHttpRequestAsync(createSessionRequest);
             Trace.Write("Created session");
 
             var setcookie = createSessionResponse.Headers.GetValues("Set-Cookie");

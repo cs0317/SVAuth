@@ -49,7 +49,7 @@ namespace SVX
 
             var request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Content = body;
-            HttpResponseMessage webResponse = SVAuth.Utils.PerformHttpRequestAsync(request).Result;
+            HttpResponseMessage webResponse = Utils.PerformHttpRequestAsync(request).Result;
             var content = webResponse.Content.Headers.ContentDisposition;
             return (content != null && content.FileName.Equals("verified.txt"));
         }
@@ -67,7 +67,7 @@ namespace SVX
 
             var request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Content = body;
-            SVAuth.Utils.PerformHttpRequestAsync(request).Wait();
+            Utils.PerformHttpRequestAsync(request).Wait();
         }
 
         public void uploadDllDep(string dllFilePath, string depFilePath, string sha)
@@ -92,7 +92,7 @@ namespace SVX
 
             var request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Content = body;
-            SVAuth.Utils.PerformHttpRequestAsync(request).Wait();
+            Utils.PerformHttpRequestAsync(request).Wait();
         }
     }
 
@@ -115,7 +115,7 @@ namespace SVX
                 Directory.CreateDirectory(path);
             }
 
-            HttpResponseMessage response = SVAuth.Utils.PerformHttpRequestAsync(new HttpRequestMessage(HttpMethod.Get, url)).Result;
+            HttpResponseMessage response = Utils.PerformHttpRequestAsync(new HttpRequestMessage(HttpMethod.Get, url)).Result;
             var content = response.Content;
             // This is pretty sloppy... we could stream, but I don't care. ~ t-mattmc@microsoft.com 2016-06-03
             File.WriteAllBytes(Path.Combine(path, content.Headers.ContentDisposition.FileName), content.ReadAsByteArrayAsync().Result);
