@@ -1,0 +1,14 @@
+# Start an EditorConfig file for code style settings that differ from the Visual
+# Studio defaults, or among the projects I work on.  To use these settings in
+# Visual Studio, install the EditorConfig extension
+# (https://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328).
+# This appears to be the preferred solution for Visual Studio
+# (http://stackoverflow.com/q/1212092), though I haven't researched it
+# thoroughly.  The main thing to watch out for is that opening a solution changes
+# the global code style settings and closing it does not restore them (at least
+# in my tests).
+# ~ t-mattmc@microsoft.com 2016-06-16
+
+[*.cs]
+indent_style = space
+indent_size = 4
