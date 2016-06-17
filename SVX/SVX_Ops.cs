@@ -50,7 +50,7 @@ namespace SVX
             singleDllNameAndSha = name + "." + sha;
 
             // Note, if the assembly was actually an EXE, this code will rename
-            // it to DLL.  See if Poirot is happy with that. ~ Matt 2016-06-03
+            // it to DLL.  See if Poirot is happy with that. ~ t-mattmc@microsoft.com 2016-06-03
             if (SVXSettings.settings.CertifyLocally)
             {
                 // Yes, this one wants just the sha and adds the name itself.  Go figure.
@@ -70,12 +70,12 @@ namespace SVX
         // uniqueness) anyway.  Eventually there may be a caller info attribute
         // that gives us the MethodInfo directly
         // (https://github.com/dotnet/roslyn/issues/351).
-        // ~ Matt 2016-06-03
+        // ~ t-mattmc@microsoft.com 2016-06-03
 
         // TODO: Consider moving recordme to a base class of the relevant
         // objects so that callers don't have to write the "this" argument
         // explicitly.  That will mean fixing GetRootClassName.
-        // ~ Matt 2016-06-03
+        // ~ t-mattmc@microsoft.com 2016-06-03
         public static void recordme(Object this_, SVX_MSG in_msg, SVX_MSG out_msg, bool signed, [CallerMemberName] string methodName = null)
         {
             recordCustom(this_, in_msg, out_msg, methodName, myPartyName, signed, false);
@@ -96,7 +96,7 @@ namespace SVX
             // support private methods, we'd have to search the base classes
             // manually.
             // http://stackoverflow.com/questions/2267277/get-private-properties-method-of-base-class-with-reflection
-            // ~ Matt 2016-06-07
+            // ~ t-mattmc@microsoft.com 2016-06-07
             var mi = o.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             recordCustom(o, in_msg, out_msg, mi, partyName, signed, server_to_server);
         }
@@ -164,7 +164,7 @@ namespace SVX
                     /* IIUC, this means that the last two steps of the SymT
                      * (representing the server-to-server request and response)
                      * /both/ get double parentheses, indicating that this
-                     * party trusts both of them. ~ Matt 2016-06-07
+                     * party trusts both of them. ~ t-mattmc@microsoft.com 2016-06-07
                      */
                     in_msg_symT = '(' + in_msg_symT.Substring(0, idx) + '(' + in_msg_symT.Substring(idx, in_msg_symT.Length - idx) + "))";
             }
@@ -173,7 +173,7 @@ namespace SVX
         }
 
         // I'm unsure why we are using the root class, but just port for now.
-        // ~ Matt 2016-06-02
+        // ~ t-mattmc@microsoft.com 2016-06-02
         public static string GetRootClassName(Type type)
         {
             while (type.GetTypeInfo().BaseType != typeof(Object))
@@ -297,7 +297,7 @@ namespace SVX
         }
 
         //this function converts a piece of code to a hash
-        // Looks unused ~ Matt 2016-06-03
+        // Looks unused ~ t-mattmc@microsoft.com 2016-06-03
 #if false
         public static string code_to_hash(string code)
         {

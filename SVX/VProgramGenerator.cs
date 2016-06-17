@@ -76,7 +76,7 @@ namespace SVX
                             sb.Append(" = (" + mr.argType + ")" + records[i + 1].returnType[0] + (variableC - 1).ToString() + ";\n");
                             // There can be a collision between the first letter of mr.argType and
                             // records[i + 1].returnType, so always use unique variable numbers.
-                            // ~ Matt 2016-06-07
+                            // ~ t-mattmc@microsoft.com 2016-06-07
                             variableC++;
                         }
 
@@ -143,7 +143,7 @@ namespace SVX
             // contains project subdirectories "vProgram" and "SVAuth", because
             // .NET Core requires that DLLs be wrapped in their own project to
             // be referenced, and I had no luck with the "SVAuth" project as a
-            // subdirectory of "vProgram". ~ Matt 2016-06-10
+            // subdirectory of "vProgram". ~ t-mattmc@microsoft.com 2016-06-10
 
             // Copy the vProgram skeleton.
             // http://stackoverflow.com/a/58820
@@ -177,7 +177,7 @@ namespace SVX
         // This variant appears to be a little more sophisticated than the
         // original EditCSproj variant that didn't take a newVPath, which I
         // ended up using below.  Keep it here until we are sure we don't need
-        // any of the code for handling multiple DLLs. ~ Matt 2016-06-10
+        // any of the code for handling multiple DLLs. ~ t-mattmc@microsoft.com 2016-06-10
 #if false
         public static void EditCSproj(List<MethodRecord> methodList, string newVPath)
         {
@@ -308,7 +308,7 @@ namespace SVX
             // easiest; I can write code to reference it via a relative path
             // instead if we care.)  We can clean up this code once we are more
             // sure what we want for the vProgram project setup.
-            // ~ Matt 2016-06-10
+            // ~ t-mattmc@microsoft.com 2016-06-10
 
             Dictionary<string, string> dllPathDict = new Dictionary<string, string>();
             HashSet<string> dllNameSet = new HashSet<string>();
@@ -347,7 +347,7 @@ namespace SVX
             }
 
 #if false
-            // Why should this failure ever have been ignored? ~ Matt 2016-06-07
+            // Why should this failure ever have been ignored? ~ t-mattmc@microsoft.com 2016-06-07
             if (!File.Exists(projectFile))
             {
                 throw new Exception("vProgram project file does not exist.");
@@ -410,7 +410,7 @@ namespace SVX
 
             string output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
-            Console.Write(output);  // Ideally this would be streamed. ~ Matt 2016-06-06
+            Console.Write(output);  // Ideally this would be streamed. ~ t-mattmc@microsoft.com 2016-06-06
 
             if (output.IndexOf("Program has no bugs") > 0)
                 return true;

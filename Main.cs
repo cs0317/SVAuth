@@ -16,12 +16,12 @@ namespace SVAuth
         {
             // FIXME: The debugger is not breaking on uncaught exceptions like
             // it normally does by default.  For now, we have this try block.
-            // You can set a breakpoint on the rethrow. ~ Matt 2016-06-01
+            // You can set a breakpoint on the rethrow. ~ t-mattmc@microsoft.com 2016-06-01
             try
             {
                 // For now, to simplify matters, the authentication agent port must
                 // be specified in config.json.  The "Launch URL" in the project
-                // properties should match. ~ Matt 2016-06-01
+                // properties should match. ~ t-mattmc@microsoft.com 2016-06-01
                 Config.Init();
 
                 SVX.SVX_Ops.Init();
@@ -31,7 +31,7 @@ namespace SVAuth
                 var host = new WebHostBuilder()
                     // The scheme specified here appears to make no difference
                     // to the server, but it's displayed on the console, so
-                    // let's set it correctly. ~ Matt 2016-06-02
+                    // let's set it correctly. ~ t-mattmc@microsoft.com 2016-06-02
                     .UseUrls(Config.config.AuthJSSettings.scheme + "://localhost:" + Config.config.AuthJSSettings.port + "/")
                     .UseKestrel((kestrelOptions) => {
                         switch (Config.config.AuthJSSettings.scheme)

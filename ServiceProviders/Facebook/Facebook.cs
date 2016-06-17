@@ -87,7 +87,7 @@ namespace SVAuth.ServiceProviders.Facebook
         {
             OAuth20.AccessTokenRequest _AccessTokenRequest = new OAuth20.AccessTokenRequest();
             // How does this ever pass verification against the modeled IdP
-            // without setting grant_type?? ~ Matt 2016-06-01
+            // without setting grant_type?? ~ t-mattmc@microsoft.com 2016-06-01
             _AccessTokenRequest.client_id = client_id;
             _AccessTokenRequest.code = ((OAuth20.AuthorizationResponse)inputMSG).code;
             _AccessTokenRequest.redirect_uri = return_uri;
@@ -97,7 +97,7 @@ namespace SVAuth.ServiceProviders.Facebook
 
         public override HttpRequestMessage marshalCreateAccessTokenRequest(OAuth20.AccessTokenRequest _AccessTokenRequest)
         {
-            // TODO (Matt): Replace with ObjectToForm once we confirm whether
+            // TODO (t-mattmc@microsoft.com): Replace with ObjectToForm once we confirm whether
             // the grant_type field should be included?
             var RawRequestUrl = TokenEndpointUrl + "?client_id=" + _AccessTokenRequest.client_id + "&redirect_uri=" + _AccessTokenRequest.redirect_uri
                 + "&client_secret=" + _AccessTokenRequest.client_secret + "&code=" + _AccessTokenRequest.code;

@@ -10,7 +10,7 @@ namespace SVAuth
     public class Config
     {
         // Ideally we'd like this to be read-only, but it's not worth writing a
-        // lot of boilerplate code just to ensure that. ~ Matt 2016-06-01
+        // lot of boilerplate code just to ensure that. ~ t-mattmc@microsoft.com 2016-06-01
         public static Config config;
 
         // Individual setting groups:
@@ -53,7 +53,7 @@ namespace SVAuth
         }
 
         // These are currently set in the config loader, not in config.json.
-        // Harmless to expose them to the deserializer? ~ Matt 2016-06-01
+        // Harmless to expose them to the deserializer? ~ t-mattmc@microsoft.com 2016-06-01
         public string rootUrl;
         public string MainPageUrl;
 
@@ -64,7 +64,7 @@ namespace SVAuth
             // XXX Assumes that the working directory is the project root.  (The
             // original Auth.JS had the same limitation.)  We could consider
             // finding the project root via Environment.GetCommandLineArgs()[0].
-            // ~ Matt 2016-06-01
+            // ~ t-mattmc@microsoft.com 2016-06-01
             config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("config.json"));
             config.rootUrl = config.AuthJSSettings.scheme + "://" + config.WebAppSettings.hostname + ':' + config.AuthJSSettings.port + '/';
             config.MainPageUrl = "http://" + config.WebAppSettings.hostname + ':' + config.WebAppSettings.port + '/' + "Auth.JS/platforms/aspx/AllInOne.aspx";

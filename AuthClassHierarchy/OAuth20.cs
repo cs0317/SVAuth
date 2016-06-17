@@ -28,7 +28,7 @@ namespace SVAuth.OAuth20
         public string redirect_uri = null;
         public string scope;
         // Nothing references this.  Just remove it rather than exclude it from
-        // serialization? ~ Matt 2016-06-01
+        // serialization? ~ t-mattmc@microsoft.com 2016-06-01
         //public string state = null;
     }
 
@@ -143,7 +143,7 @@ namespace SVAuth.OAuth20
     }
     */
     // For interim use testing SVX_OPS.  Obviously this won't pass verification.
-    // ~ Matt 2016-06-07
+    // ~ t-mattmc@microsoft.com 2016-06-07
     public class DummyConcreteAuthorizationServer : GenericAuth.AS
     {
         public SVX.SVX_MSG DummyGetAccessToken(SVX.SVX_MSG input)
@@ -191,7 +191,7 @@ namespace SVAuth.OAuth20
             get { return return_uri; }
             set { return_uri = value; }
         }
-        // Why are the parameters optional?  I don't see how this class can work without them. ~ Matt 2016-05-31
+        // Why are the parameters optional?  I don't see how this class can work without them. ~ t-mattmc@microsoft.com 2016-05-31
         public Client(string client_id1 = null, string return_uri1 = null, string client_secret1 = null, string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null)
         {
             client_id = client_id1;
@@ -243,7 +243,7 @@ namespace SVAuth.OAuth20
             // The input is the UserProfileResponse, which is server-to-server.
             //
             // The conclusion is consumed locally.  I think treating it as
-            // signed will give the right result. ~ Matt 2016-06-06
+            // signed will give the right result. ~ t-mattmc@microsoft.com 2016-06-06
             SVX.SVX_Ops.recordme(this, inputMSG, outputMSG, true, true);
             return outputMSG;
         }
@@ -269,7 +269,7 @@ namespace SVAuth.OAuth20
             // control of unmarshalling, just like marshalling.  The original
             // parseHttpMessage supports both requests (query) and responses,
             // but here we know which is which.
-            // ~ Matt 2016-06-01
+            // ~ t-mattmc@microsoft.com 2016-06-01
             SVX.SVX_MSG inputMSG = (SVX.SVX_MSG)Utils.UnreflectObject(
                 new JObject(context.Request.Query.Select((q) => new JProperty(q.Key, q.Value.Single()))),
                 LoginCallbackRequestType);

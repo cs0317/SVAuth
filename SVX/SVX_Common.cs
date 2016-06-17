@@ -8,7 +8,7 @@ namespace SVX
         // actually send these fields to them.
         // NOTE: This is a behavior change for Facebook
         // marshalCreateAuthorizationRequest, but should be OK.
-        // ~ Matt 2016-06-01
+        // ~ t-mattmc@microsoft.com 2016-06-01
         [JsonIgnore]
         public string SymT = "";
         [JsonIgnore]

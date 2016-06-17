@@ -41,7 +41,7 @@ namespace SVX
             var body = new MultipartFormDataContent();
             // See if we can get away without specifying "application/octet-stream".
             // If we need to specify it, set a header on the ByteArrayContent.
-            // ~ Matt 2016-06-03
+            // ~ t-mattmc@microsoft.com 2016-06-03
             body.Add(new ByteArrayContent(assertionData), "file", assertionFileName);
             body.Add(new ByteArrayContent(programFileData), "file2", programFileName);
 
@@ -117,7 +117,7 @@ namespace SVX
 
             HttpResponseMessage response = SVAuth.Utils.PerformHttpRequestAsync(new HttpRequestMessage(HttpMethod.Get, url)).Result;
             var content = response.Content;
-            // This is pretty sloppy... we could stream, but I don't care. ~ Matt 2016-06-03
+            // This is pretty sloppy... we could stream, but I don't care. ~ t-mattmc@microsoft.com 2016-06-03
             File.WriteAllBytes(Path.Combine(path, content.Headers.ContentDisposition.FileName), content.ReadAsByteArrayAsync().Result);
         }
 

@@ -31,7 +31,7 @@ namespace SVX
         // I'm not sure how this setting worked in the original AuthPlatelet,
         // but here it's /just/ a parent directory for temporary VPrograms.  The
         // VProgram skeleton is bundled with SVAuth.  It doesn't seem there's
-        // any benefit to allowing this to be customized? ~ Matt 2016-06-10
+        // any benefit to allowing this to be customized? ~ t-mattmc@microsoft.com 2016-06-10
         public string VProgramPath => Path.Combine(SVXFolderPath, "vProgram");
 
         // If true, keep temporary VPrograms after verification for debugging
@@ -46,7 +46,7 @@ namespace SVX
         // This is so much more sensible than duplicating the logic many places
         // in SVX_Ops.  We can make these nonpublic if we care.  Ideally we'd
         // have a framework to memoize these and take care of the lifetime
-        // issues, but it's just not worth worrying about. ~ Matt 2016-06-03
+        // issues, but it's just not worth worrying about. ~ t-mattmc@microsoft.com 2016-06-03
         public string methodsFolder => Path.Combine(SVXFolderPath, "methods");
         public string dllsFolder => Path.Combine(SVXFolderPath, "dlls");
     }

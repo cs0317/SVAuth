@@ -5,7 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Threading.Tasks;
 
 // Keep a namespace structure mirroring the TypeScript external modules, for the moment.
-// ~ Matt 2016-05-31
+// ~ t-mattmc@microsoft.com 2016-05-31
 namespace SVAuth.GenericAuth
 {
     /***********************************************************/
@@ -15,7 +15,7 @@ namespace SVAuth.GenericAuth
     {
         // Ignoring this is right for the one caller so far, in Facebook.  When
         // we have another caller that needs something different, we'll figure
-        // out the best design. ~ Matt 2016-06-01
+        // out the best design. ~ t-mattmc@microsoft.com 2016-06-01
         [JsonIgnore]
         public string IdPSessionSecret;
         // Serialize the concrete properties instead.
@@ -76,7 +76,7 @@ namespace SVAuth.GenericAuth
     public class AuthenticationConclusion : SVX.SVX_MSG
     {
         // Should this rather be an abstract property for consistency with the
-        // design of the other abstract messages? ~ Matt 2016-06-01
+        // design of the other abstract messages? ~ t-mattmc@microsoft.com 2016-06-01
         public string UserID;
     }
 
@@ -98,7 +98,7 @@ namespace SVAuth.GenericAuth
              * completely nullify SVX in a way that's hard to notice.  Of
              * course, we have more to do to try to prevent other similarly
              * devastating mistakes in setting up SVX.
-             * ~ Matt 2016-06-07
+             * ~ t-mattmc@microsoft.com 2016-06-07
              */
             var verifiedMsg = new SVX.SVX_MSG();
             SVX.SVX_Ops.recordCustom(this, conclusion, verifiedMsg, nameof(VerifyAuthentication),
@@ -121,7 +121,7 @@ namespace SVAuth.GenericAuth
         public static AS AS;
         public static RP RP;
 
-        // TODO (Matt): Rename to NecessaryCondition1.
+        // TODO (t-mattmc@microsoft.com): Rename to NecessaryCondition1.
         public static void BadPersonCannotSignInAsGoodPerson(AuthenticationConclusion conclusion)
         {
             ID_Claim ID_claim = AS.IdentityRecords.getEntry(
