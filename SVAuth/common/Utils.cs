@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -32,17 +33,26 @@ namespace SVAuth
         public static HttpContent ObjectToUrlEncodedContent(object o)
         {
             return new FormUrlEncodedContent(
-                ReflectObject(o).Properties()
-                .Select((prop) => new KeyValuePair<string, string>(prop.Name, prop.Value.ToString())));
+                ReflectObject(o).Properties().Select(JPropertyToKvp));
+        }
+        // BCT WORKAROUND: lambdas ~ Matt 2016-06-15
+        private static KeyValuePair<string, string> JPropertyToKvp(JProperty prop)
+        {
+            return new KeyValuePair<string, string>(prop.Name, prop.Value.ToString());
         }
         public static string ObjectToUrlEncodedString(object o)
         {
             // Should never actually block.
             return ObjectToUrlEncodedContent(o).ReadAsStringAsync().Result;
         }
-        public static T ObjectFromForm<T>(string formText)
+        public static object ObjectFromQuery(IQueryCollection query, Type type)
         {
-            return UnreflectObject<T>(null);
+            return UnreflectObject(new JObject(query.Select(KvpToJProperty)), type);
+        }
+        // BCT WORKAROUND: lambdas ~ Matt 2016-06-15
+        private static JProperty KvpToJProperty(KeyValuePair<string, StringValues> q)
+        {
+            return new JProperty(q.Key, q.Value.Single());
         }
 
         public static string ReadStream(Stream stream)

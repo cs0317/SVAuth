@@ -15,11 +15,9 @@ like more information.
 
 ## Status notes
 
-* Facebook SSO works if you comment out the SVX_Ops.Certify call.
-* The vProgram for Facebook SSO has some missing pieces.
-* SVX gets as far as calling Bytecode Translator but triggers an internal error
-  in Bytecode Translator. We're not bothering to investigate the error until the
-  vProgram stabilizes a bit.
+* Facebook SSO works.
+* Verification passes, but we think it's more likely that the code contains
+  contradictory `assume`s than that it is actually correct!
 
 ## Earlier repositories (discontinued)
 

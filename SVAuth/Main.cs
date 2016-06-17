@@ -7,6 +7,7 @@ using System;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.Server.Kestrel;
 
 namespace SVAuth
 {
@@ -25,25 +26,17 @@ namespace SVAuth
                 Config.Init();
                 SVX.SVX_Ops.Init();
 
-                // TODO: Implement SSL.
+                // BCT WORKAROUND: "new T[] { ... }" and params-style method
+                // calls (which generate something similar) ~ Matt 2016-06-15
+                var urls = new string[1];
+                urls[0] = Config.config.AuthJSSettings.scheme + "://localhost:" + Config.config.AuthJSSettings.port + "/";
 
                 var host = new WebHostBuilder()
                     // The scheme specified here appears to make no difference
                     // to the server, but it's displayed on the console, so
                     // let's set it correctly. ~ t-mattmc@microsoft.com 2016-06-02
-                    .UseUrls(Config.config.AuthJSSettings.scheme + "://localhost:" + Config.config.AuthJSSettings.port + "/")
-                    .UseKestrel((kestrelOptions) => {
-                        switch (Config.config.AuthJSSettings.scheme)
-                        {
-                            case "https":
-                                kestrelOptions.UseHttps(new X509Certificate2("ssl-cert/certkey.p12"));
-                                break;
-                            case "http":
-                                break;
-                            default:
-                                throw new Exception("Unknown scheme " + Config.config.AuthJSSettings.scheme);
-                        }
-                    })
+                    .UseUrls(urls)
+                    .UseKestrel(ConfigureKestrel)
                     .UseContentRoot(Directory.GetCurrentDirectory())
                     .UseStartup<Startup>()
                     .Build();
@@ -54,6 +47,21 @@ namespace SVAuth
             {
                 Console.WriteLine(e);
                 throw;
+            }
+        }
+
+        // BCT WORKAROUND: lambdas ~ Matt 2016-06-15
+        private static void ConfigureKestrel(KestrelServerOptions kestrelOptions)
+        {
+            switch (Config.config.AuthJSSettings.scheme)
+            {
+                case "https":
+                    kestrelOptions.UseHttps(new X509Certificate2("ssl-cert/certkey.p12"));
+                    break;
+                case "http":
+                    break;
+                default:
+                    throw new Exception("Unknown scheme " + Config.config.AuthJSSettings.scheme);
             }
         }
     }
@@ -79,14 +87,17 @@ namespace SVAuth
             }
 
             var routeBuilder = new RouteBuilder(app);
-            routeBuilder.MapGet("", (context) =>
-            {
-                context.Response.Redirect(Config.config.MainPageUrl + "?ReturnPort=" + Config.config.AuthJSSettings.port);
-                return Task.CompletedTask;
-            });
+            routeBuilder.MapGet("", MainPageHandler);
             ServiceProviders.Facebook.Facebook_RP.Init(routeBuilder);
 
             app.UseRouter(routeBuilder.Build());
+        }
+
+        // BCT WORKAROUND: lambdas ~ Matt 2016-06-15
+        private static Task MainPageHandler(HttpContext context)
+        {
+            context.Response.Redirect(Config.config.MainPageUrl + "?ReturnPort=" + Config.config.AuthJSSettings.port);
+            return Task.CompletedTask;
         }
     }
 }

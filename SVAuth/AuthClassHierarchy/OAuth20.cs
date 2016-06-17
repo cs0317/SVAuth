@@ -265,9 +265,8 @@ namespace SVAuth.OAuth20
             // parseHttpMessage supports both requests (query) and responses,
             // but here we know which is which.
             // ~ t-mattmc@microsoft.com 2016-06-01
-            SVX.SVX_MSG inputMSG = (SVX.SVX_MSG)Utils.UnreflectObject(
-                new JObject(context.Request.Query.Select((q) => new JProperty(q.Key, q.Value.Single()))),
-                LoginCallbackRequestType);
+            SVX.SVX_MSG inputMSG = (SVX.SVX_MSG)Utils.ObjectFromQuery(
+                context.Request.Query, LoginCallbackRequestType);
             var _AccessTokenRequest = _createAccessTokenRequest(inputMSG);
             var rawReq = marshalCreateAccessTokenRequest(_AccessTokenRequest);
             var RawAccessTokenResponse = await SVX.Utils.PerformHttpRequestAsync(rawReq);
@@ -374,8 +373,13 @@ class PoirotMain
         public abstract UserProfileResponse createUserProfileResponse(ID_Claim ID_Claim);
     }
 
-    public interface NondetOAuth20 : GenericAuth.Nondet_Base
+    // BCT WORKAROUND: define everything here instead of using inheritance.
+    // ~ Matt 2016-06-15
+    public interface NondetOAuth20 /*: GenericAuth.Nondet_Base*/
     {
-
+        int Int();
+        string String();
+        bool Bool();
+        SVX.SVX_MSG SVX_MSG();
     }
 }

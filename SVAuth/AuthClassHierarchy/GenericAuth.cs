@@ -131,6 +131,9 @@ namespace SVAuth.GenericAuth
         }
     }
 
+    // Currently unused due to BCT workaround on OAuth20.NondetOAuth20.
+    // ~ Matt 2016-06-15
+#if false
     public interface Nondet_Base
     {
         int Int();
@@ -138,4 +141,5 @@ namespace SVAuth.GenericAuth
         bool Bool();
         SVX.SVX_MSG SVX_MSG();
     }
+#endif
 }
