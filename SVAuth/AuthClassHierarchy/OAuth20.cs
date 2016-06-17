@@ -352,13 +352,8 @@ namespace SVAuth.OAuth20
         public abstract UserProfileResponse createUserProfileResponse(ID_Claim ID_Claim);
     }
 
-    // BCT WORKAROUND: define everything here instead of using inheritance.
-    // ~ t-mattmc@microsoft.com 2016-06-15
-    public interface NondetOAuth20 /*: GenericAuth.Nondet_Base*/
+    public interface NondetOAuth20 : GenericAuth.Nondet_Base
     {
-        int Int();
-        string String();
-        bool Bool();
-        SVX.SVX_MSG SVX_MSG();
+
     }
 }
