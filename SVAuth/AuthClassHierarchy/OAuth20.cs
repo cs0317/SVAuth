@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Reflection;
+using System.IO;
 
 namespace SVAuth.OAuth20
 {
@@ -288,29 +289,7 @@ namespace SVAuth.OAuth20
                 nameof(DummyConcreteAuthorizationServer.DummyGetUserProfile), "AS", false, false);
             var conclusion = _createConclusion(inputMSG3);
 
-            SVX.VProgramGenerator.Program_cs = @"
-namespace SVAuth.VProgram {
-
-class GlobalObjectsForSVX : GenericAuth.GlobalObjects_base
-{
-    static public void init()
-    {
-        AS = new OAuth20.DummyConcreteAuthorizationServer();
-        RP = new ServiceProviders.Facebook.Facebook_RP();
-    }
-}
-class PoirotMain
-{
-    public static OAuth20.NondetOAuth20 Nondet;
-
-    static void Main()
-    {
-        GlobalObjectsForSVX.init();
-        SynthesizedPortion.SynthesizedSequence();
-    }
-}
-
-}";
+            SVX.VProgramGenerator.Program_cs = File.ReadAllText("AuthClassHierarchy/OAuth20_VProgram.cs");
             await AuthenticationDone(conclusion, context);
         }
     }

@@ -30,7 +30,7 @@
     "preserveCompilationContext": true,
     "compile": {
       "exclude": [
-        "vProgram-skeleton"
+        "AuthClassHierarchy/*_VProgram.cs"
       ]
     }
   },
