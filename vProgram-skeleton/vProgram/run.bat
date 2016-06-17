@@ -1,6 +1,6 @@
 REM @echo off
 REM REM comments preferred: http://stackoverflow.com/a/12407934
-REM ~ Matt 2016-06-14
+REM ~ t-mattmc@microsoft.com 2016-06-14
 
 SET POIROT_ROOT=@POIROT_ROOT@
 SET model_name=vProgram
@@ -25,7 +25,7 @@ copy pub\runtimes\win7\lib\netstandard1.3\*.dll pub
 
 REM TODO: Decide where the modified BCT should live.
 call %POIROT_ROOT%\BCT-matt\BytecodeTranslator.exe /e:1 /ib /whole /heap:splitFields /libpaths "@DOTNET_CORE_LIBPATH@" pub\vProgram.dll pub\SVAuth.dll pub\SVX_Common.dll
-REM TODO: Move PoirotMain back out of the namespace? ~ Matt 2016-06-15
+REM TODO: Move PoirotMain back out of the namespace? ~ t-mattmc@microsoft.com 2016-06-15
 call %POIROT_ROOT%\Corral\BctCleanup.exe %model_name%.bpl %clean_name%.bpl /main:SVAuth.VProgram.PoirotMain.Main /include:poirot_stubs.bpl
 call %POIROT_ROOT%\Corral\corral.exe %clean_name%.bpl /recursionBound:2 /k:1 /main:SVAuth.VProgram.PoirotMain.Main /tryCTrace /include:poirot_stubs.bpl
 

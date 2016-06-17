@@ -35,7 +35,7 @@ namespace SVAuth
             return new FormUrlEncodedContent(
                 ReflectObject(o).Properties().Select(JPropertyToKvp));
         }
-        // BCT WORKAROUND: lambdas ~ Matt 2016-06-15
+        // BCT WORKAROUND: lambdas ~ t-mattmc@microsoft.com 2016-06-15
         private static KeyValuePair<string, string> JPropertyToKvp(JProperty prop)
         {
             return new KeyValuePair<string, string>(prop.Name, prop.Value.ToString());
@@ -49,7 +49,7 @@ namespace SVAuth
         {
             return UnreflectObject(new JObject(query.Select(KvpToJProperty)), type);
         }
-        // BCT WORKAROUND: lambdas ~ Matt 2016-06-15
+        // BCT WORKAROUND: lambdas ~ t-mattmc@microsoft.com 2016-06-15
         private static JProperty KvpToJProperty(KeyValuePair<string, StringValues> q)
         {
             return new JProperty(q.Key, q.Value.Single());

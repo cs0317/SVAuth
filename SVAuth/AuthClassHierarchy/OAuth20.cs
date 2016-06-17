@@ -353,7 +353,7 @@ namespace SVAuth.OAuth20
     }
 
     // BCT WORKAROUND: define everything here instead of using inheritance.
-    // ~ Matt 2016-06-15
+    // ~ t-mattmc@microsoft.com 2016-06-15
     public interface NondetOAuth20 /*: GenericAuth.Nondet_Base*/
     {
         int Int();

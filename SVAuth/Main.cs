@@ -27,7 +27,7 @@ namespace SVAuth
                 SVX.SVX_Ops.Init();
 
                 // BCT WORKAROUND: "new T[] { ... }" and params-style method
-                // calls (which generate something similar) ~ Matt 2016-06-15
+                // calls (which generate something similar) ~ t-mattmc@microsoft.com 2016-06-15
                 var urls = new string[1];
                 urls[0] = Config.config.AuthJSSettings.scheme + "://localhost:" + Config.config.AuthJSSettings.port + "/";
 
@@ -50,7 +50,7 @@ namespace SVAuth
             }
         }
 
-        // BCT WORKAROUND: lambdas ~ Matt 2016-06-15
+        // BCT WORKAROUND: lambdas ~ t-mattmc@microsoft.com 2016-06-15
         private static void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
             switch (Config.config.AuthJSSettings.scheme)
@@ -93,7 +93,7 @@ namespace SVAuth
             app.UseRouter(routeBuilder.Build());
         }
 
-        // BCT WORKAROUND: lambdas ~ Matt 2016-06-15
+        // BCT WORKAROUND: lambdas ~ t-mattmc@microsoft.com 2016-06-15
         private static Task MainPageHandler(HttpContext context)
         {
             context.Response.Redirect(Config.config.MainPageUrl + "?ReturnPort=" + Config.config.AuthJSSettings.port);
