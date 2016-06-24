@@ -37,7 +37,7 @@ namespace SVAuth.GenericAuth
 
     public abstract class ID_Claim
     {
-        public abstract string UserID { get; }
+        public abstract string GetUserID(string UserID_Field_Name);
         public abstract string Redir_dest { get; }
     }
 
@@ -127,7 +127,7 @@ namespace SVAuth.GenericAuth
             ID_Claim ID_claim = AS.IdentityRecords.getEntry(
                                         SignInIdP_Req.IdPSessionSecret,
                                         RP.Realm);
-            Contract.Assert(ID_claim.Redir_dest == RP.Domain && ID_claim.UserID == conclusion.UserID);
+            Contract.Assert(ID_claim.Redir_dest == RP.Domain && ID_claim.GetUserID("email") == conclusion.UserID);
         }
     }
 

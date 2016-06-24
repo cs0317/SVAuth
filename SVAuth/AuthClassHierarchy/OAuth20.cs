@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Reflection;
+using BytecodeTranslator.Diagnostics;
 
 namespace SVAuth.OAuth20
 {
@@ -73,7 +74,7 @@ namespace SVAuth.OAuth20
         public string token_type;
         public string expires_in;
         public string refresh_token = null;
-        public AccessTokenResponse(AccessTokenResponse srcObj = null)
+       /* public AccessTokenResponse(AccessTokenResponse srcObj = null)
         {
             if (srcObj != null)
             {
@@ -84,7 +85,7 @@ namespace SVAuth.OAuth20
                 SymT = srcObj.SymT;
                 SignedBy = srcObj.SignedBy;
             }
-        }
+        }*/
     }
 
     public class UserProfileRequest : SVX.SVX_MSG
@@ -109,7 +110,6 @@ namespace SVAuth.OAuth20
     {
         public string IdPSessionSecret;
         public string client_id;
-        public string redirect_uri;
         public string scope;
     }
 
@@ -117,13 +117,11 @@ namespace SVAuth.OAuth20
     {
         public string IdPSessionSecret;
         public string client_id;
-        public string redirect_uri;
         public string scope;
     }
 
     public abstract class ID_Claim : GenericAuth.ID_Claim
     {
-        string IdP_UID, email, FullName;
         string redirect_uri;
         public override string Redir_dest
         {
@@ -180,17 +178,17 @@ namespace SVAuth.OAuth20
         public string client_secret;
         public string TokenEndpointUrl;
         public string AuthorizationEndpointUrl;
-        public string return_uri;
+        public string redirect_uri;
         public override string Domain
         {
-            get { return return_uri; }
-            set { return_uri = value; }
+            get { return redirect_uri; }
+            set { redirect_uri = value; }
         }
         // Why are the parameters optional?  I don't see how this class can work without them. ~ t-mattmc@microsoft.com 2016-05-31
-        public Client(string client_id1 = null, string return_uri1 = null, string client_secret1 = null, string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null)
+        public Client(string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null, string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null)
         {
             client_id = client_id1;
-            return_uri = return_uri1;
+            redirect_uri = redierct_uri1;
             client_secret = client_secret1;
             AuthorizationEndpointUrl = AuthorizationEndpointUrl1;
             TokenEndpointUrl = TokenEndpointUrl1;
@@ -290,13 +288,13 @@ namespace SVAuth.OAuth20
 
             SVX.VProgramGenerator.Program_cs = @"
 namespace SVAuth.VProgram {
-
+using System.Diagnostics.Contracts;
 class GlobalObjectsForSVX : GenericAuth.GlobalObjects_base
 {
-    static public void init()
+    static public void init(OAuth20.NondetOAuth20 Nondet)
     {
-        AS = new OAuth20.DummyConcreteAuthorizationServer();
-        RP = new ServiceProviders.Facebook.Facebook_RP();
+        AS = new ServiceProviders.Facebook.Facebook_IdP_Default();
+        RP = new ServiceProviders.Facebook.Facebook_RP(Nondet.String(), Nondet.String(),Nondet.String(), Nondet.String(), Nondet.String(), Nondet.String());
     }
 }
 class PoirotMain
@@ -305,7 +303,10 @@ class PoirotMain
 
     static void Main()
     {
-        GlobalObjectsForSVX.init();
+        GlobalObjectsForSVX.init(Nondet);
+        SVX.SVX_MSG m = Nondet.SVX_MSG();
+        Contract.Assume(m.GetType() == typeof(GenericAuth.SignInIdP_Req));
+        GlobalObjectsForSVX.SignInIdP_Req = (GenericAuth.SignInIdP_Req)m;    
         SynthesizedPortion.SynthesizedSequence();
     }
 }
@@ -317,9 +318,13 @@ class PoirotMain
 
     public abstract class AuthorizationServer : GenericAuth.AS
     {
+        static NondetOAuth20 NondetOAuth20;
         public Dictionary<string, AuthorizationCodeEntry> AuthorizationCodes = new Dictionary<string, AuthorizationCodeEntry>();
         public Dictionary<string, AccessTokenEntry> AccessTokens = new Dictionary<string, AccessTokenEntry>();
-        
+        public AuthorizationServer()
+        {
+            AuthorizationCodes[NondetOAuth20.String()] = NondetOAuth20.AuthorizationCodeEntry();
+        }
        public override GenericAuth.ID_Claim Process_SignInIdP_req(GenericAuth.SignInIdP_Req req1)
         {
             AuthorizationRequest req = (AuthorizationRequest)req1;
@@ -332,11 +337,13 @@ class PoirotMain
             }
         }
 
-        protected AccessTokenResponse TokenEndpoint(AccessTokenRequest req)
+        virtual public AccessTokenResponse TokenEndpoint(SVX.SVX_MSG req1)
         {
+           //System.Diagnostics.Contracts.Contract.Assert(false);
             AuthorizationCodeEntry AuthorizationCodeEntry;
-
+            AccessTokenRequest req = (AccessTokenRequest)req1;
             if (req == null) return null;
+            //System.Diagnostics.Contracts.Contract.Assert(false);
             AccessTokenResponse resp = new AccessTokenResponse();
             //SVX_Ops.recordme(this, req, resp);
             switch (req.grant_type)
@@ -346,6 +353,9 @@ class PoirotMain
                     if (AuthorizationCodeEntry == null)
                         return null;
                     if (AuthorizationCodeEntry.client_id != req.client_id)
+                        return null;
+                    if (IdentityRecords.getEntry(AuthorizationCodeEntry.IdPSessionSecret, AuthorizationCodeEntry.client_id).Redir_dest
+                            != req.redirect_uri)
                         return null;
                     string AccessToken = createAccessToken(AuthorizationCodeEntry);
                     resp.access_token = AccessToken;
@@ -360,8 +370,11 @@ class PoirotMain
             }
         }
 
-        protected UserProfileResponse UserProfileEndpoint(UserProfileRequest req)
+        public UserProfileResponse UserProfileEndpoint(SVX.SVX_MSG req1)
         {
+
+            UserProfileRequest req = (UserProfileRequest)req1;
+            if (req == null) return null;
             AccessTokenEntry AccessTokenEntry = AccessTokens[req.access_token];
             if (AccessTokenEntry == null) return null;
 
@@ -381,5 +394,6 @@ class PoirotMain
         string String();
         bool Bool();
         SVX.SVX_MSG SVX_MSG();
+        AuthorizationCodeEntry AuthorizationCodeEntry();
     }
 }
