@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Reflection;
-using BytecodeTranslator.Diagnostics;
 
 namespace SVAuth.OAuth20
 {
@@ -288,13 +287,13 @@ namespace SVAuth.OAuth20
 
             SVX.VProgramGenerator.Program_cs = @"
 namespace SVAuth.VProgram {
-using System.Diagnostics.Contracts;
+
 class GlobalObjectsForSVX : GenericAuth.GlobalObjects_base
 {
-    static public void init(OAuth20.NondetOAuth20 Nondet)
+    static public void init()
     {
-        AS = new ServiceProviders.Facebook.Facebook_IdP_Default();
-        RP = new ServiceProviders.Facebook.Facebook_RP(Nondet.String(), Nondet.String(),Nondet.String(), Nondet.String(), Nondet.String(), Nondet.String());
+        AS = new OAuth20.DummyConcreteAuthorizationServer();
+        RP = new ServiceProviders.Facebook.Facebook_RP();
     }
 }
 class PoirotMain
@@ -303,10 +302,7 @@ class PoirotMain
 
     static void Main()
     {
-        GlobalObjectsForSVX.init(Nondet);
-        SVX.SVX_MSG m = Nondet.SVX_MSG();
-        Contract.Assume(m.GetType() == typeof(GenericAuth.SignInIdP_Req));
-        GlobalObjectsForSVX.SignInIdP_Req = (GenericAuth.SignInIdP_Req)m;    
+        GlobalObjectsForSVX.init();
         SynthesizedPortion.SynthesizedSequence();
     }
 }
@@ -386,14 +382,11 @@ class PoirotMain
         public abstract UserProfileResponse createUserProfileResponse(ID_Claim ID_Claim);
     }
 
-    // BCT WORKAROUND: define everything here instead of using inheritance.
-    // ~ Matt 2016-06-15
-    public interface NondetOAuth20 /*: GenericAuth.Nondet_Base*/
+    public interface NondetOAuth20 : GenericAuth.Nondet_Base
     {
         int Int();
         string String();
         bool Bool();
         SVX.SVX_MSG SVX_MSG();
-        AuthorizationCodeEntry AuthorizationCodeEntry();
     }
 }
