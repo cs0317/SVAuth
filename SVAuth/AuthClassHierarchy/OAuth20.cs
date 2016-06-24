@@ -388,5 +388,6 @@ class PoirotMain
         string String();
         bool Bool();
         SVX.SVX_MSG SVX_MSG();
+        AuthorizationCodeEntry AuthorizationCodeEntry();
     }
 }
