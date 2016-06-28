@@ -1,15 +1,17 @@
 // This file is excluded from the build of the SVAuth project, but it's still a
 // C# file so we get syntax highlighting, etc.
 
+using System.Diagnostics.Contracts;
+
 namespace SVAuth.VProgram
 {
 
     class GlobalObjectsForSVX : GenericAuth.GlobalObjects_base
     {
-        static public void init()
+        static public void init(OAuth20.NondetOAuth20 Nondet)
         {
-            AS = new OAuth20.DummyConcreteAuthorizationServer();
-            RP = new ServiceProviders.Facebook.Facebook_RP();
+            AS = new ServiceProviders.Facebook.Facebook_IdP_Default();
+            RP = new ServiceProviders.Facebook.Facebook_RP(Nondet.String(), Nondet.String(), Nondet.String(), Nondet.String(), Nondet.String(), Nondet.String());
         }
     }
     class PoirotMain
@@ -22,7 +24,10 @@ namespace SVAuth.VProgram
 
         static void Main()
         {
-            GlobalObjectsForSVX.init();
+            GlobalObjectsForSVX.init(Nondet);
+            SVX.SVX_MSG m = Nondet.SVX_MSG();
+            Contract.Assume(m.GetType() == typeof(GenericAuth.SignInIdP_Req));
+            GlobalObjectsForSVX.SignInIdP_Req = (GenericAuth.SignInIdP_Req)m;
             SynthesizedPortion.SynthesizedSequence();
         }
     }

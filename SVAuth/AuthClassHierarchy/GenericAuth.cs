@@ -101,7 +101,7 @@ namespace SVAuth.GenericAuth
              * ~ t-mattmc@microsoft.com 2016-06-07
              */
             var verifiedMsg = new SVX.SVX_MSG();
-            SVX.SVX_Ops.recordCustom(this, conclusion, verifiedMsg, nameof(VerifyAuthentication),
+            SVX.SVX_Ops.recordCustom(GetType(), conclusion, verifiedMsg, nameof(VerifyAuthentication),
                 SVX.SVXSettings.settings.MyPartyName, false, false);
             if (!SVX.SVX_Ops.Certify(verifiedMsg))
             {

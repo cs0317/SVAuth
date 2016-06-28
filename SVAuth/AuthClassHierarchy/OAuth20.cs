@@ -193,6 +193,10 @@ namespace SVAuth.OAuth20
             TokenEndpointUrl = TokenEndpointUrl1;
         }
 
+        protected abstract Type ModelAuthorizationServerType { get; }
+        // Get the content for Program.cs in the VProgram.
+        protected abstract string VProgramMainContent { get; }
+
         /*** Methods about AuthorizationRequest ***/
         public abstract AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG);
         public AuthorizationRequest _createAuthorizationRequest(SVX.SVX_MSG inputMSG)
@@ -272,8 +276,8 @@ namespace SVAuth.OAuth20
             SVX.SVX_MSG inputMSG2 = (SVX.SVX_MSG)JsonConvert.DeserializeObject(
                 Utils.ReadContent(RawAccessTokenResponse.Content), AccessTokenResponseType);
             // TODO: Figure out the correct receiver and method name.
-            SVX.SVX_Ops.recordCustom(new DummyConcreteAuthorizationServer(), _AccessTokenRequest, inputMSG2,
-                nameof(DummyConcreteAuthorizationServer.DummyGetAccessToken), "AS", false, false);
+            SVX.SVX_Ops.recordCustom(ModelAuthorizationServerType, _AccessTokenRequest, inputMSG2,
+                nameof(AuthorizationServer.TokenEndpoint), "AS", false, false);
             var _UserProfileRequest = _createUserProfileRequest(inputMSG2);
             var rawReq2 = marshalCreateUserProfileRequest(_UserProfileRequest);
             var RawUserProfileResponse = await SVX.Utils.PerformHttpRequestAsync(rawReq2);
@@ -281,33 +285,11 @@ namespace SVAuth.OAuth20
 
             SVX.SVX_MSG inputMSG3 = (SVX.SVX_MSG)JsonConvert.DeserializeObject(
                 Utils.ReadContent(RawUserProfileResponse.Content), UserProfileResponseType);
-            SVX.SVX_Ops.recordCustom(new DummyConcreteAuthorizationServer(), _UserProfileRequest, inputMSG3,
-                nameof(DummyConcreteAuthorizationServer.DummyGetUserProfile), "AS", false, false);
+            SVX.SVX_Ops.recordCustom(ModelAuthorizationServerType, _UserProfileRequest, inputMSG3,
+                nameof(AuthorizationServer.UserProfileEndpoint), "AS", false, false);
             var conclusion = _createConclusion(inputMSG3);
 
-            SVX.VProgramGenerator.Program_cs = @"
-namespace SVAuth.VProgram {
-
-class GlobalObjectsForSVX : GenericAuth.GlobalObjects_base
-{
-    static public void init()
-    {
-        AS = new OAuth20.DummyConcreteAuthorizationServer();
-        RP = new ServiceProviders.Facebook.Facebook_RP();
-    }
-}
-class PoirotMain
-{
-    public static OAuth20.NondetOAuth20 Nondet;
-
-    static void Main()
-    {
-        GlobalObjectsForSVX.init();
-        SynthesizedPortion.SynthesizedSequence();
-    }
-}
-
-}";
+            SVX.VProgramGenerator.Program_cs = VProgramMainContent;
             await AuthenticationDone(conclusion, context);
         }
     }

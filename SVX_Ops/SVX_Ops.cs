@@ -89,18 +89,18 @@ namespace SVX
         // ~ t-mattmc@microsoft.com 2016-06-03
         public static void recordme(Object this_, SVX_MSG in_msg, SVX_MSG out_msg, bool signed, [CallerMemberName] string methodName = null)
         {
-            recordCustom(this_, in_msg, out_msg, methodName, myPartyName, signed, false);
+            recordCustom(this_.GetType(), in_msg, out_msg, methodName, myPartyName, signed, false);
         }
         public static void recordme(Object this_, SVX_MSG in_msg, SVX_MSG out_msg, bool signed, bool server_to_server, [CallerMemberName] string methodName = null)
         {
-            recordCustom(this_, in_msg, out_msg, methodName, myPartyName, signed, server_to_server);
+            recordCustom(this_.GetType(), in_msg, out_msg, methodName, myPartyName, signed, server_to_server);
         }
         public static void recordme(Object this_, SVX_MSG in_msg, SVX_MSG out_msg, [CallerMemberName] string methodName = null)
         {
-            recordCustom(this_, in_msg, out_msg, methodName, myPartyName, false, false);
+            recordCustom(this_.GetType(), in_msg, out_msg, methodName, myPartyName, false, false);
         }
 
-        public static void recordCustom(Object o, SVX_MSG in_msg, SVX_MSG out_msg, string methodName, string partyName, bool signed, bool server_to_server)
+        public static void recordCustom(Type objT, SVX_MSG in_msg, SVX_MSG out_msg, string methodName, string partyName, bool signed, bool server_to_server)
         {
             // This will not find private methods of a superclass.  For now, we
             // require that methods be at least internal.  If we wanted to
@@ -108,13 +108,12 @@ namespace SVX
             // manually.
             // http://stackoverflow.com/questions/2267277/get-private-properties-method-of-base-class-with-reflection
             // ~ t-mattmc@microsoft.com 2016-06-07
-            var mi = o.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            recordCustom(o, in_msg, out_msg, mi, partyName, signed, server_to_server);
+            var mi = objT.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            recordCustom(objT, in_msg, out_msg, mi, partyName, signed, server_to_server);
         }
 
-        public static void recordCustom(Object o, SVX_MSG in_msg, SVX_MSG out_msg, MethodInfo mi, string partyName, bool signed, bool server_to_server)
+        public static void recordCustom(Type objT, SVX_MSG in_msg, SVX_MSG out_msg, MethodInfo mi, string partyName, bool signed, bool server_to_server)
         {
-            Type objT = o.GetType();
             var t = mi.DeclaringType;
 
             string rootClass = GetRootClassName(t);

@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using BytecodeTranslator.Diagnostics;
+using System.IO;
 
 namespace SVAuth.ServiceProviders.Facebook
 {
@@ -56,6 +57,9 @@ namespace SVAuth.ServiceProviders.Facebook
         {
             UserProfileUrl = UserProfileUrl1;
         }
+
+        protected override Type ModelAuthorizationServerType => typeof(Facebook_IdP_Default);
+        protected override string VProgramMainContent => File.ReadAllText("ServiceProviders/Facebook/VProgram.cs");
 
         /*** implementing the methods for AuthorizationRequest ***/
         public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG)
