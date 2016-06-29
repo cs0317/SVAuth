@@ -31,7 +31,7 @@
     "preserveCompilationContext": true,
     "compile": {
       "exclude": [
-        "AuthClassHierarchy/*_VProgram.cs"
+        "ServiceProviders/*/VProgram.cs"
       ]
     }
   },
