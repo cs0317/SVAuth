@@ -24,30 +24,43 @@ namespace SVAuth
                 // be specified in config.json.  The "Launch URL" in the project
                 // properties should match. ~ t-mattmc@microsoft.com 2016-06-01
                 Config.Init();
-                SVX.SVX_Ops.Init();
+                // SVX2 has no initialization yet.
+                //SVX.SVX_Ops.Init();
 
-                // BCT WORKAROUND: "new T[] { ... }" and params-style method
-                // calls (which generate something similar) ~ t-mattmc@microsoft.com 2016-06-15
-                var urls = new string[1];
-                urls[0] = Config.config.AuthJSSettings.scheme + "://localhost:" + Config.config.AuthJSSettings.port + "/";
-
-                var host = new WebHostBuilder()
-                    // The scheme specified here appears to make no difference
-                    // to the server, but it's displayed on the console, so
-                    // let's set it correctly. ~ t-mattmc@microsoft.com 2016-06-02
-                    .UseUrls(urls)
-                    .UseKestrel(ConfigureKestrel)
-                    .UseContentRoot(Directory.GetCurrentDirectory())
-                    .UseStartup<Startup>()
-                    .Build();
-
-                host.Run();
+                //RunServer();
+                SVX2_Test.Test();
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
                 throw;
             }
+            finally
+            {
+                // This is ridiculous, but it's not worth researching a better way.
+                Console.WriteLine("Press Enter when finished.");
+                Console.ReadLine();
+            }
+        }
+
+        private static void RunServer()
+        {
+            // BCT WORKAROUND: "new T[] { ... }" and params-style method
+            // calls (which generate something similar) ~ t-mattmc@microsoft.com 2016-06-15
+            var urls = new string[1];
+            urls[0] = Config.config.AuthJSSettings.scheme + "://localhost:" + Config.config.AuthJSSettings.port + "/";
+
+            var host = new WebHostBuilder()
+                // The scheme specified here appears to make no difference
+                // to the server, but it's displayed on the console, so
+                // let's set it correctly. ~ t-mattmc@microsoft.com 2016-06-02
+                .UseUrls(urls)
+                .UseKestrel(ConfigureKestrel)
+                .UseContentRoot(Directory.GetCurrentDirectory())
+                .UseStartup<Startup>()
+                .Build();
+
+            host.Run();
         }
 
         // BCT WORKAROUND: lambdas ~ t-mattmc@microsoft.com 2016-06-15
