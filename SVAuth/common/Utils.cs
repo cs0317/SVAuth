@@ -49,6 +49,10 @@ namespace SVAuth
         {
             return UnreflectObject(new JObject(query.Select(KvpToJProperty)), type);
         }
+        public static object ObjectFromFormPost(IFormCollection form, Type type)
+        {
+            return UnreflectObject(new JObject(form.Select(KvpToJProperty)), type);
+        }
         // BCT WORKAROUND: lambdas ~ t-mattmc@microsoft.com 2016-06-15
         private static JProperty KvpToJProperty(KeyValuePair<string, StringValues> q)
         {

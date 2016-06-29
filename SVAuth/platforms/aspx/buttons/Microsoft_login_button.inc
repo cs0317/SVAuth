@@ -13,11 +13,11 @@
 
 		  document.cookie="LoginPageUrl=; expires=Thu, 01-Jan-70 00:00:01 GMT;";
 		  document.cookie="LoginPageUrl="+location+";path=/";
-          window.location=("https://"+location.host+":"+ReturnPort+"/login/Microsoft");	
+          window.location=("http://"+location.host+":"+ReturnPort+"/login/Microsoft");	
 	  }
     </script>
 
-    <img OnClick="Microsoft_login();" src="/Auth.JS/images/Microsoft_login.jpg" width=100 height=40 oncontextmenu="copyToClipboard('\<!-- #include virtual =&#34;','\\buttons\\Microsoft_login_button.inc\&#34; --\>');return false;"/>
+    <img OnClick="Microsoft_login();" src="/SVAuth/images/Microsoft_login.jpg" width=100 height=40 oncontextmenu="copyToClipboard('\<!-- #include virtual =&#34;','\\buttons\\Microsoft_login_button.inc\&#34; --\>');return false;"/>
 <% } %>
 
 <%--  end of Facebook login button --%>

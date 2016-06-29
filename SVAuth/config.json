@@ -1,7 +1,7 @@
 {
   "__SECTION_1__": "This section configures the web server.",
   "WebAppSettings": {
-    "hostname": "a.local.test",
+    "hostname": "localhost",
     "scheme": "http",
     "port": "80",
     "platform": {
@@ -16,19 +16,23 @@
   },
 
   "SessionIDCookieProperties": {
-    "domain": "a.local.test",
+    "domain": "localhost",
     "persistent": false
   },
 
   "__SECTION_2__": "This section provides the registration info of each 3rd-party service.",
   "AppRegistration": {
     "Facebook": {
-      "appId": "460545824136907",
-      "appSecret": "ef3bd2f183e07b694645c94afbc1549b"
+      "appId": "987401994700129",
+      "appSecret": "29bef3a574f74b02195afb53afd3f152"
     },
     "Microsoft": {
-      "clientId": "000000004418D51C",
-      "clientSecret": "LdngRmwoVTfcQXU4HvEkb9c"
+      "appId": "2423c459-e1ae-4d41-937b-b2b765e406a3",
+      "appSecret": "8Xxo7vObusv0d2zXSySaLMy"
+    },
+    "Google": {
+      "clientID": "303824059686-i6ef58367t5i50k8j6bbarvhgudu4nes.apps.googleusercontent.com",
+      "clientSecret": "XX9_EcCsMx1gtZhJv_3vdIMg"
     }
   },
 

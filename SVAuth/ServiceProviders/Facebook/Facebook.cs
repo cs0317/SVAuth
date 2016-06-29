@@ -44,15 +44,15 @@ namespace SVAuth.ServiceProviders.Facebook
                     return email;
                 case "FB_ID":
                     return FB_ID;
-                default: return "jfkdjfkldj";
+                default: return "blah-blah-blah";
             }
         }
     }
     public class Facebook_RP : OAuth20.Client
     {
         public string UserProfileUrl;
-        public Facebook_RP(string client_id1 = null, string return_uri1 = null, string client_secret1 = null, string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string UserProfileUrl1 = null)
-        : base(client_id1, return_uri1, client_secret1, AuthorizationEndpointUrl1, TokenEndpointUrl1)
+        public Facebook_RP(string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null, string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string UserProfileUrl1 = null)
+        : base(client_id1, redierct_uri1, client_secret1, AuthorizationEndpointUrl1, TokenEndpointUrl1)
         {
             UserProfileUrl = UserProfileUrl1;
         }
@@ -61,14 +61,10 @@ namespace SVAuth.ServiceProviders.Facebook
         public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG)
         {
             FBAuthorizationRequest _FBAuthorizationRequest = new FBAuthorizationRequest();
-            _FBAuthorizationRequest.client_id = client_id;
-            
+            _FBAuthorizationRequest.client_id = client_id;      
             _FBAuthorizationRequest.response_type = "code";
-
             _FBAuthorizationRequest.scope = "user_about_me email";
-
             _FBAuthorizationRequest.redirect_uri = redirect_uri;
-
             _FBAuthorizationRequest.type = "web_server";
             return _FBAuthorizationRequest;
         }
@@ -137,7 +133,7 @@ namespace SVAuth.ServiceProviders.Facebook
                 "https://graph.facebook.com/v2.3/oauth/access_token",
                 "https://graph.facebook.com/v2.5/me"
                 );
-            routeBuilder.MapRoute("login/Facebook", RP.AuthorizationCodeFlow_Login_StartAsync);
+            routeBuilder.MapRoute("login/Facebook", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/Facebook", RP.AuthorizationCodeFlow_Login_CallbackAsync);
         }
     }

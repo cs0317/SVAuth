@@ -49,7 +49,8 @@ namespace SVAuth
         public class AppRegistration_
         {
             public ServiceProviders.Facebook.FBAppRegistration Facebook;
-            //public ServiceProviders.Microsoft.MSAppRegistration Microsoft;
+            public ServiceProviders.Microsoft.MSAppRegistration Microsoft;
+            public ServiceProviders.Google.GGAppRegistration Google;
         }
 
         // These are currently set in the config loader, not in config.json.
@@ -67,7 +68,7 @@ namespace SVAuth
             // ~ t-mattmc@microsoft.com 2016-06-01
             config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("config.json"));
             config.rootUrl = config.AuthJSSettings.scheme + "://" + config.WebAppSettings.hostname + ':' + config.AuthJSSettings.port + '/';
-            config.MainPageUrl = "http://" + config.WebAppSettings.hostname + ':' + config.WebAppSettings.port + '/' + "Auth.JS/platforms/aspx/AllInOne.aspx";
+            config.MainPageUrl = "http://" + config.WebAppSettings.hostname + ':' + config.WebAppSettings.port + '/' + "SVAuth/platforms/aspx/AllInOne.aspx";
 
             SVX.SVXSettings.settings = config.SVXSettings;
         }
