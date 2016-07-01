@@ -21,7 +21,7 @@ REM CCI doesn't know how to search this subdirectory structure, so copy the
 REM versions of DLLs we want into the same directory.  Better ideas?
 REM Note: DLLs in "native" subdirectories appear to contain native code, not
 REM MSIL, so they are irrelevant to us.
-copy pub\runtimes\win7\lib\netstandard1.3\*.dll pub
+copy pub\runtimes\win\lib\netstandard1.3\*.dll pub
 
 REM TODO: Decide where the modified BCT should live.
 call %POIROT_ROOT%\BCT-matt\BytecodeTranslator.exe /e:1 /ib /whole /heap:splitFields /libpaths "@DOTNET_CORE_LIBPATH@" pub\vProgram.dll pub\SVAuth.dll pub\SVX_Common.dll
