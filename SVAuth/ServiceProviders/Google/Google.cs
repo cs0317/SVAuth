@@ -30,9 +30,11 @@ namespace SVAuth.ServiceProviders.Google
     public class Google_RP: OIDC10.RelyingParty
     {
         public string UserProfileUrl,SignatureValidationUrl;
+
         public Google_RP(string client_id1, string return_uri1, string client_secret1, string AuthorizationEndpointUrl1, string UserProfileUrl1, string SignatureValidationUrl1)
         : base(client_id1, return_uri1, client_secret1, AuthorizationEndpointUrl1, null)
         {
+            BypassCertification = true;
             UserProfileUrl = UserProfileUrl1;
             SignatureValidationUrl = SignatureValidationUrl1;
         }

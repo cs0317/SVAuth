@@ -32,6 +32,7 @@ namespace SVAuth.ServiceProviders.Microsoft
         public Microsoft_RP(string client_id1, string redierct_uri1, string client_secret1, string AuthorizationEndpointUrl1, string TokenEndpointUrl1)
         : base(client_id1, redierct_uri1, client_secret1, AuthorizationEndpointUrl1, TokenEndpointUrl1)
         {
+            BypassCertification = true;
         }
         public static void Init(RouteBuilder routeBuilder)
         {
