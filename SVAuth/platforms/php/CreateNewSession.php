@@ -19,7 +19,6 @@ SESSID <?php  echo $_COOKIE["PHPSESSID"]; ?>
 		unset($_SESSION['UserID']);
 		unset($_SESSION['FullName']);
 		unset($_SESSION['email']);
-		session_unregister(); 
 		session_destroy();
 		echo "after abandon",$_COOKIE["PHPSESSID"];
 		return;

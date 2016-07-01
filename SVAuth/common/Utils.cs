@@ -76,7 +76,7 @@ namespace SVAuth
             //return;
 
             string createSessionEndpoint =
-                "http://localhost/Auth.JS/platforms/" + Config.config.WebAppSettings.platform.name +
+                "http://localhost/SVAuth/platforms/" + Config.config.WebAppSettings.platform.name +
                 "/CreateNewSession." + Config.config.WebAppSettings.platform.fileExtension;
 
             var abandonSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);

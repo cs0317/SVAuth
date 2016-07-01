@@ -1,6 +1,5 @@
 <?php
 session_start();
-session_unregister(); 
 session_destroy();
 ?>
 Hello <?php echo $_GET['UserID']; ?> <br>
