@@ -62,15 +62,6 @@ namespace SVAuth.OIDC10
             AuthorizationEndpointUrl = AuthorizationEndpointUrl1;
             TokenEndpointUrl = TokenEndpointUrl1;
         }
-        /*    SVX.SVX_MSG ParseAccessTokenResponse_NotVlidation(HttpResponseMessage RawAccessTokenResponse)
-            {
-                string rawJWT = RawAccessTokenResponse.Content.ReadAsStringAsync().Result;
-                JObject jObject = JObject.Parse(rawJWT);
-                string decoded = JwtCore.JsonWebToken.Decode(jObject["id_token"].ToString(), "", false);
-                TokenResponse TokenResponse= new TokenResponse();
-                TokenResponse.token_type = jObject["token_type"];
-
-            }*/
         protected abstract void set_parse_id_token(SVX.SVX_MSG msg, JObject id_token);
         public override async Task AuthorizationCodeFlow_Login_CallbackAsync(HttpContext context)
         {
@@ -103,6 +94,8 @@ namespace SVAuth.OIDC10
                 context.Response.Redirect(context.Request.Cookies["LoginPageUrl"]);
                 return;
             }
+            Trace.Write("Got Valid AuthenticationResponse");
+
             GenericAuth.AuthenticationConclusion conclusion = _createConclusion(inputMSG);
             if (conclusion == null)
             {

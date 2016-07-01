@@ -74,11 +74,6 @@ namespace SVAuth.ServiceProviders.Microsoft
 
         public override HttpRequestMessage marshalCreateAccessTokenRequest(OAuth20.AccessTokenRequest _AccessTokenRequest)
         {
-            // TODO (t-mattmc@microsoft.com): Replace with ObjectToForm once we confirm whether
-            // the grant_type field should be included?
-            /* var RawRequestUrl = TokenEndpointUrl + "?client_id=" + _AccessTokenRequest.client_id + "&redirect_uri=" + _AccessTokenRequest.redirect_uri
-                 + "&client_secret=" + _AccessTokenRequest.client_secret + "&code=" + _AccessTokenRequest.code;
-             return new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);*/
             HttpRequestMessage requestMessage = new HttpRequestMessage();
             requestMessage.Method = HttpMethod.Post;
             requestMessage.Content = Utils.ObjectToUrlEncodedContent(_AccessTokenRequest);
@@ -102,6 +97,8 @@ namespace SVAuth.ServiceProviders.Microsoft
             AuthConclusion.FullName = ((JwtToken)jwtToken).name;
             return AuthConclusion;
         }
+        protected override string VProgramMainContent => null;
+        protected override Type ModelAuthorizationServerType => typeof(OAuth20.AuthorizationServer);
     }
 }
 

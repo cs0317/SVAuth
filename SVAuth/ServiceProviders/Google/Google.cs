@@ -100,6 +100,8 @@ namespace SVAuth.ServiceProviders.Google
              AuthConclusion.FullName = getFullName(((OIDC10.AuthenticationResponse_with_id_token)inputMSG).access_token);
              return AuthConclusion;
         }
+        protected override string VProgramMainContent => null;
+        protected override Type ModelAuthorizationServerType => typeof(OAuth20.AuthorizationServer);
     }
 }
 

@@ -68,7 +68,8 @@ namespace SVAuth
             // ~ t-mattmc@microsoft.com 2016-06-01
             config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("config.json"));
             config.rootUrl = config.AuthJSSettings.scheme + "://" + config.WebAppSettings.hostname + ':' + config.AuthJSSettings.port + '/';
-            config.MainPageUrl = "http://" + config.WebAppSettings.hostname + ':' + config.WebAppSettings.port + '/' + "SVAuth/platforms/aspx/AllInOne.aspx";
+            config.MainPageUrl = "http://" + config.WebAppSettings.hostname + ':' + config.WebAppSettings.port + '/' + "SVAuth/platforms/"
+                    + config.WebAppSettings.platform.name +"/AllInOne."+ config.WebAppSettings.platform.fileExtension;
 
             SVX.SVXSettings.settings = config.SVXSettings;
         }

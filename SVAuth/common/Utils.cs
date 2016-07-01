@@ -80,10 +80,17 @@ namespace SVAuth
                 "/CreateNewSession." + Config.config.WebAppSettings.platform.fileExtension;
 
             var abandonSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);
-            await SVX.Utils.PerformHttpRequestAsync(abandonSessionRequest);
+            abandonSessionRequest.Headers.Add("Cookie",
+                "ASP.NET_SessionId="+context.Request.Cookies["ASP.NET_SessionId"]  
+                   + ";" +
+                "PHPSESSID=" + context.Request.Cookies["PHPSESSID"]
+                );
+
+            HttpResponseMessage abandonSessionResponse = await SVX.Utils.PerformHttpRequestAsync(abandonSessionRequest);
             Trace.Write("Abandoned session");
 
             var createSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);
+            createSessionRequest.Headers.Add("Cookie","");
             createSessionRequest.Content = ObjectToUrlEncodedContent(conclusion);
             HttpResponseMessage createSessionResponse = await SVX.Utils.PerformHttpRequestAsync(createSessionRequest);
             Trace.Write("Created session");
