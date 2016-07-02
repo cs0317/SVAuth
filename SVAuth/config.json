@@ -5,8 +5,8 @@
     "scheme": "http",
     "port": "80",
     "platform": {
-      "name": "php",
-      "fileExtension": "php"
+      "name": "aspx",
+      "fileExtension": "aspx"
     }
   },
 

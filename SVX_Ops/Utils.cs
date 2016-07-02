@@ -10,9 +10,9 @@ namespace SVX
     {
         public static void InitForReal()
         {
-            httpClient = new HttpClient();
+            httpClient = new HttpClient(new HttpClientHandler { UseCookies = false });
         }
-
+        
         // XXX Better place to put it?
         // XXX Where to dispose?
         static HttpClient httpClient;

@@ -15,12 +15,12 @@ SESSID <?php  echo $_COOKIE["PHPSESSID"]; ?>
 	$FullName = $_POST['FullName'];
 	$email = $_POST['Email'];
 	if (!(strlen($UserID) > 0)) {
-		echo "before abandon",$_COOKIE["PHPSESSID"];
+		echo "before abandon:",$_COOKIE["PHPSESSID"];
 		unset($_SESSION['UserID']);
 		unset($_SESSION['FullName']);
 		unset($_SESSION['email']);
 		session_destroy();
-		echo "after abandon",$_COOKIE["PHPSESSID"];
+		echo "after abandon:",$_COOKIE["PHPSESSID"];
 		return;
 	}
     else {

@@ -49,7 +49,7 @@
 1. The code of every button can be obtained by right-clicking the button. For example, the following are the Facebook login button and a logout button. You can paste them anywhere you want in your page.<br />
 <pre>
 &lt;?php include dirname($_SERVER["PATH_TRANSLATED"])."\buttons\sign_out_button.inc" ?&gt;
-&lt;>php include dirname($_SERVER["PATH_TRANSLATED"])."\buttons\Facebook_login_button.inc" ?&gt;
+&lt;?php include dirname($_SERVER["PATH_TRANSLATED"])."\buttons\Facebook_login_button.inc" ?&gt;
 
 </pre>
 </body>
