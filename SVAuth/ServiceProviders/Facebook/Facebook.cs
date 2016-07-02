@@ -131,7 +131,7 @@ namespace SVAuth.ServiceProviders.Facebook
         {
             var RP = new Facebook_RP(
                 Config.config.AppRegistration.Facebook.appId,
-                Config.config.rootUrl + "callback/Facebook",
+                Config.config.agentRootUrl + "callback/Facebook",
                 Config.config.AppRegistration.Facebook.appSecret,
                 "https://www.facebook.com/v2.0/dialog/oauth",
                 "https://graph.facebook.com/v2.3/oauth/access_token",

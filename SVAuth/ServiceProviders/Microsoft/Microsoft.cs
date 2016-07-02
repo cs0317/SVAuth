@@ -32,12 +32,13 @@ namespace SVAuth.ServiceProviders.Microsoft
         public Microsoft_RP(string client_id1, string redierct_uri1, string client_secret1, string AuthorizationEndpointUrl1, string TokenEndpointUrl1)
         : base(client_id1, redierct_uri1, client_secret1, AuthorizationEndpointUrl1, TokenEndpointUrl1)
         {
+            BypassCertification = true;
         }
         public static void Init(RouteBuilder routeBuilder)
         {
             var RP = new Microsoft_RP(
                 Config.config.AppRegistration.Microsoft.appId,
-                Config.config.rootUrl + "callback/Microsoft",
+                Config.config.agentRootUrl + "callback/Microsoft",
                 Config.config.AppRegistration.Microsoft.appSecret,
                 "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
                 "https://login.microsoftonline.com/common/oauth2/v2.0/token"

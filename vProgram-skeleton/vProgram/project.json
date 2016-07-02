@@ -3,7 +3,7 @@
     "SVAuth": "1.0.0-*",
     "SVX_Common": "1.0.0-*",
     "Microsoft.NETCore.App": {
-      "version": "1.0.0-rc2-3002702",
+      "version": "1.0.0",
       "type": "platform"
     }
   },

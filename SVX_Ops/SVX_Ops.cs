@@ -204,11 +204,7 @@ namespace SVX
             if (!SymTResultCache.ContainsKey(msg.SymT))
             {
                 bool resultOfVerification;
-                if (SVXSettings.settings.BypassCertification)
-                {
-                    resultOfVerification = true;
-                }
-                else if (SVXSettings.settings.CertifyLocally)
+                if (SVXSettings.settings.CertifyLocally)
                 {
                     List<MethodRecord> mrList = MethodHasher.getDehashedRecords(methodSHADictKEYSHA, msg);
 

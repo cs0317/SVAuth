@@ -76,8 +76,8 @@ namespace SVAuth
             //return;
 
             string createSessionEndpoint =
-                "http://localhost/SVAuth/platforms/" + Config.config.WebAppSettings.platform.name +
-                "/CreateNewSession." + Config.config.WebAppSettings.platform.fileExtension;
+                Config.config.WebAppSettings.internalPlatformRootUrl +
+                "CreateNewSession." + Config.config.WebAppSettings.platform.fileExtension;
 
             var abandonSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);
             abandonSessionRequest.Headers.Add("Cookie",
