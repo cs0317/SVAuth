@@ -38,7 +38,7 @@ namespace SVAuth.ServiceProviders.Microsoft
         {
             var RP = new Microsoft_RP(
                 Config.config.AppRegistration.Microsoft.appId,
-                Config.config.rootUrl + "callback/Microsoft",
+                Config.config.agentRootUrl + "callback/Microsoft",
                 Config.config.AppRegistration.Microsoft.appSecret,
                 "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
                 "https://login.microsoftonline.com/common/oauth2/v2.0/token"

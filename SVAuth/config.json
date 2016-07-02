@@ -7,10 +7,11 @@
     "platform": {
       "name": "php",
       "fileExtension": "php"
-    }
+    },
+    "internalHostname": "localhost"
   },
 
-  "AuthJSSettings": {
+  "AgentSettings": {
     "scheme": "http",
     "port": "3000"
   },

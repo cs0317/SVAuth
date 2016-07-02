@@ -42,7 +42,7 @@ namespace SVAuth.ServiceProviders.Google
         {
             var RP = new Google_RP(
                 Config.config.AppRegistration.Google.clientID,
-                Config.config.rootUrl + "callback/Google",
+                Config.config.agentRootUrl + "callback/Google",
                 Config.config.AppRegistration.Google.clientSecret,
                 "https://accounts.google.com/o/oauth2/auth",
                 "https://www.googleapis.com/oauth2/v2/userinfo",
