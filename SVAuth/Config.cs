@@ -30,22 +30,16 @@ namespace SVAuth
                 public string fileExtension;
             }
 
-            /* Hostname the agent should use for requests to the platform to
-             * manipulate sessions.  Normally "localhost".  Can be changed to
-             * "localhost.fiddler" to see this traffic in Fiddler.  (Note, the
-             * machine hostname probably will not work because it will result in
-             * the platform seeing a different source address than the
-             * loopback.)
-             * http://docs.telerik.com/fiddler/Configure-Fiddler/Tasks/MonitorLocalTraffic */
-            public string internalHostname;
-
             // The "SVAuth/platforms" string is hard-coded a bunch of places; no
             // point trying to make it configurable.
             public string platformRootUrl =>
                 $"{scheme}://{hostname}:{port}/SVAuth/platforms/{platform.name}/";
-            public string internalPlatformRootUrl =>
-                $"{scheme}://{internalHostname}:{port}/SVAuth/platforms/{platform.name}/";
         }
+
+        // http://docs.telerik.com/fiddler/Configure-Fiddler/Tasks/MonitorLocalTraffic
+        public bool sendInternalTrafficViaFiddler = false;
+        public string internalPlatformHostname =>
+            sendInternalTrafficViaFiddler ? "localhost.fiddler" : "localhost";
 
         public AgentSettings_ AgentSettings;
         public class AgentSettings_
@@ -71,10 +65,11 @@ namespace SVAuth
             public ServiceProviders.Google.GGAppRegistration Google;
         }
 
-        // These are currently set in the config loader, not in config.json.
-        // Harmless to expose them to the deserializer? ~ t-mattmc@microsoft.com 2016-06-01
         public string agentRootUrl =>
             $"{AgentSettings.scheme}://{WebAppSettings.hostname}:{AgentSettings.port}/";
+        public string internalPlatformRootUrl =>
+            $"{WebAppSettings.scheme}://{internalPlatformHostname}:{WebAppSettings.port}/" +
+            $"SVAuth/platforms/{WebAppSettings.platform.name}/";
         public string MainPageUrl =>
             WebAppSettings.platformRootUrl + "AllInOne." + WebAppSettings.platform.fileExtension;
 

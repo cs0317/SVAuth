@@ -76,7 +76,7 @@ namespace SVAuth
             //return;
 
             string createSessionEndpoint =
-                Config.config.WebAppSettings.internalPlatformRootUrl +
+                Config.config.internalPlatformRootUrl +
                 "CreateNewSession." + Config.config.WebAppSettings.platform.fileExtension;
 
             var abandonSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);
