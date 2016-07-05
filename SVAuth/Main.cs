@@ -48,7 +48,7 @@ namespace SVAuth
             // BCT WORKAROUND: "new T[] { ... }" and params-style method
             // calls (which generate something similar) ~ t-mattmc@microsoft.com 2016-06-15
             var urls = new string[1];
-            urls[0] = Config.config.AuthJSSettings.scheme + "://localhost:" + Config.config.AuthJSSettings.port + "/";
+            urls[0] = Config.config.AgentSettings.scheme + "://localhost:" + Config.config.AgentSettings.port + "/";
 
             var host = new WebHostBuilder()
                 // The scheme specified here appears to make no difference
@@ -66,7 +66,7 @@ namespace SVAuth
         // BCT WORKAROUND: lambdas ~ t-mattmc@microsoft.com 2016-06-15
         private static void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
-            switch (Config.config.AuthJSSettings.scheme)
+            switch (Config.config.AgentSettings.scheme)
             {
                 case "https":
                     kestrelOptions.UseHttps(new X509Certificate2("ssl-cert/certkey.p12"));
@@ -74,7 +74,7 @@ namespace SVAuth
                 case "http":
                     break;
                 default:
-                    throw new Exception("Unknown scheme " + Config.config.AuthJSSettings.scheme);
+                    throw new Exception("Unknown scheme " + Config.config.AgentSettings.scheme);
             }
         }
     }
@@ -102,14 +102,15 @@ namespace SVAuth
             var routeBuilder = new RouteBuilder(app);
             routeBuilder.MapGet("", MainPageHandler);
             ServiceProviders.Facebook.Facebook_RP.Init(routeBuilder);
-
+            ServiceProviders.Microsoft.Microsoft_RP.Init(routeBuilder);
+            ServiceProviders.Google.Google_RP.Init(routeBuilder);
             app.UseRouter(routeBuilder.Build());
         }
 
         // BCT WORKAROUND: lambdas ~ t-mattmc@microsoft.com 2016-06-15
         private static Task MainPageHandler(HttpContext context)
         {
-            context.Response.Redirect(Config.config.MainPageUrl + "?ReturnPort=" + Config.config.AuthJSSettings.port);
+            context.Response.Redirect(Config.config.MainPageUrl + "?ReturnPort=" + Config.config.AgentSettings.port);
             return Task.CompletedTask;
         }
     }

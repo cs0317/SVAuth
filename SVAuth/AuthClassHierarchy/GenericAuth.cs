@@ -82,6 +82,10 @@ namespace SVAuth.GenericAuth
 
     public abstract class RP
     {
+        // Set this if you want to test the protocol before you have the
+        // verification working.
+        protected bool BypassCertification = false;
+
         public abstract string Domain { get; set; }
         public abstract string Realm { get; set; }
         public void VerifyAuthentication(AuthenticationConclusion conclusion)
@@ -90,22 +94,25 @@ namespace SVAuth.GenericAuth
         }
         public async Task AuthenticationDone(AuthenticationConclusion conclusion, HttpContext context)
         {
-            /* Compared to the original AuthPlatelet, I'm choosing to record a
-             * separate SVX method right here for the certification.  Otherwise,
-             * it would be easy for a new protocol class (like OAuth20) to
-             * accidentally do the certification outside the last SVX method so
-             * that the vProgram doesn't include the verification, which would
-             * completely nullify SVX in a way that's hard to notice.  Of
-             * course, we have more to do to try to prevent other similarly
-             * devastating mistakes in setting up SVX.
-             * ~ t-mattmc@microsoft.com 2016-06-07
-             */
-            var verifiedMsg = new SVX.SVX_MSG();
-            SVX.SVX_Ops.recordCustom(GetType(), conclusion, verifiedMsg, nameof(VerifyAuthentication),
-                SVX.SVXSettings.settings.MyPartyName, false, false);
-            if (!SVX.SVX_Ops.Certify(verifiedMsg))
+            if (!BypassCertification)
             {
-                throw new Exception("SVX certification failed.");
+                /* Compared to the original AuthPlatelet, I'm choosing to record a
+                 * separate SVX method right here for the certification.  Otherwise,
+                 * it would be easy for a new protocol class (like OAuth20) to
+                 * accidentally do the certification outside the last SVX method so
+                 * that the vProgram doesn't include the verification, which would
+                 * completely nullify SVX in a way that's hard to notice.  Of
+                 * course, we have more to do to try to prevent other similarly
+                 * devastating mistakes in setting up SVX.
+                 * ~ t-mattmc@microsoft.com 2016-06-07
+                 */
+                var verifiedMsg = new SVX.SVX_MSG();
+                SVX.SVX_Ops.recordCustom(GetType(), conclusion, verifiedMsg, nameof(VerifyAuthentication),
+                    SVX.SVXSettings.settings.MyPartyName, false, false);
+                if (!SVX.SVX_Ops.Certify(verifiedMsg))
+                {
+                    throw new Exception("SVX certification failed.");
+                }
             }
             await Utils.AbandonAndCreateSessionAsync(conclusion, context);
         }

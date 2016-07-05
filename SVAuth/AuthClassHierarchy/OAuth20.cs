@@ -73,18 +73,6 @@ namespace SVAuth.OAuth20
         public string token_type;
         public string expires_in;
         public string refresh_token = null;
-       /* public AccessTokenResponse(AccessTokenResponse srcObj = null)
-        {
-            if (srcObj != null)
-            {
-                access_token = srcObj.access_token;
-                token_type = srcObj.token_type;
-                expires_in = srcObj.expires_in;
-                refresh_token = srcObj.refresh_token;
-                SymT = srcObj.SymT;
-                SignedBy = srcObj.SignedBy;
-            }
-        }*/
     }
 
     public class UserProfileRequest : SVX.SVX_MSG
@@ -209,18 +197,18 @@ namespace SVAuth.OAuth20
 
         /*** Methods about AccessTokenRequest ***/
         protected virtual Type LoginCallbackRequestType { get { return typeof(AuthorizationResponse); } }
-        public abstract AccessTokenRequest createAccessTokenRequest(SVX.SVX_MSG inputMSG);
+        public virtual AccessTokenRequest createAccessTokenRequest(SVX.SVX_MSG inputMSG) { return null; }
         public AccessTokenRequest _createAccessTokenRequest(SVX.SVX_MSG inputMSG)
         {
             var outputMSG = this.createAccessTokenRequest(inputMSG);
             SVX.SVX_Ops.recordme(this, inputMSG, outputMSG);
             return outputMSG;
         }
-        public abstract HttpRequestMessage marshalCreateAccessTokenRequest(AccessTokenRequest _AccessTokenRequest);
+        public virtual HttpRequestMessage marshalCreateAccessTokenRequest(AccessTokenRequest _AccessTokenRequest) { return null; }
 
         /*** Methods about UserProfileRequest ***/
         protected virtual Type AccessTokenResponseType { get { return typeof(AccessTokenResponse); } }
-        public abstract UserProfileRequest createUserProfileRequest(SVX.SVX_MSG inputMSG);
+        public virtual UserProfileRequest createUserProfileRequest(SVX.SVX_MSG inputMSG) { return null; } 
         public UserProfileRequest _createUserProfileRequest(SVX.SVX_MSG inputMSG)
         {
             var outputMSG = this.createUserProfileRequest(inputMSG);
@@ -228,7 +216,7 @@ namespace SVAuth.OAuth20
             SVX.SVX_Ops.recordme(this, inputMSG, outputMSG, false, true);
             return outputMSG;
         }
-        public abstract HttpRequestMessage marshalCreateUserProfileRequest(UserProfileRequest _UserProfileRequest);
+        public virtual HttpRequestMessage marshalCreateUserProfileRequest(UserProfileRequest _UserProfileRequest) { return null; }
 
         /*** Methods about Conclusion ***/
         protected virtual Type UserProfileResponseType { get { return typeof(UserProfileResponse); } }
@@ -245,7 +233,7 @@ namespace SVAuth.OAuth20
         }
 
         /*************** Start defining OAuth flows ************************/
-        public Task AuthorizationCodeFlow_Login_StartAsync(HttpContext context)
+        public Task Login_StartAsync(HttpContext context)
         {
             SVX.SVX_MSG inputMSG = new SVX.SVX_MSG();
             // This message should never contain meaningful data.
@@ -256,7 +244,7 @@ namespace SVAuth.OAuth20
 
             return Task.CompletedTask;
         }
-        public async Task AuthorizationCodeFlow_Login_CallbackAsync(HttpContext context)
+        public virtual async Task AuthorizationCodeFlow_Login_CallbackAsync(HttpContext context)
         {
             Trace.Write("AuthorizationCodeFlow_Login_CallbackAsync");
 

@@ -49,6 +49,10 @@ namespace SVAuth
         {
             return UnreflectObject(new JObject(query.Select(KvpToJProperty)), type);
         }
+        public static object ObjectFromFormPost(IFormCollection form, Type type)
+        {
+            return UnreflectObject(new JObject(form.Select(KvpToJProperty)), type);
+        }
         // BCT WORKAROUND: lambdas ~ t-mattmc@microsoft.com 2016-06-15
         private static JProperty KvpToJProperty(KeyValuePair<string, StringValues> q)
         {
@@ -72,14 +76,21 @@ namespace SVAuth
             //return;
 
             string createSessionEndpoint =
-                "http://localhost/Auth.JS/platforms/" + Config.config.WebAppSettings.platform.name +
-                "/CreateNewSession." + Config.config.WebAppSettings.platform.fileExtension;
+                Config.config.internalPlatformRootUrl +
+                "CreateNewSession." + Config.config.WebAppSettings.platform.fileExtension;
 
             var abandonSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);
-            await SVX.Utils.PerformHttpRequestAsync(abandonSessionRequest);
+            abandonSessionRequest.Headers.Add("Cookie",
+                "ASP.NET_SessionId="+context.Request.Cookies["ASP.NET_SessionId"]  
+                   + ";" +
+                "PHPSESSID=" + context.Request.Cookies["PHPSESSID"]
+                );
+
+            HttpResponseMessage abandonSessionResponse = await SVX.Utils.PerformHttpRequestAsync(abandonSessionRequest);
             Trace.Write("Abandoned session");
 
             var createSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);
+            createSessionRequest.Headers.Add("Cookie","");
             createSessionRequest.Content = ObjectToUrlEncodedContent(conclusion);
             HttpResponseMessage createSessionResponse = await SVX.Utils.PerformHttpRequestAsync(createSessionRequest);
             Trace.Write("Created session");

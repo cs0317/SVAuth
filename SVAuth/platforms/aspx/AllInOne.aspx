@@ -20,14 +20,15 @@
 
 <script>
   function copyToClipboard(str1,str2) {
-    window.prompt("This is the ASP.NET code of the button.\nCopy to clipboard: Ctrl+C, Enter.\n", str1+"<% =System.Configuration.ConfigurationManager.AppSettings["AuthJS_AspxStub_AbsoluteWebRoot"]%>"+str2);
+    window.prompt("This is the ASP.NET code of the button.\nCopy to clipboard: Ctrl+C, Enter.\n", str1+"<% =System.Configuration.ConfigurationManager.AppSettings["SVAuth_AspxStub_RootDir"]%>"+str2);
   }
 </script>
 
 <div id="grad1">
-<!-- #include virtual = "/Auth.JS/platforms/aspx\buttons\sign_out_button.inc" -->
-<!-- #include virtual = "/Auth.JS/platforms/aspx\buttons\Facebook_login_button.inc" -->
-<!-- #include virtual = "/Auth.JS/platforms/aspx\buttons\Microsoft_login_button.inc" -->
+<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\sign_out_button.inc" -->
+<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Facebook_login_button.inc" -->
+<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Microsoft_login_button.inc" -->
+<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Google_login_button.inc" -->
 </div>
 
 <h3>First, test this page:<br /></h3>
@@ -52,8 +53,8 @@
 </pre>
 2. The code of every button can be obtained by right-clicking the button. For example, the following are the Facebook login button and a logout button. You can paste them anywhere you want in your page.<br />
 <pre>
-&lt;!-- #include virtual = "/Auth.JS/platforms/aspx\buttons\sign_out_button.inc" --&gt;
-&lt;!-- #include virtual = "/Auth.JS/platforms/aspx\buttons\Facebook_login_button.inc" --&gt;
+&lt;!-- #include virtual = "/SVAuth/platforms/aspx\buttons\sign_out_button.inc" --&gt;
+&lt;!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Facebook_login_button.inc" --&gt;
 </pre>
 </body>
 </html>

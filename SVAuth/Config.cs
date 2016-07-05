@@ -29,12 +29,24 @@ namespace SVAuth
                 public string name;
                 public string fileExtension;
             }
+
+            // The "SVAuth/platforms" string is hard-coded a bunch of places; no
+            // point trying to make it configurable.
+            public string platformRootUrl =>
+                $"{scheme}://{hostname}:{port}/SVAuth/platforms/{platform.name}/";
         }
 
-        public AuthJSSettings_ AuthJSSettings;
-        public class AuthJSSettings_
+        // http://docs.telerik.com/fiddler/Configure-Fiddler/Tasks/MonitorLocalTraffic
+        public bool sendInternalTrafficViaFiddler = false;
+        public string internalPlatformHostname =>
+            sendInternalTrafficViaFiddler ? "localhost.fiddler" : "localhost";
+
+        public AgentSettings_ AgentSettings;
+        public class AgentSettings_
         {
-            public string scheme;
+            // NOTE: This setting is not automatically passed to the platform.
+            // The platform files have to be edited manually to change it.
+            public string scheme = "http";
             public int port;
         }
 
@@ -49,13 +61,17 @@ namespace SVAuth
         public class AppRegistration_
         {
             public ServiceProviders.Facebook.FBAppRegistration Facebook;
-            //public ServiceProviders.Microsoft.MSAppRegistration Microsoft;
+            public ServiceProviders.Microsoft.MSAppRegistration Microsoft;
+            public ServiceProviders.Google.GGAppRegistration Google;
         }
 
-        // These are currently set in the config loader, not in config.json.
-        // Harmless to expose them to the deserializer? ~ t-mattmc@microsoft.com 2016-06-01
-        public string rootUrl;
-        public string MainPageUrl;
+        public string agentRootUrl =>
+            $"{AgentSettings.scheme}://{WebAppSettings.hostname}:{AgentSettings.port}/";
+        public string internalPlatformRootUrl =>
+            $"{WebAppSettings.scheme}://{internalPlatformHostname}:{WebAppSettings.port}/" +
+            $"SVAuth/platforms/{WebAppSettings.platform.name}/";
+        public string MainPageUrl =>
+            WebAppSettings.platformRootUrl + "AllInOne." + WebAppSettings.platform.fileExtension;
 
         // Configuration loader:
 
@@ -66,8 +82,6 @@ namespace SVAuth
             // finding the project root via Environment.GetCommandLineArgs()[0].
             // ~ t-mattmc@microsoft.com 2016-06-01
             config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("config.json"));
-            config.rootUrl = config.AuthJSSettings.scheme + "://" + config.WebAppSettings.hostname + ':' + config.AuthJSSettings.port + '/';
-            config.MainPageUrl = "http://" + config.WebAppSettings.hostname + ':' + config.WebAppSettings.port + '/' + "Auth.JS/platforms/aspx/AllInOne.aspx";
 
             SVX.SVXSettings.settings = config.SVXSettings;
         }
