@@ -7,7 +7,7 @@ using SVX2;
 
 namespace SVAuth
 {
-    public class Concat2Request
+    public class Concat2Request : SVX_MSG
     {
         public string first, second;
         public Concat2Request(string first, string second)
@@ -16,17 +16,17 @@ namespace SVAuth
             this.second = second;
         }
     }
-    public class Concat2Response
+    public class Concat2Response : SVX_MSG
     {
         public string first, second, output;
     }
-    public class Concat3Response
+    public class Concat3Response : SVX_MSG
     {
         public string first, second, third, output;
     }
-    public class SVX2_Test : SVX2.Participant
+    public class SVX2_Test : Participant
     {
-        public string SVXParticipantId => "TestParty";
+        public Principal SVXPrincipal => Principal.Of("Alice");
 
         // This is going to be an SVX method.
         public Concat2Response Concat2(Concat2Request req)
@@ -53,16 +53,22 @@ namespace SVAuth
             var expected = tmp + resp.third;
             return expected == resp.output;
         }
+        [BCTOmitImplementation]
         public static void Test()
         {
             var p = new SVX2_Test();
+            var bob = Principal.Of("Bob");
 
-            var req1 = new SVX_MSG<Concat2Request>(new Concat2Request("A", "B"));
+            var req1 = new Concat2Request("A", "B");
             var resp1 = SVX_Ops.Call(p.Concat2, req1);
-            var req2 = new SVX_MSG<Concat2Request>(new Concat2Request(resp1.Get().output, "C"));
+            var req2 = new Concat2Request(resp1.output, "C");
             var resp2 = SVX_Ops.Call(p.Concat2, req2);
             var chainResp = SVX_Ops.Call(p.Chain, resp1, resp2);
-            SVX_Ops.Certify(chainResp, Predicate);
+
+            var producer = bob;  // imagine the message was signed
+            var sender = PrincipalFacet.GenerateNew(bob);
+            SVX_Ops.Transfer(chainResp, producer, sender);
+            SVX_Ops.Certify(chainResp, Predicate, new Principal[] { bob });
         }
     }
 }

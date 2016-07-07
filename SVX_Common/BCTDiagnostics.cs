@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 
 namespace BytecodeTranslator.Diagnostics
 {
@@ -20,4 +21,10 @@ namespace BytecodeTranslator.Diagnostics
       Trace.Write(label + " = " + value);
     }
   }
+}
+
+[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+public class BCTOmitImplementationAttribute : Attribute
+{
+
 }

@@ -161,13 +161,15 @@ namespace SVX
             if (copyProcess.ExitCode != 0)
                 throw new Exception("xcopy of vProgram skeleton failed");
 
+            var svauthPath = Path.GetDirectoryName(Directory.GetCurrentDirectory());
+
             // Simple string substitutor.  If you know a better library for
             // this, be my guest. ~ t-mattmc@microsoft.com 2016-06-14
             var substitutions = new Dictionary<string, string> {
-                { "POIROT_ROOT", SVXSettings.settings.PoirotRoot },
+                { "SVAUTH_PATH", svauthPath },
                 // This definitely needs escaping of backslashes.  May as well
                 // do the real thing rather than hard-coding it.
-                { "SVAUTH_PATH_JSON", JsonConvert.ToString(Path.GetDirectoryName(Directory.GetCurrentDirectory())) },
+                { "SVAUTH_PATH_JSON", JsonConvert.ToString(svauthPath) },
                 // For now, we build against the .NET Core runtime being used by
                 // the certifier.  Reconsider when we update the certification
                 // server.  Anyone know a proper API to get this?

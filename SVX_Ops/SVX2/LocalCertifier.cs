@@ -4,25 +4,26 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
 using SVXSettings = SVX.SVXSettings;
+using Utils = SVX.Utils;
 using System.Diagnostics;
 using Newtonsoft.Json;
 using System.Reflection;
 
 namespace SVX2
 {
-    // Most of LocalVerifier is copy/paste from SVX1 VProgramGenerator.
+    // Most of LocalCertifier is copy/paste from SVX1 VProgramGenerator.
     // Put the boring stuff in a separate file.
 
-    static class LocalVerifier
+    static class LocalCertifier
     {
-        internal static bool GenerateAndVerify(Certification c)
+        internal static bool Certify(CertificationRequest c)
         {
             byte[] time = BitConverter.GetBytes(DateTime.UtcNow.ToBinary());
             byte[] key = Guid.NewGuid().ToByteArray();
             // Slashes would be a problem, so use URL-safe base 64.  .NET does
             // not seem to have a built-in function for it, so just do it
             // manually. :(
-            string rand_folder = Convert.ToBase64String(time.Concat(key).ToArray()).Replace('+', '-').Replace('/', '_');
+            string rand_folder = Utils.ToUrlSafeBase64String(time.Concat(key).ToArray());
             string tempVProgramPath = Path.Combine(SVXSettings.settings.VProgramPath, rand_folder);
             Console.WriteLine("Generating and verifying vProgram in: " + tempVProgramPath);
 
@@ -31,7 +32,7 @@ namespace SVX2
                 Directory.CreateDirectory(SVXSettings.settings.VProgramPath);
                 CreateTempVFolder(tempVProgramPath);
                 File.WriteAllText(Path.Combine(tempVProgramPath, "vProgram", "Program.cs"),
-                    new VProgramGenerator(c).GetSynthesizedPortion());
+                    new VProgramEmitter(c).GetSynthesizedPortion());
 
                 return verify(tempVProgramPath);
             }
@@ -71,13 +72,15 @@ namespace SVX2
             if (copyProcess.ExitCode != 0)
                 throw new Exception("xcopy of vProgram skeleton failed");
 
+            var svauthPath = Path.GetDirectoryName(Directory.GetCurrentDirectory());
+
             // Simple string substitutor.  If you know a better library for
             // this, be my guest. ~ t-mattmc@microsoft.com 2016-06-14
             var substitutions = new Dictionary<string, string> {
-                { "POIROT_ROOT", SVXSettings.settings.PoirotRoot },
+                { "SVAUTH_PATH", svauthPath },
                 // This definitely needs escaping of backslashes.  May as well
                 // do the real thing rather than hard-coding it.
-                { "SVAUTH_PATH_JSON", JsonConvert.ToString(Path.GetDirectoryName(Directory.GetCurrentDirectory())) },
+                { "SVAUTH_PATH_JSON", JsonConvert.ToString(svauthPath) },
                 // For now, we build against the .NET Core runtime being used by
                 // the certifier.  Reconsider when we update the certification
                 // server.  Anyone know a proper API to get this?
