@@ -100,21 +100,6 @@ namespace SVX2
             throw new NotImplementedException();
         }
 
-        // Workaround until BCT automatic recording covers procedure arguments
-        // and return values. ~ t-mattmc@microsoft.com 2016-07-08
-        internal static bool ActsForRecordingWrapper(PrincipalHandle actor, PrincipalHandle target)
-        {
-            var recordActor = actor;
-            var recordTarget = target;
-            // "result" wasn't showing up in the Corral output trace, even
-            // though the boogie_si_record call is there.  I think we have an
-            // undiagnosed problem with some lines being missing from the Corral
-            // output trace. ~ t-mattmc@microsoft.com 2016-07-08
-            var result = ActsFor(actor, target);
-            var reallyRecordResult = result;
-            return result;
-        }
-
         internal static bool ActsForAny(PrincipalHandle actor, PrincipalHandle[] targets)
         {
             // I'd like to write the following, but BCT can't handle it for
@@ -123,7 +108,7 @@ namespace SVX2
             //targets.Any((target) => ActsFor(actor, target));
 
             foreach (var target in targets)
-                if (ActsForRecordingWrapper(actor, target))
+                if (ActsFor(actor, target))
                     return true;
             return false;
         }
@@ -138,7 +123,7 @@ namespace SVX2
         public static void AssumeActsFor(PrincipalHandle actor, PrincipalHandle target)
         {
             if (InVProgram)
-                Contract.Assume(ActsForRecordingWrapper(actor, target));
+                Contract.Assume(ActsFor(actor, target));
         }
 
         // Substitute for Contract.Assert in SVX-recorded code.  TODO explain.
