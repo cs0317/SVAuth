@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 [assembly: InternalsVisibleTo("SVX_Ops")]
+[assembly: InternalsVisibleTo("VProgram")]
 
 // BE CAREFUL if you rename anything in this file.  VProgramGenerator refers to
 // many things in SVX_Common and unfortunately doesn't use nameof/typeof because
@@ -50,14 +52,19 @@ namespace SVX2
     // to be translated by BCT, though we may eventually replace them all by
     // handwritten stubs.
 
+    // Make these internal for now.  We'll see as we go which ones need to be
+    // exposed to developers. ~ t-mattmc@microsoft.com 2016-07-08
+
     public static class VProgram_API
     {
+        internal static bool InVProgram = false;
+
         // TODO: Change to Dictionary<Tuple<string, Type>, object> (or a
         // custom class in place of Tuple) once we have suitable stubs to
         // compare the keys by value.
         static Dictionary<Principal, Dictionary<Type, object>> participants = new Dictionary<Principal, Dictionary<Type, object>>();
 
-        public static T GetParticipant<T>(Principal principal) where T : new()
+        internal static T GetParticipant<T>(Principal principal) where T : new()
         {
             Dictionary<Type, object> dict1;
             // FIXME: TryGetValue doesn't have a stub and is being treated as
@@ -82,18 +89,33 @@ namespace SVX2
         }
 
         [BCTOmitImplementation]
-        public static T Nondet<T>()
+        internal static T Nondet<T>()
         {
             throw new NotImplementedException();
         }
 
         [BCTOmitImplementation]
-        public static bool ActsFor(PrincipalHandle actor, PrincipalHandle target)
+        internal static bool ActsFor(PrincipalHandle actor, PrincipalHandle target)
         {
             throw new NotImplementedException();
         }
 
-        public static bool ActsForAny(PrincipalHandle actor, PrincipalHandle[] targets)
+        // Workaround until BCT automatic recording covers procedure arguments
+        // and return values. ~ t-mattmc@microsoft.com 2016-07-08
+        internal static bool ActsForRecordingWrapper(PrincipalHandle actor, PrincipalHandle target)
+        {
+            var recordActor = actor;
+            var recordTarget = target;
+            // "result" wasn't showing up in the Corral output trace, even
+            // though the boogie_si_record call is there.  I think we have an
+            // undiagnosed problem with some lines being missing from the Corral
+            // output trace. ~ t-mattmc@microsoft.com 2016-07-08
+            var result = ActsFor(actor, target);
+            var reallyRecordResult = result;
+            return result;
+        }
+
+        internal static bool ActsForAny(PrincipalHandle actor, PrincipalHandle[] targets)
         {
             // I'd like to write the following, but BCT can't handle it for
             // several reasons.  Not worth worrying about at the moment.
@@ -101,13 +123,35 @@ namespace SVX2
             //targets.Any((target) => ActsFor(actor, target));
 
             foreach (var target in targets)
-                if (ActsFor(actor, target))
+                if (ActsForRecordingWrapper(actor, target))
                     return true;
             return false;
         }
 
+        // For testing purposes.  This may not be the final form of this API,
+        // but we will definitely provide some wrapper around Contract.Assume
+        // because every call to Contract.Assume has the potential to compromise
+        // the verification if the developer doesn't know exactly what they're
+        // doing.
+        // XXX: This does not really belong in VProgram_API, because it will
+        // have an effect on secrets read enforcement in production.
+        public static void AssumeActsFor(PrincipalHandle actor, PrincipalHandle target)
+        {
+            if (InVProgram)
+                Contract.Assume(ActsForRecordingWrapper(actor, target));
+        }
+
+        // Substitute for Contract.Assert in SVX-recorded code.  TODO explain.
+        public static void Assert(bool condition)
+        {
+            if (InVProgram)
+                Contract.Assume(condition);
+            else
+                Contract.Assert(condition);
+        }
+
         [BCTOmitImplementation]
-        public static Principal UnderlyingPrincipal(PrincipalHandle ph)
+        internal static Principal UnderlyingPrincipal(PrincipalHandle ph)
         {
             throw new NotImplementedException();
         }

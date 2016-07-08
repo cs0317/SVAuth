@@ -33,7 +33,8 @@ namespace SVX2
         {
             // XXX: Currently we cannot deal with non-public participant classes
             // and methods.  It's an open question if we should be able to and
-            // how it should be implemented.
+            // how it should be implemented.  I guess one way is for developers
+            // to write [InternalsVisibleTo("VProgram")].
 
             SymTNondet symTNondet;
             SymTMethod symTMethod;
@@ -98,6 +99,7 @@ namespace SVX2
         {
             sb.Append("public static class Program {\n");
             sb.Append("public static void Main() {\n");
+            sb.Append("SVX2.VProgram_API.InVProgram = true;\n");
 
             // BCT WORKAROUND: new T[] { ... } (yes, in emitted code!)
             // Yes, the array is covariant to be passed to ActsForAny.

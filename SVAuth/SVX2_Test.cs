@@ -48,6 +48,13 @@ namespace SVAuth
             resp.output = part2.output;
             return resp;
         }
+        public Concat3Response AssumeProducerActsForAlice(Concat3Response x)
+        {
+            // For testing.  Wanted: a cleaner way to get this into the SymT!
+            VProgram_API.AssumeActsFor(x.producer, Principal.Of("Carol"));
+            VProgram_API.AssumeActsFor(Principal.Of("Carol"), Principal.Of("Alice"));
+            return x;
+        }
         public static bool Predicate(Concat3Response resp) {
             var tmp = resp.first + resp.second;
             var expected = tmp + resp.third;
@@ -57,6 +64,7 @@ namespace SVAuth
         public static void Test()
         {
             var p = new SVX2_Test();
+            var alice = Principal.Of("Alice");
             var bob = Principal.Of("Bob");
 
             var req1 = new Concat2Request("A", "B");
@@ -65,10 +73,17 @@ namespace SVAuth
             var resp2 = SVX_Ops.Call(p.Concat2, req2);
             var chainResp = SVX_Ops.Call(p.Chain, resp1, resp2);
 
-            var producer = bob;  // imagine the message was signed
+            var producer = PrincipalFacet.GenerateNew(bob);
             var sender = PrincipalFacet.GenerateNew(bob);
             SVX_Ops.Transfer(chainResp, producer, sender);
-            SVX_Ops.Certify(chainResp, Predicate, new Principal[] { bob });
+
+            // Demonstrate that we can assume acts-for relationships and that
+            // we've axiomatized that acts-for is transitive.  Of course, the
+            // acts-for relationships in this example do not represent the ones
+            // we would assume in any real protocol.
+            var respWithAssumption = SVX_Ops.Call(p.AssumeProducerActsForAlice, chainResp);
+
+            SVX_Ops.Certify(respWithAssumption, Predicate, new Principal[] { alice });
         }
     }
 }
