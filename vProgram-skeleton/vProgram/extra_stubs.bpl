@@ -11,8 +11,12 @@ implementation {:inline 1} System.String.Concat$System.String$System.String(str0
 ///////////////////////////////////////////////////////////////////////////////
 // Pretend that PrincipalHandles are interned, like strings.
 
+// XXX Do we need to actually axiomatize that the principal has the name we asked for?
+// That probably requires replacing the public field with a property that we can implement in Boogie.
 function Principal.Of(name: Ref) : Ref;
+axiom (forall name1, name2: Ref :: Principal.Of(name1) == Principal.Of(name2) ==> name1 == name2);
 function PrincipalFacet.Of(issuer: Ref, id: Ref) : Ref;
+axiom (forall issuer1, id1, issuer2, id2: Ref :: PrincipalFacet.Of(issuer1, id1) == PrincipalFacet.Of(issuer2, id2) ==> (issuer1 == issuer2 && id1 == id2));
 
 implementation {:inline 1} SVX2.Principal.Of$System.String(name$in: Ref) returns ($result: Ref)
 {
@@ -48,9 +52,14 @@ axiom (forall p: Ref :: $DynamicType(p) == T$SVX2.Principal() ==> UnderlyingPrin
 // mode, which Corral uses.  But it looks like Boogie is just axiomatizing the
 // order and isn't doing anything we can't do for ourselves here.
 // https://github.com/boogie-org/boogie/blob/87e1e7b34261eac35869e6eff83fa57ca6268f3d/Source/VCGeneration/OrderingAxioms.cs#L157
-function ActsFor(actor: Ref, target: Ref) : bool;
-axiom (forall p: Ref :: ActsFor(p, p));
-axiom (forall x, y, z: Ref :: {ActsFor(x, y), ActsFor(y, z)} ActsFor(x, y) && ActsFor(y, z) ==> ActsFor(x, z));
+function PrincipalActsFor(actor: Ref, target: Ref) : bool;
+axiom (forall p: Ref :: PrincipalActsFor(p, p));
+axiom (forall x, y, z: Ref :: {PrincipalActsFor(x, y), PrincipalActsFor(y, z)}
+  PrincipalActsFor(x, y) && PrincipalActsFor(y, z) ==> PrincipalActsFor(x, z));
+
+function ActsFor(actorHandle: Ref, targetHandle: Ref) : bool {
+  PrincipalActsFor(UnderlyingPrincipal(actorHandle), UnderlyingPrincipal(targetHandle))
+}
 
 implementation SVX2.VProgram_API.UnderlyingPrincipal$SVX2.PrincipalHandle(ph$in: Ref) returns ($result: Ref)
 {
@@ -59,5 +68,29 @@ implementation SVX2.VProgram_API.UnderlyingPrincipal$SVX2.PrincipalHandle(ph$in:
 
 implementation SVX2.VProgram_API.ActsFor$SVX2.PrincipalHandle$SVX2.PrincipalHandle(actor$in: Ref, target$in: Ref) returns ($result: bool)
 {
-  $result := ActsFor(UnderlyingPrincipal(actor$in), UnderlyingPrincipal(target$in));
+  $result := ActsFor(actor$in, target$in);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Secrets
+
+// TODO: Maybe we should actually keep a data structure of what secrets we know
+// are valid and/or borne.  It wouldn't be as "pure" as logical assumptions, but
+// we could implement it in C# and third-party developers would actually have a
+// hope of being able to debug it.
+
+function Borne(bearer: Ref, secretValue: Ref) : bool;
+
+implementation SVX2.VProgram_API.AssumeBorne$SVX2.PrincipalHandle$System.String(bearer$in: Ref, secretValue$in: Ref)
+{
+  assume Borne(bearer$in, secretValue$in);
+}
+
+implementation SVX2.VProgram_API.AssumeValidSecret$System.String$SVX2.PrincipalHandlearray(secretValue$in: Ref, readers$in: Ref)
+{
+  assume (forall bearer: Ref :: Borne(bearer, secretValue$in) ==>
+    // This duplicates the logic of VProgram_API.ActsForAny, but I don't see any
+    // way to factor it out because we can't call a procedure inside the forall
+    // and a function can't read global variables.
+    (exists i: int :: i >= 0 && i < $ArrayLength(readers$in) && ActsFor(bearer, $ArrayContents[readers$in][i])));
 }

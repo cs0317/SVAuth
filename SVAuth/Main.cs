@@ -28,7 +28,8 @@ namespace SVAuth
                 //SVX.SVX_Ops.Init();
 
                 //RunServer();
-                SVX2_Test.Test();
+                //SVX2_Test_Concat.Test();
+                SVX2_Test_Secret.Test();
             }
             catch (Exception e)
             {

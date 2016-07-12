@@ -7,25 +7,26 @@ using SVX2;
 
 namespace SVAuth
 {
-    public class Concat2Request : SVX_MSG
+    public class SVX2_Test_Concat : Participant
     {
-        public string first, second;
-        public Concat2Request(string first, string second)
+        public class Concat2Request : SVX_MSG
         {
-            this.first = first;
-            this.second = second;
+            public string first, second;
+            public Concat2Request(string first, string second)
+            {
+                this.first = first;
+                this.second = second;
+            }
         }
-    }
-    public class Concat2Response : SVX_MSG
-    {
-        public string first, second, output;
-    }
-    public class Concat3Response : SVX_MSG
-    {
-        public string first, second, third, output;
-    }
-    public class SVX2_Test : Participant
-    {
+        public class Concat2Response : SVX_MSG
+        {
+            public string first, second, output;
+        }
+        public class Concat3Response : SVX_MSG
+        {
+            public string first, second, third, output;
+        }
+
         public Principal SVXPrincipal => Principal.Of("Alice");
 
         // This is going to be an SVX method.
@@ -63,7 +64,7 @@ namespace SVAuth
         [BCTOmitImplementation]
         public static void Test()
         {
-            var p = new SVX2_Test();
+            var p = new SVX2_Test_Concat();
             var alice = Principal.Of("Alice");
             var bob = Principal.Of("Bob");
 

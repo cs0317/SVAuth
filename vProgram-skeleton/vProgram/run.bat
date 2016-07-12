@@ -27,7 +27,7 @@ copy pub\runtimes\win\lib\netstandard1.3\*.dll pub
 
 call %SVAUTH_ROOT%\bytecodetranslator\Binaries\BytecodeTranslator.exe /e:1 /ib /whole /heap:splitFields /libpaths "@DOTNET_CORE_LIBPATH@" pub\vProgram.dll pub\SVAuth.dll pub\SVX_Common.dll
 call %SVAUTH_ROOT%\bytecodetranslator\corral\bin\Debug\BctCleanup.exe %model_name%.bpl %clean_name%.bpl /main:Program.Main /include:poirot_stubs.bpl /include:extra_stubs.bpl
-call %SVAUTH_ROOT%\bytecodetranslator\corral\bin\Debug\corral.exe %clean_name%.bpl /printDataValues:1 /recursionBound:2 /k:1 /main:Program.Main /tryCTrace /include:poirot_stubs.bpl /include:extra_stubs.bpl
+call %SVAUTH_ROOT%\bytecodetranslator\corral\bin\Debug\corral.exe %clean_name%.bpl /printDataValues:1 /recursionBound:10 /k:1 /main:Program.Main /tryCTrace /include:poirot_stubs.bpl /include:extra_stubs.bpl
 
 REM TODO: We want this for interactive use only.  Figure out how to conditionalize it.
 if exist corral_out_trace.txt %SVAUTH_ROOT%\ConcurrencyExplorer.exe corral_out_trace.txt

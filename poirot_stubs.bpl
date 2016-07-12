@@ -145,24 +145,38 @@ procedure {:extern} System.Collections.Generic.List`1.set_Item$System.Int32$`0($
     listContents[$this][index$in] := value$in;
 }
 
-const mapEmpty : [Union]Union;
-axiom (forall x: Union :: {mapEmpty[x]} mapEmpty[x] == null);
-var AllMaps: [Ref][Union]Union;
+// We reuse "hashsets" for key presence in dictionaries.
+var DictValues: [Ref][Union]Union;
 
 procedure {:extern} System.Collections.Generic.Dictionary`2.#ctor($this: Ref) 
 {
-  AllMaps[$this] := mapEmpty;
+    hashsets[$this] := hashsetEmpty;
 }
 
 procedure {:extern} System.Collections.Generic.Dictionary`2.get_Item$`0(this: Ref, key$in: Union) returns ($result: Union)
 {
-    $result := AllMaps[this][key$in];
-    return;
+    if (hashsets[this][key$in]) {
+	    $result := DictValues[this][key$in];
+	} else {
+        // FIXME: This should throw a KeyNotFoundException.
+        $result := null;
+	}
 }
-
 
 procedure {:extern} System.Collections.Generic.Dictionary`2.set_Item$`0$`1(this: Ref, key$in: Union, value$in: Union)
 {
-    AllMaps[this][key$in] := value$in;
-    return;
+    hashsets[this][key$in] := true;
+    DictValues[this][key$in] := value$in;
+}
+
+procedure {:extern} System.Collections.Generic.Dictionary`2.TryGetValue$`0$`1$($this: Ref, key$in: Ref, value$in: Ref) returns (value$out: Ref, $result: bool)
+{
+    if (hashsets[$this][key$in]) {
+        value$out := DictValues[$this][key$in];
+        $result := true;
+	} else {
+        // BCT has axioms that Unbox2T(null) == default(T) for the relevant types T.
+        value$out := null;
+        $result := false;
+	}
 }

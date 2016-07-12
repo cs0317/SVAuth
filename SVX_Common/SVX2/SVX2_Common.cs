@@ -67,12 +67,10 @@ namespace SVX2
         internal static T GetParticipant<T>(Principal principal) where T : new()
         {
             Dictionary<Type, object> dict1;
-            // FIXME: TryGetValue doesn't have a stub and is being treated as
-            // nondet every time.  It doesn't matter yet.
             if (!participants.TryGetValue(principal, out dict1))
             {
                 dict1 = new Dictionary<Type, object>();
-                participants.Add(principal, dict1);
+                participants[principal] = dict1;
             }
             object participantObj;
             T participant;
@@ -82,10 +80,34 @@ namespace SVX2
             }
             else
             {
-                participant = new T();
-                dict1.Add(typeof(T), participant);
+                throw new NotImplementedException(
+                    "Dynamic creation of participants is not implemented.  " +
+                    "All participants of SVX method calls are created " +
+                    "automatically at the beginning of the vProgram.  All " +
+                    "participants used in the predicate that might not be " +
+                    "used in a method call must be specified as " +
+                    "predicateParticipants so they get created.");
+                // Apparently "new T()" compiles to
+                // System.Activator.CreateInstance, which BCT doesn't support.
+                // It would be a reasonable feature to add to BCT, but it's too
+                // much work for the moment.
+                // ~ t-mattmc@microsoft.com 2016-07-11
+                //participant = new T();
+                //dict1[typeof(T)] = participant;
             }
             return participant;
+        }
+
+        internal static void CreateParticipant<T>(Principal principal, T participant)
+        {
+            Dictionary<Type, object> dict1;
+            if (!participants.TryGetValue(principal, out dict1))
+            {
+                dict1 = new Dictionary<Type, object>();
+                participants[principal] = dict1;
+            }
+            // Assert not already there?
+            dict1[typeof(T)] = participant;
         }
 
         [BCTOmitImplementation]
@@ -95,12 +117,12 @@ namespace SVX2
         }
 
         [BCTOmitImplementation]
-        internal static bool ActsFor(PrincipalHandle actor, PrincipalHandle target)
+        public static bool ActsFor(PrincipalHandle actor, PrincipalHandle target)
         {
             throw new NotImplementedException();
         }
 
-        internal static bool ActsForAny(PrincipalHandle actor, PrincipalHandle[] targets)
+        public static bool ActsForAny(PrincipalHandle actor, PrincipalHandle[] targets)
         {
             // I'd like to write the following, but BCT can't handle it for
             // several reasons.  Not worth worrying about at the moment.
@@ -124,6 +146,19 @@ namespace SVX2
         {
             if (InVProgram)
                 Contract.Assume(ActsFor(actor, target));
+        }
+
+        [BCTOmitImplementation]
+        internal static void AssumeBorne(PrincipalHandle bearer, string secretValue)
+        {
+            // Should only be called by emitted vProgram code.
+            throw new NotImplementedException();
+        }
+
+        [BCTOmitImplementation]
+        internal static void AssumeValidSecret(string secretValue, PrincipalHandle[] originalReaders)
+        {
+            // Does nothing in production.
         }
 
         // Substitute for Contract.Assert in SVX-recorded code.  TODO explain.

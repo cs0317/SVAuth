@@ -14,7 +14,7 @@ namespace SVX2
         {
             // TODO: traverse nested
             var rootSymT = (SymT)msg.symT;
-            return (rootSymT == null) ? new SymTNondet { typeFullName = msg.GetType().FullName } : rootSymT;
+            return (rootSymT == null) ? new SymTNondet { messageTypeFullName = msg.GetType().FullName } : rootSymT;
         }
         private static T FillSymT<T>(T msg, SymT symT) where T : SVX_MSG
         {
@@ -29,8 +29,10 @@ namespace SVX2
                 throw new ArgumentException("Delegate must belong to an SVX participant object");
             MethodInfo mi = del.GetMethodInfo();
             return new SymTMethod {
-                principal = participant.SVXPrincipal,
-                runtimeTypeFullName = participant.GetType().FullName,
+                participantId = new ParticipantId {
+                    principal = participant.SVXPrincipal,
+                    typeFullName = participant.GetType().FullName
+                },
                 // XXX Verify that method is unique and doesn't use generics?
                 methodName = mi.Name,
                 methodReturnTypeFullName = mi.ReturnType.FullName,
@@ -48,12 +50,16 @@ namespace SVX2
         {
             return FillSymT(f(input1, input2), MakeSymTForMethodCall(f, new SymT[] { GatherSymTs(input1), GatherSymTs(input2) }));
         }
-        public static void Certify<T>(T msg, Func<T, bool> predicate, Principal[] trustedParties) where T : SVX_MSG
+        public static void Certify<T>(T msg, Func<T, bool> predicate, Principal[] trustedParties,
+            Tuple<Principal, Type>[] predicateParticipants = null)
+            where T : SVX_MSG
         {
             if (predicate.Target != null)
                 // For now.  As long as we allow participants on SVX method
                 // calls, it wouldn't be bad to allow them here too.
                 throw new ArgumentException("Predicate must be a static method");
+            if (predicateParticipants == null)
+                predicateParticipants = new Tuple<Principal, Type>[0];
 
             MethodInfo mi = predicate.GetMethodInfo();
             var c = new CertificationRequest {
@@ -61,6 +67,8 @@ namespace SVX2
                 methodName = mi.Name,
                 methodDeclaringTypeFullName = mi.DeclaringType.FullName,
                 methodArgTypeFullName = mi.GetParameters()[0].ParameterType.FullName,
+                predicateParticipants = predicateParticipants.Select(
+                    (t) => new ParticipantId { principal = t.Item1, typeFullName = t.Item2.FullName }).ToArray(),
                 // XXX Establish a style guide for passing lists around.
                 trustedParties = trustedParties.ToArray()
             };
