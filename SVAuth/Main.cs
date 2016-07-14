@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Server.Kestrel;
+using System.Diagnostics;
 
 namespace SVAuth
 {
@@ -15,32 +16,27 @@ namespace SVAuth
     {
         public static void Main(string[] args)
         {
-            // FIXME: The debugger is not breaking on uncaught exceptions like
-            // it normally does by default.  For now, we have this try block.
-            // You can set a breakpoint on the rethrow. ~ t-mattmc@microsoft.com 2016-06-01
-            try
-            {
-                // For now, to simplify matters, the authentication agent port must
-                // be specified in config.json.  The "Launch URL" in the project
-                // properties should match. ~ t-mattmc@microsoft.com 2016-06-01
-                Config.Init();
-                // SVX2 has no initialization yet.
-                //SVX.SVX_Ops.Init();
+            // For now, to simplify matters, the authentication agent port must
+            // be specified in config.json.  The "Launch URL" in the project
+            // properties should match. ~ t-mattmc@microsoft.com 2016-06-01
+            Config.Init();
+            // SVX2 has no initialization yet.
+            //SVX.SVX_Ops.Init();
 
-                //RunServer();
-                //SVX2_Test_Concat.Test();
-                SVX2_Test_Secret.Test();
-            }
-            catch (Exception e)
+            //RunServer();
+            //SVX2_Test_Concat.Test();
+            SVX2_Test_Secret.Test();
+
+            /* When the program is run under the debugger in Visual Studio, the
+             * output window closes immediately when the program exits.  Emulate
+             * the behavior when the program is run without the debugger that
+             * gives us a chance to read the output.  We don't need this for
+             * uncaught exceptions because the debugger breaks on the exception.
+             */
+            if (Debugger.IsAttached)
             {
-                Console.WriteLine(e);
-                throw;
-            }
-            finally
-            {
-                // This is ridiculous, but it's not worth researching a better way.
-                Console.WriteLine("Press Enter when finished.");
-                Console.ReadLine();
+                Console.WriteLine("Press any key to continue . . . ");
+                Console.ReadKey();
             }
         }
 
