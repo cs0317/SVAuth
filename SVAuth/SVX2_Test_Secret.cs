@@ -22,9 +22,9 @@ namespace SVAuth
             // Corresponds to IdPUserPrincipal(username)
             internal string username;
         }
-        class SSOSecretGenerator : SecretGenerator/*<SSOSecretParams>*/
+        class SSOSecretGenerator : SecretGenerator<SSOSecretParams>
         {
-            protected override PrincipalHandle[] GetReaders(object/*SSOSecretParams*/ theParams)
+            protected override PrincipalHandle[] GetReaders(object theParams)
             {
                 return new Principal[] { idpPrincipal, rpPrincipal, IdPUserPrincipal(((SSOSecretParams)theParams).username),
                     // Uncomment to see the verification fail.
@@ -32,14 +32,15 @@ namespace SVAuth
                 };
             }
 
-            protected override string RawGenerate(object/*SSOSecretParams*/ theParams)
+            protected override string RawGenerate(SSOSecretParams theParams)
             {
-                return "sso:(" + ((SSOSecretParams)theParams).username + ")";
+                return "sso:(" + theParams.username + ")";
             }
 
-            protected override bool RawVerify(object/*SSOSecretParams*/ theParams, string secretValue)
+            protected override void RawVerify(SSOSecretParams theParams, string secretValue)
             {
-                return RawGenerate(theParams) == secretValue;
+                if (RawGenerate(theParams) != secretValue)
+                    throw new ArgumentException();
             }
         }
 
@@ -72,15 +73,15 @@ namespace SVAuth
                     throw new ArgumentException();
                 var userPrincipal = IdPUserPrincipal(req.username);
                 // If this line is commented out, the check for whether it's OK
-                // to send the secret to the client should fail, but that check
-                // isn't implemented yet.
-                VProgram_API.AssumeActsFor(req.sender, userPrincipal);
+                // to send the secret to the client would fail, but this example
+                // doesn't use export/import.
+                VProgram_API.AssumeActsFor(req.SVX_sender, userPrincipal);
                 var ssoSecretParams = new SSOSecretParams { username = req.username };
                 var resp = new SignInRPReq {
                     username = req.username,
-                    ssoSecret = ssoSecretGenerator.Generate(ssoSecretParams)
+                    ssoSecret = ssoSecretGenerator.Generate(ssoSecretParams, SVXPrincipal)
                 };
-                VProgram_API.Assert(ssoSecretGenerator.Verify(ssoSecretParams, resp.ssoSecret));
+                ssoSecretGenerator.Verify(ssoSecretParams, resp.ssoSecret);
                 return resp;
             }
         }
@@ -91,7 +92,7 @@ namespace SVAuth
             public AuthenticationConclusion SignInRP(SignInRPReq req)
             {
                 return new AuthenticationConclusion {
-                    authenticatedClient = req.sender,
+                    authenticatedClient = req.SVX_sender,
                     idpUsername = req.username
                 };
             }
@@ -120,12 +121,12 @@ namespace SVAuth
             var idpReq = new SignInIdPReq {
                 username = "alice",
                 password = "password:alice",
-                sender = aliceIdP
+                SVX_sender = aliceIdP
             };
             var rpReq = SVX_Ops.Call(idp.SignInIdP, idpReq);
 
             // Imagine the SignInRPReq was signed by the IdP.
-            SVX_Ops.Transfer(rpReq, idpPrincipal, aliceRP);
+            SVX_Ops.TransferForTesting(rpReq, idpPrincipal, aliceRP);
 
             var conc = SVX_Ops.Call(rp.SignInRP, rpReq);
             SVX_Ops.Certify(conc, LoginSafety, new Principal[] { idpPrincipal, rpPrincipal });

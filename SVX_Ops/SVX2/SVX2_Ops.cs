@@ -5,20 +5,59 @@ using System.Threading.Tasks;
 using System.Reflection;
 using Newtonsoft.Json;
 using Utils = SVX.Utils;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("VProgram")]
 
 namespace SVX2
 {
     public static class SVX_Ops
     {
+        public static void Init()
+        {
+
+        }
+
+        private static SymT GatherUsefulSymTs(SVX_MSG msg)
+        {
+            // Want to warn if the msg is inactive but has a symT set, at least
+            // for the root message (possible developer mistake)?
+            SymT rootSymT = msg.active ? (SymT)msg.SVX_symT : null;
+
+            var nestedSymTs = (
+                // NOTE: This will traverse into PayloadSecrets that contain
+                // messages, which is what we want.
+                from acc in FieldFinder<SVX_MSG>.FindFields(msg.GetType())
+                let nestedMsg = acc.nullConditionalGetter(msg)
+                where nestedMsg != null
+                let nestedSymT = GatherUsefulSymTs(nestedMsg)
+                where nestedSymT != null
+                select new NestedSymTEntry { fieldPath = acc.path, symT = nestedSymT }
+                ).ToArray();
+
+            // As a simplification, don't unnecessarily create composites
+            // (though it shouldn't break anything).  And if we have no
+            // information, return null so an outer message doesn't
+            // unnecessarily create a composite.
+
+            if (nestedSymTs.Length == 0)
+                return rootSymT;  // may be null
+
+            return new SymTComposite {
+                rootSymT = rootSymT ?? new SymTNondet { messageTypeFullName = msg.GetType().FullName },
+                nestedSymTs = nestedSymTs
+            };
+        }
         private static SymT GatherSymTs(SVX_MSG msg)
         {
-            // TODO: traverse nested
-            var rootSymT = (SymT)msg.symT;
-            return (rootSymT == null) ? new SymTNondet { messageTypeFullName = msg.GetType().FullName } : rootSymT;
+            return GatherUsefulSymTs(msg) ??
+                new SymTNondet { messageTypeFullName = msg.GetType().FullName };
         }
+
         private static T FillSymT<T>(T msg, SymT symT) where T : SVX_MSG
         {
-            msg.symT = symT;
+            msg.active = true;
+            msg.SVX_symT = symT;
             return msg;
         }
 
@@ -79,39 +118,47 @@ namespace SVX2
                 throw new Exception("SVX certification failed.");
         }
 
-        // For testing purposes until we have real export/import to use in an example.
-        public static void Transfer(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender)
+        // In support of old examples.  Won't be part of the real SVX API.
+        public static void TransferForTesting(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender)
+        {
+            Transfer(msg, producer, sender);
+        }
+
+        internal static void Transfer(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender)
         {
             if (producer == null || sender == null)
                 // Auto-generate them instead?  But we'd need to know the issuer.
                 // We may eventually have a global variable for the current party.
                 throw new ArgumentNullException();
-            msg.producer = producer;
-            msg.sender = sender;
-            msg.symT = new SymTTransfer {
-                originalSymT = (SymT)msg.symT,
+            msg.SVX_producer = producer;
+            msg.SVX_sender = sender;
+            msg.SVX_symT = new SymTTransfer {
+                originalSymT = (SymT)msg.SVX_symT ?? new SymTNondet { messageTypeFullName = msg.GetType().FullName },
                 // Only Principals are recorded concretely.
                 producer = producer as Principal,
-                sender = sender as Principal
+                sender = sender as Principal,
+                hasSender = true
             };
+            msg.active = true;
+        }
+
+        internal static void TransferNested(SVX_MSG msg, PrincipalHandle producer)
+        {
+            if (producer == null)
+                // Auto-generate it instead?  But we'd need to know the issuer.
+                // We may eventually have a global variable for the current party.
+                throw new ArgumentNullException();
+            msg.SVX_producer = producer;
+            // Do not change sender.
+            msg.SVX_symT = new SymTTransfer
+            {
+                originalSymT = (SymT)msg.SVX_symT ?? new SymTNondet { messageTypeFullName = msg.GetType().FullName },
+                // Only Principals are recorded concretely.
+                producer = producer as Principal,
+                hasSender = false
+            };
+            msg.active = true;
         }
     }
-
-#if false
-    public class Secret
-    {
-        string value;
-        PrincipalHandle[] readers;
-    }
-
-    public class SecretGenerator
-    {
-
-    }
-    public class MessageFormat
-    {
-
-    }
-#endif
 
 }

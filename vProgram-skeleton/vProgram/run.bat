@@ -25,7 +25,9 @@ REM Note: DLLs in "native" subdirectories appear to contain native code, not
 REM MSIL, so they are irrelevant to us.
 copy pub\runtimes\win\lib\netstandard1.3\*.dll pub
 
-call %SVAUTH_ROOT%\bytecodetranslator\Binaries\BytecodeTranslator.exe /e:1 /ib /whole /heap:splitFields /libpaths "@DOTNET_CORE_LIBPATH@" pub\vProgram.dll pub\SVAuth.dll pub\SVX_Common.dll
+REM With /e:1, BCT wasn't checking for an exception at the call site of SignInRP.
+REM I haven't investigated why yet. ~ t-mattmc@microsoft.com 2016-07-15
+call %SVAUTH_ROOT%\bytecodetranslator\Binaries\BytecodeTranslator.exe /e:2 /ib /whole /heap:splitFields /libpaths "@DOTNET_CORE_LIBPATH@" pub\vProgram.dll pub\SVAuth.dll pub\SVX_Common.dll
 call %SVAUTH_ROOT%\bytecodetranslator\corral\bin\Debug\BctCleanup.exe %model_name%.bpl %clean_name%.bpl /main:Program.Main /include:poirot_stubs.bpl /include:extra_stubs.bpl
 call %SVAUTH_ROOT%\bytecodetranslator\corral\bin\Debug\corral.exe %clean_name%.bpl /printDataValues:1 /recursionBound:10 /k:1 /main:Program.Main /tryCTrace /include:poirot_stubs.bpl /include:extra_stubs.bpl
 

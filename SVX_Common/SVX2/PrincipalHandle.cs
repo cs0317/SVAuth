@@ -1,7 +1,10 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Reflection;
+using Newtonsoft.Json.Linq;
 
 namespace SVX2
 {
@@ -33,12 +36,44 @@ namespace SVX2
     // terms of Equals and GetHashCode (terrible dynamic dispatch and needs
     // stubs for system types).
 
+    public class PrincipalJsonConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType)
+        {
+            return typeof(PrincipalHandle).IsAssignableFrom(objectType);
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            // I guess this is the converter's responsibility?
+            if (reader.TokenType == JsonToken.Null)
+                return null;
+
+            JObject jobject = JObject.Load(reader);
+            string name = jobject.Value<string>("name");
+            if (name != null)
+                return Principal.Of(name);
+            else
+                return PrincipalFacet.Of(Principal.Of(jobject.Value<string>("issuer")), jobject.Value<string>("id"));
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool CanWrite => false;
+    }
+
+    [JsonConverter(typeof(PrincipalJsonConverter))]
     public class Principal : PrincipalHandle
     {
         // TODO: Standardize the name format.
         public readonly string name;
         private Principal(string name)
         {
+            if (name == null)
+                throw new ArgumentNullException();
             this.name = name;
         }
 
@@ -54,6 +89,8 @@ namespace SVX2
             return thatPrincipal != null && name == thatPrincipal.name;
         }
         public override int GetHashCode() => Hasher.Start.With(name.GetHashCode());
+
+        public override string ToString() => name;
     }
 
     /* A PrincipalFacet is a placeholder identifier automatically assigned to a
@@ -70,6 +107,8 @@ namespace SVX2
 
         private PrincipalFacet(Principal issuer, string id)
         {
+            if (issuer == null || id == null)
+                throw new ArgumentNullException();
             this.issuer = issuer;
             this.id = id;
         }
@@ -91,6 +130,8 @@ namespace SVX2
             return thatFacet != null && issuer == thatFacet.issuer && id == thatFacet.id;
         }
         public override int GetHashCode() => Hasher.Start.With(issuer.GetHashCode()).With(id.GetHashCode());
+
+        public override string ToString() => "[" + id + "@" + issuer + "]";
     }
 
 }

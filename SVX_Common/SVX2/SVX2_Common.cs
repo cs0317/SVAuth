@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -22,14 +23,37 @@ namespace SVX2
         // So use object. :/
         // This will go away once we merge SVX_Common and SVX_Ops into one
         // assembly and use BCT attributes to control what gets translated.
-        internal object /*SymT*/ symT;
-        public PrincipalHandle producer, sender;
+
+        // FIXME: Restrict the possible types of SymTs before exposing this to
+        // untrusted input.  I can't justify the time to implement the
+        // restriction yet. ~ t-mattmc@microsoft.com 2016-07-14
+        [JsonProperty(TypeNameHandling = TypeNameHandling.All)]
+        public object /*SymT*/ SVX_symT;
+
+        // These will usually be null in messages being transferred; if so, they
+        // should be omitted for cleanliness.
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public PrincipalHandle SVX_producer, SVX_sender;
+
+        // True if we know the symT is valid from our point of view.  When a
+        // message is imported, the developer will set the symT field to the
+        // received symT and then call Import, which will add the proper
+        // SymTTransfer.  If the developer tries to use the message without
+        // finishing the import, this flag will stop us from honoring the
+        // received symT literally.
+        // TODO: Of course we should also restrict mutations to the symT, but
+        // we're not worrying much about mutability anywhere right now.
+        //
+        // This field is non-public, so it won't be serialized by Json.NET by
+        // default, which is what we want.
+        internal bool active;
 
         public SVX_MSG()
         {
-            producer = null;
-            sender = null;
-            symT = null;
+            SVX_producer = null;
+            SVX_sender = null;
+            SVX_symT = null;
+            active = false;
         }
     }
 
@@ -111,11 +135,61 @@ namespace SVX2
         }
 
         [BCTOmitImplementation]
-        internal static T Nondet<T>()
+        private static T NondetImpl<T>()
         {
             throw new NotImplementedException();
         }
 
+        // Stopgap to see how far we can get with the example.  Really, raw
+        // nondet of a Ref is unsafe in BCT-based models: it can cause aliasing
+        // and heap pollution.  We need to emit a custom nondet method for each
+        // type. ~ t-mattmc@microsoft.com 2016-07-15
+        internal static T Nondet<T>()
+        {
+            T ret = NondetImpl<T>();
+            Contract.Assume(ret.GetType() == typeof(T));
+            return ret;
+        }
+
+        static Dictionary<PrincipalHandle, HashSet<PrincipalHandle>> actsForEdges = new Dictionary<PrincipalHandle, HashSet<PrincipalHandle>>();
+
+        // Little breadth-first search.  Suggestions for a better library or
+        // performance improvements welcome.
+        //
+        // In the vProgram, we definitely want to use the SMT solver's support
+        // for reasoning about partial orders rather than having Corral unroll
+        // this code.
+        static HashSet<PrincipalHandle> GetAllowedTargets(PrincipalHandle actor)
+        {
+            var ret = new HashSet<PrincipalHandle>();
+            var q = new Queue<PrincipalHandle>();
+            Action<PrincipalHandle> Visit = (ph) =>
+            {
+                if (!ret.Contains(ph))
+                {
+                    ret.Add(ph);
+                    q.Enqueue(ph);
+                }
+            };
+            Visit(actor);
+            while (q.Count > 0)
+            {
+                var ph = q.Dequeue();
+                HashSet<PrincipalHandle> outEdges;
+                if (actsForEdges.TryGetValue(ph, out outEdges))
+                {
+                    foreach (var ph2 in outEdges)
+                        Visit(ph2);
+                }
+            }
+            return ret;
+        }
+
+        // This is the idealized global ActsFor.  If we allowed it to return
+        // false when called from an SVX method in prod, but true in the
+        // vProgram because of an AssumeActsFor by another party, we'd have
+        // unsoundness, so for simplicity we don't allow it to be called in prod
+        // at all.
         [BCTOmitImplementation]
         public static bool ActsFor(PrincipalHandle actor, PrincipalHandle target)
         {
@@ -135,6 +209,13 @@ namespace SVX2
             return false;
         }
 
+        // OK, this really doesn't belong in VProgram_API... fix it later.
+        internal static bool KnownActsForAny(PrincipalHandle actor, PrincipalHandle[] targets)
+        {
+            var allowedTargets = GetAllowedTargets(actor);
+            return targets.Any((target) => allowedTargets.Contains(target));
+        }
+
         // For testing purposes.  This may not be the final form of this API,
         // but we will definitely provide some wrapper around Contract.Assume
         // because every call to Contract.Assume has the potential to compromise
@@ -146,19 +227,45 @@ namespace SVX2
         {
             if (InVProgram)
                 Contract.Assume(ActsFor(actor, target));
+            else
+            {
+                HashSet<PrincipalHandle> outEdges;
+                if (!actsForEdges.TryGetValue(actor, out outEdges))
+                {
+                    outEdges = new HashSet<PrincipalHandle>();
+                    actsForEdges.Add(actor, outEdges);
+                }
+                outEdges.Add(target);  // OK if it was already there
+            }
         }
 
         [BCTOmitImplementation]
-        internal static void AssumeBorne(PrincipalHandle bearer, string secretValue)
+        private static void AssumeBorneImpl(PrincipalHandle bearer, string secretValue)
         {
             // Should only be called by emitted vProgram code.
             throw new NotImplementedException();
         }
 
+        // Wrapper: the easiest way to get BCT to record the arguments.
+        internal static void AssumeBorne(PrincipalHandle bearer, string secretValue)
+        {
+            AssumeBorneImpl(bearer, secretValue);
+        }
+
         [BCTOmitImplementation]
-        internal static void AssumeValidSecret(string secretValue, PrincipalHandle[] originalReaders)
+        private static void AssumeValidSecretImpl(string secretValue, PrincipalHandle[] originalReaders)
         {
             // Does nothing in production.
+        }
+
+        // Wrapper: the easiest way to get BCT to record the arguments.
+        internal static void AssumeValidSecret(string secretValue, PrincipalHandle[] originalReaders)
+        {
+            foreach (var reader in originalReaders)
+            {
+                // Just get BCT to record the reader.
+            }
+            AssumeValidSecretImpl(secretValue, originalReaders);
         }
 
         // Substitute for Contract.Assert in SVX-recorded code.  TODO explain.

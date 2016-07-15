@@ -55,5 +55,8 @@ namespace SVX2
         }
 
         public static readonly Hasher Start = new Hasher(17);
+
+        [BCTOmitImplementation]
+        static Hasher() { }
     }
 }

@@ -52,7 +52,7 @@ namespace SVAuth
         public Concat3Response AssumeProducerActsForAlice(Concat3Response x)
         {
             // For testing.  Wanted: a cleaner way to get this into the SymT!
-            VProgram_API.AssumeActsFor(x.producer, Principal.Of("Carol"));
+            VProgram_API.AssumeActsFor(x.SVX_producer, Principal.Of("Carol"));
             VProgram_API.AssumeActsFor(Principal.Of("Carol"), Principal.Of("Alice"));
             return x;
         }
@@ -76,7 +76,7 @@ namespace SVAuth
 
             var producer = PrincipalFacet.GenerateNew(bob);
             var sender = PrincipalFacet.GenerateNew(bob);
-            SVX_Ops.Transfer(chainResp, producer, sender);
+            SVX_Ops.TransferForTesting(chainResp, producer, sender);
 
             // Demonstrate that we can assume acts-for relationships and that
             // we've axiomatized that acts-for is transitive.  Of course, the

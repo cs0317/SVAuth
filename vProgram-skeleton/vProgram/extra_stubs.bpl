@@ -81,12 +81,13 @@ implementation SVX2.VProgram_API.ActsFor$SVX2.PrincipalHandle$SVX2.PrincipalHand
 
 function Borne(bearer: Ref, secretValue: Ref) : bool;
 
-implementation SVX2.VProgram_API.AssumeBorne$SVX2.PrincipalHandle$System.String(bearer$in: Ref, secretValue$in: Ref)
+implementation SVX2.VProgram_API.AssumeBorneImpl$SVX2.PrincipalHandle$System.String(bearer$in: Ref, secretValue$in: Ref)
 {
+  // Note, secretValue may be null.  This should be harmless.
   assume Borne(bearer$in, secretValue$in);
 }
 
-implementation SVX2.VProgram_API.AssumeValidSecret$System.String$SVX2.PrincipalHandlearray(secretValue$in: Ref, readers$in: Ref)
+implementation SVX2.VProgram_API.AssumeValidSecretImpl$System.String$SVX2.PrincipalHandlearray(secretValue$in: Ref, readers$in: Ref)
 {
   assume (forall bearer: Ref :: Borne(bearer, secretValue$in) ==>
     // This duplicates the logic of VProgram_API.ActsForAny, but I don't see any

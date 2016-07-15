@@ -23,7 +23,9 @@ namespace BytecodeTranslator.Diagnostics
   }
 }
 
-[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+// The use cases so far are method and /static/ constructor.
+// ~ t-mattmc@microsoft.com 2016-07-14
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor, Inherited = false)]
 public class BCTOmitImplementationAttribute : Attribute
 {
 

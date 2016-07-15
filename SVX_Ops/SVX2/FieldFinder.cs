@@ -6,6 +6,43 @@ using System.Threading.Tasks;
 
 namespace SVX2
 {
+    public class FieldAccessor<TObject, TField>
+    {
+        // In case anyone wants this...
+        public readonly FieldInfo fieldInfo;
+
+        public string name => fieldInfo.Name;
+
+        internal FieldAccessor(FieldInfo fieldInfo)
+        {
+            this.fieldInfo = fieldInfo;
+        }
+
+        public TField Get(TObject obj)
+        {
+            return (TField)fieldInfo.GetValue(obj);
+        }
+
+        // TBD whether we allow fields to be looked up as supertypes so this does a dynamic cast.
+        public void Set(TObject obj, TField value)
+        {
+            fieldInfo.SetValue(obj, value);
+        }
+    }
+
+    public static class FieldLookup
+    {
+        public static FieldAccessor<TObject, TField> Lookup<TObject, TField>(string name)
+        {
+            var fieldInfo = typeof(TObject).GetField(name, BindingFlags.Public | BindingFlags.Instance);
+            if (fieldInfo.FieldType != typeof(TField))
+                throw new ArgumentException();
+            return new FieldAccessor<TObject, TField>(fieldInfo);
+        }
+    }
+
+    // TODO: Merge both Accessor classes.  I'm being sloppy at the moment.
+
     // The interface of this class may change as our needs change...
     static class FieldFinder<TNeedle>
     {
@@ -14,11 +51,11 @@ namespace SVX2
         internal class Accessor
         {
             // XXX readonly?
-            internal string name;
+            internal string path;
             // I tried adding a type parameter for the message type, but all
             // current callers have only a Type anyway, so it wasn't worth it.
             // ~ t-mattmc@microsoft.com 2016-07-08
-            internal Func<object, TNeedle> getter;
+            internal Func<object, TNeedle> nullConditionalGetter;
             internal Action<object, TNeedle> setter;
         }
 
@@ -30,8 +67,8 @@ namespace SVX2
                 if (typeof(TNeedle).IsAssignableFrom(fieldType))
                     yield return new Accessor
                     {
-                        name = fieldInfo.Name,
-                        getter = (msg) => (TNeedle)fieldInfo.GetValue(msg),
+                        path = fieldInfo.Name,
+                        nullConditionalGetter = (msg) => (TNeedle)fieldInfo.GetValue(msg),
                         setter = (msg, value) => fieldInfo.SetValue(msg, value)
                     };
                 else if (fieldType.GetTypeInfo().IsPrimitive || fieldType.IsArray || leafTypes.Contains(fieldType))
@@ -44,8 +81,12 @@ namespace SVX2
                     foreach (var nestedFieldAccessor in FindFields(fieldType))
                         yield return new Accessor
                         {
-                            name = fieldInfo.Name + "." + nestedFieldAccessor.name,
-                            getter = (msg) => nestedFieldAccessor.getter(fieldInfo.GetValue(msg)),
+                            path = fieldInfo.Name + "." + nestedFieldAccessor.path,
+                            nullConditionalGetter = (msg) => {
+                                var value1 = fieldInfo.GetValue(msg);
+                                // default(TNeedle)... is that right or do we just want "where TNeedle : class"?
+                                return value1 == null ? default(TNeedle) : nestedFieldAccessor.nullConditionalGetter(value1);
+                            },
                             setter = (msg, value) => nestedFieldAccessor.setter(fieldInfo.GetValue(msg), value),
                         };
                 }
