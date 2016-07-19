@@ -8,6 +8,7 @@ using Utils = SVX.Utils;
 using System.Diagnostics;
 using Newtonsoft.Json;
 using System.Reflection;
+using System.Text;
 
 namespace SVX2
 {
@@ -113,11 +114,17 @@ namespace SVX2
             process.StartInfo.Environment.Add("POIROT_ROOT", SVXSettings.settings.PoirotRoot);
             process.Start();
 
-            string output = process.StandardOutput.ReadToEnd();
+            // There should be a library for this...
+            var output = new StringBuilder();
+            string line;
+            while ((line = process.StandardOutput.ReadLine()) != null)
+            {
+                Console.WriteLine(line);
+                output.AppendLine(line);
+            }
             process.WaitForExit();
-            Console.Write(output);  // Ideally this would be streamed. ~ t-mattmc@microsoft.com 2016-06-06
 
-            if (output.IndexOf("Program has no bugs") > 0)
+            if (output.ToString().IndexOf("Program has no bugs") > 0)
                 return true;
             else
                 return false;
