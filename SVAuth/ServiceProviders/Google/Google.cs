@@ -61,7 +61,7 @@ namespace SVAuth.ServiceProviders.Google
             GGAuthenticationRequest.response_mode = "form_post";
             return GGAuthenticationRequest;
         }
-        public override string marshalCreateAuthorizationRequest(OAuth20.AuthorizationRequest MSAuthenticationRequest)
+        public override string marshalAuthorizationRequest(OAuth20.AuthorizationRequest MSAuthenticationRequest)
         {
             return AuthorizationEndpointUrl + "?" + Utils.ObjectToUrlEncodedString(MSAuthenticationRequest);
         }

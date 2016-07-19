@@ -72,7 +72,7 @@ namespace SVAuth.ServiceProviders.Facebook
             _FBAuthorizationRequest.type = "web_server";
             return _FBAuthorizationRequest;
         }
-        public override string marshalCreateAuthorizationRequest(OAuth20.AuthorizationRequest _FBAuthorizationRequest)
+        public override string marshalAuthorizationRequest(OAuth20.AuthorizationRequest _FBAuthorizationRequest)
         {
             return AuthorizationEndpointUrl + "?" + Utils.ObjectToUrlEncodedString(_FBAuthorizationRequest);
         }
@@ -90,7 +90,7 @@ namespace SVAuth.ServiceProviders.Facebook
             return _AccessTokenRequest;
         }
 
-        public override HttpRequestMessage marshalCreateAccessTokenRequest(OAuth20.AccessTokenRequest _AccessTokenRequest)
+        public override HttpRequestMessage marshalAccessTokenRequest(OAuth20.AccessTokenRequest _AccessTokenRequest)
         {
             // TODO (t-mattmc@microsoft.com): Replace with ObjectToForm once we confirm whether
             // the grant_type field should be included?
@@ -109,7 +109,7 @@ namespace SVAuth.ServiceProviders.Facebook
             return _UserProfileRequest;
         }
 
-        public override HttpRequestMessage marshalCreateUserProfileRequest(OAuth20.UserProfileRequest _UserProfileRequest)
+        public override HttpRequestMessage marshalUserProfileRequest(OAuth20.UserProfileRequest _UserProfileRequest)
         {
             var RawRequestUrl = UserProfileUrl + "?" + Utils.ObjectToUrlEncodedString(_UserProfileRequest);
             return new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);

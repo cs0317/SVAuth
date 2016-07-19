@@ -33,18 +33,22 @@
     "Google": {
       "clientID": "303824059686-i6ef58367t5i50k8j6bbarvhgudu4nes.apps.googleusercontent.com",
       "clientSecret": "XX9_EcCsMx1gtZhJv_3vdIMg"
+    },
+    "Yahoo": {
+      "clientID": "dj0yJmk9OWl3QUE4OGkyQUswJmQ9WVdrOVZUTnlUVk5sTjJjbWNHbzlNQS0tJnM9Y29uc3VtZXJzZWNyZXQmeD00Yw--",
+      "clientSecret": "5d14dd29003e144a0f6af4b3b1831c45378aa9d2"
     }
   },
 
-  "__SECTION_3__": "Do not modify this section unless you know what you are doing.",
-  "SVXSettings": {
-    "MyPartyName": "RP",
-    "TrustedParties": [ "RP", "AS" ],
-    "SVXFolderPath": "C:\\SVX",
-    "CertifyLocally": true,
-    "DLLServerAddress": "http://protoagnostic.cloudapp.net:8700/",
-    "Token": "NRhFVgSo0khCjh+lhPuhSKb/8wHntjI+",
-    "PoirotRoot": "C:\\PoirotEnlistment"
-  },
-  "sendInternalTrafficViaFiddler": false
-}
+    "__SECTION_3__": "Do not modify this section unless you know what you are doing.",
+    "SVXSettings": {
+      "MyPartyName": "RP",
+      "TrustedParties": [ "RP", "AS" ],
+      "SVXFolderPath": "C:\\SVX",
+      "CertifyLocally": true,
+      "DLLServerAddress": "http://protoagnostic.cloudapp.net:8700/",
+      "Token": "NRhFVgSo0khCjh+lhPuhSKb/8wHntjI+",
+      "PoirotRoot": "C:\\PoirotEnlistment"
+    },
+    "sendInternalTrafficViaFiddler": false
+  }
