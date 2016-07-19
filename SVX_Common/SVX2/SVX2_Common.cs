@@ -30,10 +30,19 @@ namespace SVX2
         [JsonProperty(TypeNameHandling = TypeNameHandling.All)]
         public object /*SymT*/ SVX_symT;
 
-        // These will usually be null in messages being transferred; if so, they
+        // Fields that are set on import so they can be used from SVX methods.
+        // These will usually be null in messages being exported; if so, they
         // should be omitted for cleanliness.
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public PrincipalHandle SVX_producer, SVX_sender;
+
+        // This field is currently used for direct responses only to pass the
+        // server-generated client facet back to the client.  It is set on
+        // export and cleared on import (and used only by ImportDirectResponse).
+        // It is public for serialization but shouldn't otherwise be manipulated
+        // by protocol code.
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public PrincipalHandle SVX_directClient;
 
         // True if we know the symT is valid from our point of view.  When a
         // message is imported, the developer will set the symT field to the
@@ -253,19 +262,19 @@ namespace SVX2
         }
 
         [BCTOmitImplementation]
-        private static void AssumeValidSecretImpl(string secretValue, PrincipalHandle[] originalReaders)
+        private static void AssumeValidSecretImpl(string secretValue, object theParams, PrincipalHandle[] originalReaders)
         {
             // Does nothing in production.
         }
 
         // Wrapper: the easiest way to get BCT to record the arguments.
-        internal static void AssumeValidSecret(string secretValue, PrincipalHandle[] originalReaders)
+        internal static void AssumeValidSecret(string secretValue, object theParams, PrincipalHandle[] originalReaders)
         {
             foreach (var reader in originalReaders)
             {
                 // Just get BCT to record the reader.
             }
-            AssumeValidSecretImpl(secretValue, originalReaders);
+            AssumeValidSecretImpl(secretValue, theParams, originalReaders);
         }
 
         // Substitute for Contract.Assert in SVX-recorded code.  TODO explain.

@@ -40,9 +40,27 @@ namespace SVX2
             Contract.Assume(Regex.IsMatch(x, "^[_A-Za-z0-9]*$"));
             return "\"" + x + "\"";
         }
-        static string EmitPrincipal(Principal p) => "SVX2.Principal.Of(" + Quote(p.name) + ")";
-        static string EmitPrincipalOrNondet(Principal p)
-            => (p == null) ? "SVX2.VProgram_API.Nondet<SVX2.Principal>()" : EmitPrincipal(p);
+        static string EmitPrincipalHandle(PrincipalHandle ph)
+        {
+            Principal p;
+            PrincipalFacet pf;
+            if ((p = ph as Principal) != null)
+            {
+                return "SVX2.Principal.Of(" + Quote(p.name) + ")";
+            }
+            else if ((pf = ph as PrincipalFacet) != null)
+            {
+                // I don't think we use this, but might as well implement it.
+                // ~ t-mattmc@microsoft.com 2016-07-19
+                return "SVX2.PrincipalFacet.Of(" + EmitPrincipalHandle(pf.issuer) + ", " + Quote(pf.id) + ")";
+            }
+            else
+            {
+                throw new NotImplementedException("Unexpected PrincipalHandle");
+            }
+        }
+        static string EmitPrincipalHandleOrNondet(PrincipalHandle p)
+            => (p == null) ? "SVX2.VProgram_API.Nondet<SVX2.PrincipalHandle>()" : EmitPrincipalHandle(p);
 
         // This method is designed to meet our current needs, where messageVar
         // is assumed to always be nonnull.
@@ -80,12 +98,30 @@ namespace SVX2
                 ScanParticipants(embedded);
         }
 
-        string EmitMessage(SymT symT)
+        class MessageReuseScope
         {
+            internal Dictionary<string /* message id */, string /* emitted var name */> availableMessages
+                = new Dictionary<string, string>();
+            internal MessageReuseScope outer;
+        }
+
+        string EmitMessage(SymT symT, MessageReuseScope scope)
+        {
+            // First look in the scope.  This mechanism currently handles cases
+            // where a later argument to a method call is derived from an
+            // earlier one; that's enough for the authorization code flow example.
+            string reuseVarName;
+            for (var checkScope = scope; checkScope != null; checkScope = checkScope.outer)
+                if (checkScope.availableMessages.TryGetValue(symT.messageId, out reuseVarName))
+                    return reuseVarName;
+            // Otherwise not found; proceed.
+
             // XXX: Currently we cannot deal with non-public participant classes
             // and methods.  It's an open question if we should be able to and
             // how it should be implemented.  I guess one way is for developers
-            // to write [InternalsVisibleTo("VProgram")].
+            // to write [InternalsVisibleTo("VProgram")].  There shouldn't be
+            // much risk of abuse because for the vProgram to access a program
+            // element, someone authorized had to pass it to an SVX API.
 
             SymTNondet symTNondet;
             SymTMethod symTMethod;
@@ -105,8 +141,14 @@ namespace SVX2
             }
             else if ((symTMethod = symT as SymTMethod) != null)
             {
-                // This has side effects, so evaluate it right away.
-                string[] argVarNames = (from i in symTMethod.inputSymTs select EmitMessage(i)).ToArray();
+                var newScope = new MessageReuseScope { outer = scope };
+                var argVarNames = new List<string>();
+                foreach (var inputSymT in symTMethod.inputSymTs)
+                {
+                    var inputVarName = EmitMessage(inputSymT, newScope);
+                    newScope.availableMessages[inputSymT.messageId] = inputVarName;
+                    argVarNames.Add(inputVarName);
+                }
                 outputVarName = nextVar("msg");
                 AppendFormattedLine("{0} {1} = SVX2.VProgram_API.GetParticipant<{2}>(SVX2.Principal.Of({3})).{4}({5});",
                     FormatTypeFullName(symTMethod.methodReturnTypeFullName), outputVarName,
@@ -114,7 +156,6 @@ namespace SVX2
                     Quote(symTMethod.participantId.principal.name), symTMethod.methodName,
                     string.Join(", ", argVarNames));
             }
-            // This needs a rewrite to avoid depending on Equals.
             else if ((symTComposite = symT as SymTComposite) != null)
             {
                 SymTTransfer rootTransfer;
@@ -122,16 +163,15 @@ namespace SVX2
                 {
                     // Nondet the root message and then overwrite the nested
                     // messages that we have information about.
-                    outputVarName = EmitMessage(symTComposite.rootSymT);
+                    outputVarName = EmitMessage(symTComposite.rootSymT, scope);
                     foreach (var entry in symTComposite.nestedSymTs)
                     {
-                        string nestedVarName = EmitMessage(entry.symT);
-                        // This code is untested...
-                        for (int pos = 0; (pos = entry.fieldPath.IndexOf('.', pos)) != -1; pos++)
-                        {
-                            AppendFormattedLine("System.Diagnostics.Contracts.Contract.Assume({0}.{1} != null);",
-                                outputVarName, entry.fieldPath.Substring(0, pos));
-                        }
+                        string nestedVarName = EmitMessage(entry.symT, scope);
+                        // Make sure we have a non-null parent to store the nested message in.
+                        var lastDot = entry.fieldPath.LastIndexOf('.');
+                        if (lastDot != -1)
+                            AppendFormattedLine("System.Diagnostics.Contracts.Contract.Assume({0} != null);",
+                                MakeFieldPathNullConditional(outputVarName, entry.fieldPath.Substring(0, lastDot)));
                         AppendFormattedLine("{0}.{1} = {2};",
                             outputVarName, entry.fieldPath, nestedVarName);
                     }
@@ -144,7 +184,7 @@ namespace SVX2
                     // messages, we could assume the nested messages equal, but
                     // this is extra work which I don't believe is needed for
                     // our examples so far.
-                    outputVarName = EmitMessage(symTComposite.rootSymT);
+                    outputVarName = EmitMessage(symTComposite.rootSymT, scope);
                 }
                 else if ((rootTransfer = symTComposite.rootSymT as SymTTransfer) != null)
                 {
@@ -156,10 +196,10 @@ namespace SVX2
                     outputVarName = EmitMessage(new SymTTransfer(rootTransfer) {
                         fallback = new SymTComposite
                         {
-                            rootSymT = new SymTNondet { messageTypeFullName = symTComposite.MessageTypeFullName },
+                            RootSymTWithMessageId = new SymTNondet { messageTypeFullName = symTComposite.MessageTypeFullName },
                             nestedSymTs = symTComposite.nestedSymTs
                         }
-                    });
+                    }, scope);
                 }
                 else
                 {
@@ -170,27 +210,40 @@ namespace SVX2
             else if ((symTTransfer = symT as SymTTransfer) != null)
             {
                 string producerVarName = nextVar("producer");
-                AppendFormattedLine("SVX2.PrincipalHandle {0} = {1};", producerVarName, EmitPrincipalOrNondet(symTTransfer.producer));
+                AppendFormattedLine("SVX2.PrincipalHandle {0} = {1};", producerVarName, EmitPrincipalHandleOrNondet(symTTransfer.producer));
                 outputVarName = nextVar("msg");
                 AppendFormattedLine("{0} {1};", FormatTypeFullName(symTTransfer.MessageTypeFullName), outputVarName);
                 AppendFormattedLine("if (SVX2.VProgram_API.ActsForAny({0}, trustedParties)) {{", producerVarName);
                 {
                     IncreaseIndent();
-                    string inputVarName = EmitMessage(symTTransfer.originalSymT);
+                    string inputVarName = EmitMessage(symTTransfer.originalSymT, scope);
                     AppendFormattedLine("{0} = {1};", outputVarName, inputVarName);
+                    // To maintain soundness of the model, update the metadata
+                    // of nested messages the same way TransferNested would in
+                    // production, even though we don't use their SymTs.
+                    foreach (var entry in symTTransfer.payloadSecretsVerifiedOnImport)
+                    {
+                        AppendFormattedLine("System.Diagnostics.Contracts.Contract.Assume({0} != null);",
+                            MakeFieldPathNullConditional(outputVarName, entry.fieldPath));
+                        AppendFormattedLine("{0}.SVX_producer = new {1}().Signer;",
+                            outputVarName, FormatTypeFullName(entry.secretGeneratorTypeFullName));
+                        AppendFormattedLine("{0}.SVX_directClient = null;", outputVarName);
+                    }
                     DecreaseIndent();
                 }
                 AppendFormattedLine("}} else {{");
                 {
                     IncreaseIndent();
                     string inputVarName = EmitMessage(symTTransfer.fallback ??
-                        new SymTNondet { messageTypeFullName = symTTransfer.MessageTypeFullName });
+                        new SymTNondet { messageTypeFullName = symTTransfer.MessageTypeFullName }, scope);
                     AppendFormattedLine("{0} = {1};", outputVarName, inputVarName);
                     DecreaseIndent();
                 }
                 AppendFormattedLine("}}");
                 AppendFormattedLine("{0}.SVX_producer = {1};", outputVarName, producerVarName);
-                AppendFormattedLine("{0}.SVX_sender = {1};", outputVarName, EmitPrincipalOrNondet(symTTransfer.sender));
+                if (symTTransfer.hasSender)
+                    AppendFormattedLine("{0}.SVX_sender = {1};", outputVarName, EmitPrincipalHandleOrNondet(symTTransfer.sender));
+                AppendFormattedLine("{0}.SVX_directClient = null;", outputVarName, producerVarName);
 
                 // If we verified secrets on import, they are valid regardless
                 // of whether the transfer was trusted.
@@ -213,7 +266,7 @@ namespace SVX2
                     // XXX We're assuming the generator has a no-arg public
                     // constructor and doesn't need any configuration parameters.
                     AppendFormattedLine("SVX2.VProgram_API.AssumeValidSecret({0}.{1}.secretValue, " +
-                        "new {2}().GetReaders({0}.{1}.theParams));",
+                        "{0}.{1}.theParams, new {2}().GetReaders({0}.{1}.theParams));",
                         outputVarName, entry.fieldPath, FormatTypeFullName(entry.secretGeneratorTypeFullName));
                 }
 
@@ -257,7 +310,7 @@ namespace SVX2
             // Yes, the array is covariant to be passed to ActsForAny.
             AppendFormattedLine("SVX2.Principal[] trustedParties = new SVX2.Principal[{0}];", certReq.trustedParties.Length);
             for (int i = 0; i < certReq.trustedParties.Length; i++)
-                AppendFormattedLine("trustedParties[{0}] = {1};", i, EmitPrincipalOrNondet(certReq.trustedParties[i]));
+                AppendFormattedLine("trustedParties[{0}] = {1};", i, EmitPrincipalHandleOrNondet(certReq.trustedParties[i]));
 
             sb.AppendLine();
 
@@ -265,11 +318,11 @@ namespace SVX2
             ScanParticipants(certReq.scrutineeSymT);
             foreach (var participant in participantsSeen)
                 AppendFormattedLine("SVX2.VProgram_API.CreateParticipant({0}, new {1}());",
-                    EmitPrincipal(participant.principal), FormatTypeFullName(participant.typeFullName));
+                    EmitPrincipalHandle(participant.principal), FormatTypeFullName(participant.typeFullName));
 
             sb.AppendLine();
 
-            string scrutineeVarName = EmitMessage(certReq.scrutineeSymT);
+            string scrutineeVarName = EmitMessage(certReq.scrutineeSymT, null /* scope initially empty */);
 
             sb.AppendLine();
 

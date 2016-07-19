@@ -43,8 +43,11 @@ namespace SVX2
             if (nestedSymTs.Length == 0)
                 return rootSymT;  // may be null
 
+            if (rootSymT == null)
+                rootSymT = new SymTNondet { messageTypeFullName = msg.GetType().FullName };
+
             return new SymTComposite {
-                rootSymT = rootSymT ?? new SymTNondet { messageTypeFullName = msg.GetType().FullName },
+                RootSymTWithMessageId = rootSymT,
                 nestedSymTs = nestedSymTs
             };
         }
@@ -84,11 +87,46 @@ namespace SVX2
         {
             return FillSymT(f(input), MakeSymTForMethodCall(f, new SymT[] { GatherSymTs(input) }));
         }
+        // Note: SVX will automatically detect based on message IDs if input2
+        // resulted from a sequence of operations on input1, but not the other
+        // way around.
         public static T Call<T1, T2, T>(Func<T1, T2, T> f, T1 input1, T2 input2)
             where T : SVX_MSG where T1 : SVX_MSG where T2 : SVX_MSG
         {
             return FillSymT(f(input1, input2), MakeSymTForMethodCall(f, new SymT[] { GatherSymTs(input1), GatherSymTs(input2) }));
         }
+
+        class SymTCleaner
+        {
+            int nextNewMessageId = 0;
+            Dictionary<string, string> messageIdMap = new Dictionary<string, string>();
+
+            // Current policy.  TODO: make configurable.
+            bool ShouldKeep(PrincipalHandle ph) => ph is Principal;
+
+            PrincipalHandle Rewrite(PrincipalHandle ph) => ShouldKeep(ph) ? ph : null;
+            internal SymT Rewrite(SymT symT)
+            {
+                if (!(symT is SymTComposite))
+                {
+                    string newMessageId;
+                    if (!messageIdMap.TryGetValue(symT.messageId, out newMessageId))
+                    {
+                        newMessageId = (nextNewMessageId++).ToString();
+                        messageIdMap[symT.messageId] = newMessageId;
+                    }
+                    symT.messageId = newMessageId;
+                }
+                var symTTransfer = symT as SymTTransfer;
+                if (symTTransfer != null)
+                    symT = new SymTTransfer(symTTransfer) {
+                        producer = Rewrite(symTTransfer.producer),
+                        sender = Rewrite(symTTransfer.sender),
+                    };
+                return symT.RewriteEmbeddedSymTs(Rewrite);
+            }
+        }
+
         public static void Certify<T>(T msg, Func<T, bool> predicate, Principal[] trustedParties,
             Tuple<Principal, Type>[] predicateParticipants = null)
             where T : SVX_MSG
@@ -100,9 +138,13 @@ namespace SVX2
             if (predicateParticipants == null)
                 predicateParticipants = new Tuple<Principal, Type>[0];
 
+            var scrutineeSymT = GatherSymTs(msg);
+            // Clean up for cacheability.
+            scrutineeSymT = new SymTCleaner().Rewrite(scrutineeSymT);
             MethodInfo mi = predicate.GetMethodInfo();
+
             var c = new CertificationRequest {
-                scrutineeSymT = GatherSymTs(msg),
+                scrutineeSymT = scrutineeSymT,
                 methodName = mi.Name,
                 methodDeclaringTypeFullName = mi.DeclaringType.FullName,
                 methodArgTypeFullName = mi.GetParameters()[0].ParameterType.FullName,
@@ -121,22 +163,52 @@ namespace SVX2
         // In support of old examples.  Won't be part of the real SVX API.
         public static void TransferForTesting(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender)
         {
-            Transfer(msg, producer, sender);
+            Transfer(msg, producer, sender, null);
         }
 
-        internal static void Transfer(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender)
+        class ProducerReplacer
+        {
+            internal PrincipalHandle placeholderDirectClient, realDirectClient;
+            internal SymT Rewrite(SymT symT)
+            {
+                var symTTransfer = symT as SymTTransfer;
+                if (symTTransfer != null && symTTransfer.producer == placeholderDirectClient)
+                    symT = new SymTTransfer(symTTransfer) { producer = realDirectClient };
+                return symT.RewriteEmbeddedSymTs(Rewrite);
+            }
+        }
+
+        internal static void Transfer(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender, PrincipalHandle realDirectClient)
         {
             if (producer == null || sender == null)
                 // Auto-generate them instead?  But we'd need to know the issuer.
                 // We may eventually have a global variable for the current party.
                 throw new ArgumentNullException();
+
+            var originalSymT = (SymT)msg.SVX_symT ?? new SymTNondet { messageTypeFullName = msg.GetType().FullName };
+
+            // XXX Warn if one is set and the other isn't?
+            if (realDirectClient != null && msg.SVX_directClient != null)
+            {
+                // Replace the server-issued facet with the real principal.  We
+                // could also strip the SymTTransfer layers, but this should
+                // leave it clearer what happened.
+
+                // If we try to define ProducerReplacer as a lambda, we get "Use
+                // of unassigned local variable" on the recursive call.
+                originalSymT = new ProducerReplacer {
+                    placeholderDirectClient = msg.SVX_directClient,
+                    realDirectClient = realDirectClient
+                }.Rewrite(originalSymT);
+            }
+
             msg.SVX_producer = producer;
             msg.SVX_sender = sender;
+            msg.SVX_directClient = null;
             msg.SVX_symT = new SymTTransfer {
-                originalSymT = (SymT)msg.SVX_symT ?? new SymTNondet { messageTypeFullName = msg.GetType().FullName },
-                // Only Principals are recorded concretely.
-                producer = producer as Principal,
-                sender = sender as Principal,
+                originalSymT = originalSymT,
+                producer = producer,
+                sender = sender,
                 hasSender = true
             };
             msg.active = true;
@@ -150,11 +222,11 @@ namespace SVX2
                 throw new ArgumentNullException();
             msg.SVX_producer = producer;
             // Do not change sender.
+            msg.SVX_directClient = null;
             msg.SVX_symT = new SymTTransfer
             {
                 originalSymT = (SymT)msg.SVX_symT ?? new SymTNondet { messageTypeFullName = msg.GetType().FullName },
-                // Only Principals are recorded concretely.
-                producer = producer as Principal,
+                producer = producer,
                 hasSender = false
             };
             msg.active = true;

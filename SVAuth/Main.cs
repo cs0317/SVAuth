@@ -26,7 +26,8 @@ namespace SVAuth
             //RunServer();
             //SVX2_Test_Concat.Test();
             //SVX2_Test_Secret.Test();
-            SVX2_Test_ImplicitFlow.Test();
+            //SVX2_Test_ImplicitFlow.Test();
+            SVX2_Test_AuthorizationCodeFlow.Test();
 
             /* When the program is run under the debugger in Visual Studio, the
              * output window closes immediately when the program exits.  Emulate

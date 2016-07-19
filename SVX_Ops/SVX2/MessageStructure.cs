@@ -40,7 +40,7 @@ namespace SVX2
 
                 if (!VProgram_API.KnownActsForAny(receiver, secret.knownReaders))
                     throw new Exception("Secret is not allowed to be sent to receiver " + receiver);
-                if (!VProgram_API.KnownActsForAny(target, secret.knownReaders))
+                if (target != null && !VProgram_API.KnownActsForAny(target, secret.knownReaders))
                     throw new Exception("Secret is not allowed to be sent to target " + target);
                 foreach (var reader in getKnownReaders(message))
                     if (!VProgram_API.KnownActsForAny(reader, secret.knownReaders))
@@ -118,10 +118,20 @@ namespace SVX2
             }
         }
 
-        public void Import(TMessage message, PrincipalHandle producer, PrincipalHandle sender)
+        // For cleanliness in serialization, provide a separate API so that
+        // message.SVX_directClient is only set when we expect the receiver to
+        // use it.
+        public void ExportDirectResponse(TMessage message, PrincipalHandle receiver)
+        {
+            // Factor out a private helper method if necessary in the future.
+            Export(message, receiver, null);
+            message.SVX_directClient = receiver;
+        }
+
+        private void Import(TMessage message, PrincipalHandle producer, PrincipalHandle sender, PrincipalHandle realDirectClient)
         {
             // Set up secretsVerifiedOnImport field so Extract can add to it.
-            SVX_Ops.Transfer(message, producer, sender);
+            SVX_Ops.Transfer(message, producer, sender, realDirectClient);
 
             // Extract all fields before importing any, in case getKnownReaders
             // for one secret references information extracted from another
@@ -134,6 +144,17 @@ namespace SVX2
             {
                 handler.Import(message, producer, sender);
             }
+        }
+
+        public void Import(TMessage message, PrincipalHandle producer, PrincipalHandle sender)
+        {
+            Import(message, producer, sender, null);
+        }
+
+        // TODO: client needs to tie in to some ambient "current principal" variable
+        public void ImportDirectResponse(TMessage message, PrincipalHandle server, PrincipalHandle client)
+        {
+            Import(message, server, server, client);
         }
     }
 }

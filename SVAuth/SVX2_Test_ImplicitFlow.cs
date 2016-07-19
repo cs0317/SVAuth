@@ -224,6 +224,7 @@ namespace SVAuth
             }
             public RPAuthenticationConclusion SVX_SignInRP(IdTokenResponse resp)
             {
+                // Comment out these 2 lines to see the verification fail.
                 if (resp.idToken.theParams.rpPrincipal != SVXPrincipal)
                     throw new Exception("IdTokenResponse was not issued to this RP.");
                 return new RPAuthenticationConclusion {

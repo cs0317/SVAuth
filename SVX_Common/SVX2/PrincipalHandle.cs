@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 
 namespace SVX2
 {
+    [JsonConverter(typeof(PrincipalJsonConverter))]
     public abstract class PrincipalHandle
     {
         // No other subclasses please.  If we really cared, we could define a Visit method.
@@ -54,7 +55,10 @@ namespace SVX2
             if (name != null)
                 return Principal.Of(name);
             else
-                return PrincipalFacet.Of(Principal.Of(jobject.Value<string>("issuer")), jobject.Value<string>("id"));
+                return PrincipalFacet.Of(
+                    // XXX Inefficient; learn if there is a better way to use this API.
+                    serializer.Deserialize<Principal>(new JTokenReader(jobject["issuer"])),
+                    jobject.Value<string>("id"));
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
@@ -95,6 +99,7 @@ namespace SVX2
 
     /* A PrincipalFacet is a placeholder identifier automatically assigned to a
      * principal whose true identity is not immediately known. */
+    [JsonConverter(typeof(PrincipalJsonConverter))]
     public class PrincipalFacet : PrincipalHandle
     {
         /* This is mainly here for diagnostic purposes.  If all trusted

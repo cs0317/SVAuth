@@ -81,14 +81,22 @@ implementation SVX2.VProgram_API.ActsFor$SVX2.PrincipalHandle$SVX2.PrincipalHand
 
 function Borne(bearer: Ref, secretValue: Ref) : bool;
 
+function SecretParams(secretValue: Ref) : Ref;
+
 implementation SVX2.VProgram_API.AssumeBorneImpl$SVX2.PrincipalHandle$System.String(bearer$in: Ref, secretValue$in: Ref)
 {
   // Note, secretValue may be null.  This should be harmless.
   assume Borne(bearer$in, secretValue$in);
 }
 
-implementation SVX2.VProgram_API.AssumeValidSecretImpl$System.String$SVX2.PrincipalHandlearray(secretValue$in: Ref, readers$in: Ref)
+implementation SVX2.VProgram_API.AssumeValidSecretImpl$System.String$System.Object$SVX2.PrincipalHandlearray(secretValue$in: Ref, theParams$in: Ref, readers$in: Ref)
 {
+  // FIXME: This is unsound if two distinct but equal parameter objects are
+  // allocated in C#.  We should be able to get away with this for both the
+  // implicit flow (where the payload secret is never taken apart in the
+  // vProgram) and the authorization code flow (by nondetting one of the
+  // parameter objects). ~ t-mattmc@microsoft.com 2016-07-18
+  assume SecretParams(secretValue$in) == theParams$in;
   assume (forall bearer: Ref :: Borne(bearer, secretValue$in) ==>
     // This duplicates the logic of VProgram_API.ActsForAny, but I don't see any
     // way to factor it out because we can't call a procedure inside the forall
