@@ -57,6 +57,7 @@ namespace SVAuth
             return x;
         }
         public static bool Predicate(Concat3Response resp) {
+            VProgram_API.AssumeTrusted(Principal.Of("Alice"));
             var tmp = resp.first + resp.second;
             var expected = tmp + resp.third;
             return expected == resp.output;
@@ -84,7 +85,7 @@ namespace SVAuth
             // we would assume in any real protocol.
             var respWithAssumption = SVX_Ops.Call(p.AssumeProducerActsForAlice, chainResp);
 
-            SVX_Ops.Certify(respWithAssumption, Predicate, new Principal[] { alice });
+            SVX_Ops.Certify(respWithAssumption, Predicate);
         }
     }
 }

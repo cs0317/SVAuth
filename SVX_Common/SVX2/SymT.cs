@@ -10,6 +10,7 @@ namespace SVX2
     // making them all public just for this.  For now,
     // MemberSerialization.Fields does what we want.
 
+    [BCTOmit]
     [JsonObject(MemberSerialization.Fields)]
     class ParticipantId
     {
@@ -27,6 +28,8 @@ namespace SVX2
             return Hasher.Start.With(principal.GetHashCode()).With(typeFullName.GetHashCode());
         }
     }
+
+    [BCTOmit]
     abstract class SymT
     {
         // Generate a fresh one by default.  This will just be wasted work and
@@ -43,6 +46,7 @@ namespace SVX2
         internal abstract SymT RewriteEmbeddedSymTs(Func<SymT, SymT> rewriter);
     }
 
+    [BCTOmit]
     [JsonObject(MemberSerialization.Fields)]
     class SymTNondet : SymT
     {
@@ -53,6 +57,7 @@ namespace SVX2
         internal override SymT RewriteEmbeddedSymTs(Func<SymT, SymT> rewriter) => this;
     }
 
+    [BCTOmit]
     [JsonObject(MemberSerialization.Fields)]
     class SymTMethod : SymT
     {
@@ -77,11 +82,13 @@ namespace SVX2
             };
     }
 
+    [BCTOmit]
     class VerifyOnImportEntry
     {
         internal string fieldPath;
         internal string secretGeneratorTypeFullName;
     }
+    [BCTOmit]
     [JsonObject(MemberSerialization.Fields)]
     class SymTTransfer : SymT
     {
@@ -94,6 +101,7 @@ namespace SVX2
             hasSender = copyFrom.hasSender;
             producer = copyFrom.producer;
             sender = copyFrom.sender;
+            browserOnly = copyFrom.browserOnly;
             payloadSecretsVerifiedOnImport = copyFrom.payloadSecretsVerifiedOnImport;
             fallback = copyFrom.fallback;
         }
@@ -108,6 +116,8 @@ namespace SVX2
         // the same for the sender to maintain consistency.  Facets get erased
         // when we actually prepare a CertificationRequest.
         internal PrincipalHandle producer, sender;
+
+        internal bool browserOnly;
 
         // This one is a list so we can mutate it little by little during import. :/
         internal List<VerifyOnImportEntry> payloadSecretsVerifiedOnImport = new List<VerifyOnImportEntry>();
@@ -127,17 +137,20 @@ namespace SVX2
                 hasSender = hasSender,
                 producer = producer,
                 sender = sender,
+                browserOnly = browserOnly,
                 payloadSecretsVerifiedOnImport = payloadSecretsVerifiedOnImport,
                 fallback = (fallback == null) ? null : rewriter(fallback),
             };
     }
 
+    [BCTOmit]
     [JsonObject(MemberSerialization.Fields)]
     class NestedSymTEntry
     {
         internal string fieldPath;  // dotted
         internal SymT symT;
     }
+    [BCTOmit]
     [JsonObject(MemberSerialization.Fields)]
     class SymTComposite : SymT
     {
@@ -174,6 +187,7 @@ namespace SVX2
 
     // We don't actually serialize this yet, but we will once we have the
     // certification server.
+    [BCTOmit]
     [JsonObject(MemberSerialization.Fields)]
     class CertificationRequest
     {
@@ -183,7 +197,6 @@ namespace SVX2
         internal string methodName;
         internal string methodArgTypeFullName;
         internal ParticipantId[] predicateParticipants;
-        internal Principal[] trustedParties;
     }
 
 }

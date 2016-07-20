@@ -101,6 +101,9 @@ namespace SVAuth
             public Principal SVXPrincipal => googlePrincipal;
             private GoogleIdTokenGenerator idTokenGenerator = new GoogleIdTokenGenerator();
 
+            private DeclarablePredicate<Principal /*underlying client*/, string /*username*/> SignedInPredicate
+                = new DeclarablePredicate<Principal, string>();
+
             public string TokenEndpoint(PrincipalHandle client, string idTokenRequestStr)
             {
                 var req = JsonConvert.DeserializeObject<IdTokenRequest>(idTokenRequestStr);
@@ -132,9 +135,22 @@ namespace SVAuth
                 });
             }
 
+            // Write lambda by hand because all compiler-generated classes are
+            // currently excluded from decompilation of method bodies by CCI.
+            class SignedInDeclarer
+            {
+                internal Google_IdP outer;
+                internal IdPAuthenticationEntry entry;
+                internal void Declare()
+                {
+                    outer.SignedInPredicate.Declare(VProgram_API.UnderlyingPrincipal(entry.authenticatedClient), entry.googleUsername);
+                }
+            }
+
             public IdPAuthenticationEntry SVX_ConcludeClientAuthentication(IdPAuthenticationEntry entry)
             {
-                // TODO: Declare IdpSignedIn predicate here (or add to a dictionary).
+                var d = new SignedInDeclarer { outer = this, entry = entry };
+                SVX_Ops.Ghost(d.Declare);
                 VProgram_API.AssumeActsFor(entry.authenticatedClient, GoogleUserPrincipal(entry.googleUsername));
                 // Reuse the message... Should be able to get away with it.
                 return entry;
@@ -142,6 +158,11 @@ namespace SVAuth
 
             public IdTokenResponse SVX_MakeIdTokenResponse(IdTokenRequest req, IdPAuthenticationEntry idpConc)
             {
+                // In TokenEndpoint, we requested an IdPAuthenticationEntry for
+                // req.SVX_sender, but SVX doesn't know that, so we have to do a
+                // concrete check.
+                VProgram_API.Assert(req.SVX_sender == idpConc.authenticatedClient);
+
                 // Put this in a separate SVX method so "body" gets an active SymT.
                 var body = SVX_Ops.Call(SVX_MakeIdTokenBody, req, idpConc);
                 return new IdTokenResponse
@@ -159,24 +180,29 @@ namespace SVAuth
                     username = idpConc.googleUsername
                 };
             }
+
+            public bool Ghost_CheckSignedIn(Principal underlyingPrincipal, string username)
+            {
+                return SignedInPredicate.Check(underlyingPrincipal, username);
+            }
         }
 
         class StateParams
         {
-            internal string sessionId;
+            // We expect this to be a facet issued by the RP.
+            internal PrincipalHandle client;
         }
         class MattMerchant_Google_StateGenerator : SecretGenerator<StateParams>
         {
             protected override PrincipalHandle[] GetReaders(object theParams)
             {
                 var params2 = (StateParams)theParams;
-                return new PrincipalHandle[] { googlePrincipal, mattMerchantPrincipal,
-                    PrincipalFacet.Of(mattMerchantPrincipal, params2.sessionId) };
+                return new PrincipalHandle[] { googlePrincipal, mattMerchantPrincipal, params2.client };
             }
 
             protected override string RawGenerate(StateParams theParams)
             {
-                return "mattmerchant_google_state:" + theParams.sessionId;
+                return "mattmerchant_google_state:" + theParams.client;
             }
 
             protected override void RawVerify(StateParams theParams, string secretValue)
@@ -193,15 +219,16 @@ namespace SVAuth
 
             MattMerchant_Google_StateGenerator stateGenerator = new MattMerchant_Google_StateGenerator();
 
+            // Something here is tripping up BCT.  Just exclude it until we have
+            // fully as-needed translation.
+            [BCTOmitImplementation]
             public string LoginStart(PrincipalHandle client)
             {
                 var req = new IdTokenRequest
                 {
                     rpPrincipal = SVXPrincipal,
-                    // XXX This cast is a little contrived.  Decide if we want
-                    // to pass the client as a session ID or a facet or what.
                     state = stateGenerator.Generate(
-                        new StateParams { sessionId = ((PrincipalFacet)client).id },
+                        new StateParams { client = client },
                         SVXPrincipal)
                 };
                 idTokenRequestStructure.Export(req, client, googlePrincipal);
@@ -218,8 +245,8 @@ namespace SVAuth
 
                 var conc = SVX_Ops.Call(SVX_SignInRP, idTokenResponse);
 
-                SVX_Ops.Certify(conc, LoginSafety, new Principal[] { googlePrincipal, SVXPrincipal });
-                //SVX_Ops.Certify(conc, LoginXSRFPrevention, new Principal[] { });
+                SVX_Ops.Certify(conc, LoginSafety);
+                SVX_Ops.Certify(conc, LoginXSRFPrevention, Tuple.Create(googlePrincipal, typeof(Google_IdP)));
                 // AbandonAndCreateSession...
             }
             public RPAuthenticationConclusion SVX_SignInRP(IdTokenResponse resp)
@@ -227,6 +254,10 @@ namespace SVAuth
                 // Comment out these 2 lines to see the verification fail.
                 if (resp.idToken.theParams.rpPrincipal != SVXPrincipal)
                     throw new Exception("IdTokenResponse was not issued to this RP.");
+                var expectedStateGeneratorType = typeof(MattMerchant_Google_StateGenerator);
+                // Pull new { ... } out to work around BCT mistranslation.
+                var stateParams = new StateParams { client = resp.SVX_sender };
+                stateGenerator.Verify(stateParams, resp.state);
                 return new RPAuthenticationConclusion {
                     authenticatedClient = resp.SVX_sender,
                     googleUsername = resp.idToken.theParams.username
@@ -235,37 +266,35 @@ namespace SVAuth
 
             public static bool LoginSafety(RPAuthenticationConclusion conc)
             {
-                var targets = new PrincipalHandle[3];
-                targets[0] = googlePrincipal;
-                targets[1] = mattMerchantPrincipal;
-                targets[2] = GoogleUserPrincipal(conc.googleUsername);
-                return VProgram_API.ActsForAny(conc.authenticatedClient, targets);
+                var googleUser = GoogleUserPrincipal(conc.googleUsername);
+                VProgram_API.AssumeTrustedServer(googlePrincipal);
+                VProgram_API.AssumeTrustedServer(mattMerchantPrincipal);
+                VProgram_API.AssumeTrusted(googleUser);
+
+                return VProgram_API.ActsFor(conc.authenticatedClient, googleUser);
             }
 
             public static bool LoginXSRFPrevention(RPAuthenticationConclusion conc)
             {
-                // TODO
-#if false
-                var targets = new PrincipalHandle[3];
-                targets[0] = googlePrincipal;
-                targets[1] = mattMerchantPrincipal;
-                targets[2] = GoogleUserPrincipal(conc.googleUsername);
-                return VProgram_API.ActsForAny(conc.authenticatedClient, targets);
-#endif
-                throw new NotImplementedException();
+                VProgram_API.AssumeTrustedServer(googlePrincipal);
+                VProgram_API.AssumeTrustedServer(mattMerchantPrincipal);
+                VProgram_API.AssumeTrustedBrowser(conc.authenticatedClient);
+
+                var idp = VProgram_API.GetParticipant<Google_IdP>(googlePrincipal);
+                return idp.Ghost_CheckSignedIn(VProgram_API.UnderlyingPrincipal(conc.authenticatedClient), conc.googleUsername);
             }
         }
 
         [BCTOmitImplementation]
-        static SVX2_Test_ImplicitFlow()
+        static void InitializeMessageStructures()
         {
-            idTokenRequestStructure = new MessageStructure<IdTokenRequest>();
+            idTokenRequestStructure = new MessageStructure<IdTokenRequest>() { BrowserOnly = true };
             idTokenRequestStructure.AddSecret(nameof(IdTokenRequest.state),
                 // The sender (the client) gets implicitly added.
                 // It doesn't matter whether we add the IdP here.  Convention?
                 (msg) => new PrincipalHandle[] { msg.rpPrincipal });
 
-            idTokenResponseStructure = new MessageStructure<IdTokenResponse>();
+            idTokenResponseStructure = new MessageStructure<IdTokenResponse>() { BrowserOnly = true };
             idTokenResponseStructure.AddSecret(nameof(IdTokenRequest.state),
                 // We're not passing the state along further, so we don't have to declare any readers.
                 (msg) => new PrincipalHandle[] { });
@@ -273,6 +302,12 @@ namespace SVAuth
                 (msg) => new PrincipalHandle[] { },
                 new GoogleIdTokenVerifier(),
                 true);
+        }
+
+        // Do not BCTOmitImplementation this; it affects some static field initializers that we want.
+        static SVX2_Test_ImplicitFlow()
+        {
+            InitializeMessageStructures();
         }
 
         [BCTOmitImplementation]

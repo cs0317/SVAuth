@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace SVX
 {
+    // Move to SVX_Common 2016-07-20 because it's needed by SVX2.  Hope this
+    // doesn't break SVX1.  (There's really nothing tricky here.)
+    [BCTOmit]
     public class SVXSettings
     {
         // Must be set before any SVX_Ops things are constructed.

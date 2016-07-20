@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace SVX2
 {
+    [BCTOmit]
     class VProgramEmitter
     {
         StringBuilder sb = new StringBuilder();
@@ -87,6 +88,20 @@ namespace SVX2
         // Nested types... Should we use a wrapper class in SymTs (that is
         // still serializable, unlike System.Type) and move this method there?
         string FormatTypeFullName(string fullName) => fullName.Replace('+', '.');
+
+        Type GetTypeByFullName(string fullName)
+        {
+            /* Currently, we assume all concrete message types are in the
+             * SVAuth assembly.  To lift that restriction, we'd have to
+             * either include the assembly qualified name in the SymT or
+             * just look for the type in all uploaded assemblies.  Once we
+             * can have N parties with assemblies named "SVAuth" with
+             * different code or even different definitions of the
+             * transferred message types (!), we'll need to add the hash of
+             * the assembly and we'll need to copy messages one field at a
+             * time between the differently defined types. */
+            return Type.GetType(fullName + ", SVAuth");
+        }
 
         HashSet<ParticipantId> participantsSeen = new HashSet<ParticipantId>();
         void ScanParticipants(SymT symT)
@@ -213,7 +228,7 @@ namespace SVX2
                 AppendFormattedLine("SVX2.PrincipalHandle {0} = {1};", producerVarName, EmitPrincipalHandleOrNondet(symTTransfer.producer));
                 outputVarName = nextVar("msg");
                 AppendFormattedLine("{0} {1};", FormatTypeFullName(symTTransfer.MessageTypeFullName), outputVarName);
-                AppendFormattedLine("if (SVX2.VProgram_API.ActsForAny({0}, trustedParties)) {{", producerVarName);
+                AppendFormattedLine("if (SVX2.VProgram_API.IsTrusted({0})) {{", producerVarName);
                 {
                     IncreaseIndent();
                     string inputVarName = EmitMessage(symTTransfer.originalSymT, scope);
@@ -225,9 +240,8 @@ namespace SVX2
                     {
                         AppendFormattedLine("System.Diagnostics.Contracts.Contract.Assume({0} != null);",
                             MakeFieldPathNullConditional(outputVarName, entry.fieldPath));
-                        AppendFormattedLine("{0}.SVX_producer = new {1}().Signer;",
+                        AppendFormattedLine("SVX2.SVX_Ops.TransferNested({0}, new {1}().Signer);",
                             outputVarName, FormatTypeFullName(entry.secretGeneratorTypeFullName));
-                        AppendFormattedLine("{0}.SVX_directClient = null;", outputVarName);
                     }
                     DecreaseIndent();
                 }
@@ -240,10 +254,24 @@ namespace SVX2
                     DecreaseIndent();
                 }
                 AppendFormattedLine("}}");
-                AppendFormattedLine("{0}.SVX_producer = {1};", outputVarName, producerVarName);
+
+                // Should we introduce a "transfer info" object that we can both
+                // use as an arg to Transfer and store in the SymTTransfer, to
+                // avoid shuttling individual arguments back and forth?  The
+                // following is not too bad.
                 if (symTTransfer.hasSender)
-                    AppendFormattedLine("{0}.SVX_sender = {1};", outputVarName, EmitPrincipalHandleOrNondet(symTTransfer.sender));
-                AppendFormattedLine("{0}.SVX_directClient = null;", outputVarName, producerVarName);
+                {
+                    // Note: Transfer does not use the realDirectClient arg in the vProgram.
+                    AppendFormattedLine("SVX2.SVX_Ops.Transfer({0}, {1}, {2}, null, {3});",
+                        outputVarName, producerVarName, EmitPrincipalHandleOrNondet(symTTransfer.sender),
+                        // http://stackoverflow.com/a/491367 :/
+                        symTTransfer.browserOnly.ToString().ToLower());
+                }
+                else
+                {
+                    AppendFormattedLine("SVX2.SVX_Ops.TransferNested({0}, {1});",
+                        outputVarName, producerVarName);
+                }
 
                 // If we verified secrets on import, they are valid regardless
                 // of whether the transfer was trusted.
@@ -270,22 +298,16 @@ namespace SVX2
                         outputVarName, entry.fieldPath, FormatTypeFullName(entry.secretGeneratorTypeFullName));
                 }
 
-                /* Currently, we assume all concrete message types are in the
-                 * SVAuth assembly.  To lift that restriction, we'd have to
-                 * either include the assembly qualified name in the SymT or
-                 * just look for the type in all uploaded assemblies.  Once we
-                 * can have N parties with assemblies named "SVAuth" with
-                 * different code or even different definitions of the
-                 * transferred message types (!), we'll need to add the hash of
-                 * the assembly and we'll need to copy messages one field at a
-                 * time between the differently defined types. */
-                Type messageType = Type.GetType(symTTransfer.MessageTypeFullName + ", SVAuth");
-                foreach (var acc in FieldFinder<Secret>.FindFields(messageType))
+                if (symTTransfer.hasSender)
                 {
-                    AppendFormattedLine("SVX2.VProgram_API.AssumeBorne({0}.SVX_producer, {1});",
-                        outputVarName, MakeFieldPathNullConditional(outputVarName, acc.path + ".secretValue"));
-                    AppendFormattedLine("SVX2.VProgram_API.AssumeBorne({0}.SVX_sender, {1});",
-                        outputVarName, MakeFieldPathNullConditional(outputVarName, acc.path + ".secretValue"));
+                    Type messageType = GetTypeByFullName(symTTransfer.MessageTypeFullName);
+                    foreach (var acc in FieldFinder<Secret>.FindFields(messageType))
+                    {
+                        AppendFormattedLine("SVX2.VProgram_API.AssumeBorne({0}.SVX_producer, {1});",
+                            outputVarName, MakeFieldPathNullConditional(outputVarName, acc.path + ".secretValue"));
+                        AppendFormattedLine("SVX2.VProgram_API.AssumeBorne({0}.SVX_sender, {1});",
+                            outputVarName, MakeFieldPathNullConditional(outputVarName, acc.path + ".secretValue"));
+                    }
                 }
             }
             else
@@ -302,15 +324,7 @@ namespace SVX2
             AppendFormattedLine("public static void Main() {{");
             IncreaseIndent();
 
-            AppendFormattedLine("SVX2.VProgram_API.InVProgram = true;");
-
-            sb.AppendLine();
-
-            // BCT WORKAROUND: new T[] { ... } (yes, in emitted code!)
-            // Yes, the array is covariant to be passed to ActsForAny.
-            AppendFormattedLine("SVX2.Principal[] trustedParties = new SVX2.Principal[{0}];", certReq.trustedParties.Length);
-            for (int i = 0; i < certReq.trustedParties.Length; i++)
-                AppendFormattedLine("trustedParties[{0}] = {1};", i, EmitPrincipalHandleOrNondet(certReq.trustedParties[i]));
+            AppendFormattedLine("SVX2.VProgram_API.InitVProgram();");
 
             sb.AppendLine();
 
@@ -326,6 +340,7 @@ namespace SVX2
 
             sb.AppendLine();
 
+            AppendFormattedLine("SVX2.VProgram_API.InPredicate = true;");
             // We list System.Diagnostics.Contracts as a direct dependency as a
             // good practice, even though we'll nearly always get it as an
             // indirect dependency.

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace SVX2
 {
+    [BCTOmit]
     public class FieldAccessor<TObject, TField>
     {
         // In case anyone wants this...
@@ -30,6 +31,7 @@ namespace SVX2
         }
     }
 
+    [BCTOmit]
     public static class FieldLookup
     {
         public static FieldAccessor<TObject, TField> Lookup<TObject, TField>(string name)
@@ -44,6 +46,7 @@ namespace SVX2
     // TODO: Merge both Accessor classes.  I'm being sloppy at the moment.
 
     // The interface of this class may change as our needs change...
+    [BCTOmit]
     static class FieldFinder<TNeedle>
     {
         private static HashSet<Type> leafTypes = new HashSet<Type> { typeof(string) };

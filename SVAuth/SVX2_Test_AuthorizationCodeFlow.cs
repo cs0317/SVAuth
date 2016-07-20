@@ -9,6 +9,10 @@ using Newtonsoft.Json;
 
 namespace SVAuth
 {
+    // Obviously, much of this is copy and paste from SVX2_Test_ImplicitFlow,
+    // but factoring out the commonality would have been a distraction from this
+    // exercise.  We'll see that factoring out when we migrate the real
+    // implementations to SVX2.
     public static class SVX2_Test_AuthorizationCodeFlow
     {
         static readonly Principal googlePrincipal = Principal.Of("Google");
@@ -105,6 +109,9 @@ namespace SVAuth
             public Principal SVXPrincipal => googlePrincipal;
             private GoogleAuthorizationCodeGenerator authorizationCodeGenerator = new GoogleAuthorizationCodeGenerator();
 
+            private DeclarablePredicate<Principal /*underlying client*/, string /*username*/> SignedInPredicate
+                = new DeclarablePredicate<Principal, string>();
+
             private Dictionary<Secret, AuthorizationCodeParams> authorizationCodeParamsDict = new Dictionary<Secret, AuthorizationCodeParams>();
 
             public string CodeEndpoint(PrincipalHandle client, string codeRequestStr)
@@ -116,7 +123,7 @@ namespace SVAuth
                     client);
 
                 // In reality, AuthenticateClient couldn't be done
-                // synchronously, so both TokenEndpoint and AuthenticateClient
+                // synchronously, so both CodeEndpoint and AuthenticateClient
                 // would be broken into a start and a callback.
                 var idpConc = AuthenticateClient(client);
 
@@ -144,9 +151,22 @@ namespace SVAuth
                 });
             }
 
+            // Write lambda by hand because all compiler-generated classes are
+            // currently excluded from decompilation of method bodies by CCI.
+            class SignedInDeclarer
+            {
+                internal Google_IdP outer;
+                internal IdPAuthenticationEntry entry;
+                internal void Declare()
+                {
+                    outer.SignedInPredicate.Declare(VProgram_API.UnderlyingPrincipal(entry.authenticatedClient), entry.googleUsername);
+                }
+            }
+
             public IdPAuthenticationEntry SVX_ConcludeClientAuthentication(IdPAuthenticationEntry entry)
             {
-                // TODO: Declare IdpSignedIn predicate here (or add to a dictionary).
+                var d = new SignedInDeclarer { outer = this, entry = entry };
+                SVX_Ops.Ghost(d.Declare);
                 VProgram_API.AssumeActsFor(entry.authenticatedClient, GoogleUserPrincipal(entry.googleUsername));
                 // Reuse the message... Should be able to get away with it.
                 return entry;
@@ -154,6 +174,11 @@ namespace SVAuth
 
             public AuthorizationCodeResponse SVX_MakeAuthorizationCodeResponse(AuthorizationCodeRequest req, IdPAuthenticationEntry idpConc)
             {
+                // In CodeEndpoint, we requested an IdPAuthenticationEntry for
+                // req.SVX_sender, but SVX doesn't know that, so we have to do a
+                // concrete check.
+                VProgram_API.Assert(req.SVX_sender == idpConc.authenticatedClient);
+
                 // With this expression inlined below, BCT silently mistranslated the code.
                 var theParams = new AuthorizationCodeParams
                 {
@@ -208,24 +233,29 @@ namespace SVAuth
                     googleUsername = theParams.googleUsername
                 };
             }
+
+            public bool Ghost_CheckSignedIn(Principal underlyingPrincipal, string username)
+            {
+                return SignedInPredicate.Check(underlyingPrincipal, username);
+            }
         }
 
         class StateParams
         {
-            internal string sessionId;
+            // We expect this to be a facet issued by the RP.
+            internal PrincipalHandle client;
         }
         class MattMerchant_Google_StateGenerator : SecretGenerator<StateParams>
         {
             protected override PrincipalHandle[] GetReaders(object theParams)
             {
                 var params2 = (StateParams)theParams;
-                return new PrincipalHandle[] { googlePrincipal, mattMerchantPrincipal,
-                    PrincipalFacet.Of(mattMerchantPrincipal, params2.sessionId) };
+                return new PrincipalHandle[] { googlePrincipal, mattMerchantPrincipal, params2.client };
             }
 
             protected override string RawGenerate(StateParams theParams)
             {
-                return "mattmerchant_google_state:" + theParams.sessionId;
+                return "mattmerchant_google_state:" + theParams.client;
             }
 
             protected override void RawVerify(StateParams theParams, string secretValue)
@@ -242,15 +272,16 @@ namespace SVAuth
 
             MattMerchant_Google_StateGenerator stateGenerator = new MattMerchant_Google_StateGenerator();
 
+            // Something here is tripping up BCT.  Just exclude it until we have
+            // fully as-needed translation.
+            [BCTOmitImplementation]
             public string LoginStart(PrincipalHandle client)
             {
                 var req = new AuthorizationCodeRequest
                 {
                     rpPrincipal = SVXPrincipal,
-                    // XXX This cast is a little contrived.  Decide if we want
-                    // to pass the client as a session ID or a facet or what.
                     state = stateGenerator.Generate(
-                        new StateParams { sessionId = ((PrincipalFacet)client).id },
+                        new StateParams { client = client },
                         SVXPrincipal)
                 };
                 authorizationCodeRequestStructure.Export(req, client, googlePrincipal);
@@ -283,13 +314,17 @@ namespace SVAuth
                 // validationResponse.googleUsername.
                 var conc = SVX_Ops.Call(SVX_SignInRP, authorizationCodeResponse, validationResponse);
 
-                SVX_Ops.Certify(conc, LoginSafety, new Principal[] { googlePrincipal, SVXPrincipal });
-                //SVX_Ops.Certify(conc, LoginXSRFPrevention, new Principal[] { });
+                SVX_Ops.Certify(conc, LoginSafety);
+                SVX_Ops.Certify(conc, LoginXSRFPrevention, Tuple.Create(googlePrincipal, typeof(Google_IdP)));
                 // AbandonAndCreateSession...
             }
 
             public ValidationRequest SVX_MakeValidationRequest(AuthorizationCodeResponse resp)
             {
+                // May as well fail fast.  It should also pass verification to do this in SVX_SignInRP.
+                // Pull new { ... } out to work around BCT mistranslation.
+                var stateParams = new StateParams { client = resp.SVX_sender };
+                stateGenerator.Verify(stateParams, resp.state);
                 return new ValidationRequest
                 {
                     authorizationCode = resp.authorizationCode,
@@ -308,39 +343,37 @@ namespace SVAuth
 
             public static bool LoginSafety(RPAuthenticationConclusion conc)
             {
-                var targets = new PrincipalHandle[3];
-                targets[0] = googlePrincipal;
-                targets[1] = mattMerchantPrincipal;
-                targets[2] = GoogleUserPrincipal(conc.googleUsername);
-                return VProgram_API.ActsForAny(conc.authenticatedClient, targets);
+                var googleUser = GoogleUserPrincipal(conc.googleUsername);
+                VProgram_API.AssumeTrustedServer(googlePrincipal);
+                VProgram_API.AssumeTrustedServer(mattMerchantPrincipal);
+                VProgram_API.AssumeTrusted(googleUser);
+
+                return VProgram_API.ActsFor(conc.authenticatedClient, googleUser);
             }
 
             public static bool LoginXSRFPrevention(RPAuthenticationConclusion conc)
             {
-                // TODO
-#if false
-                var targets = new PrincipalHandle[3];
-                targets[0] = googlePrincipal;
-                targets[1] = mattMerchantPrincipal;
-                targets[2] = GoogleUserPrincipal(conc.googleUsername);
-                return VProgram_API.ActsForAny(conc.authenticatedClient, targets);
-#endif
-                throw new NotImplementedException();
+                VProgram_API.AssumeTrustedServer(googlePrincipal);
+                VProgram_API.AssumeTrustedServer(mattMerchantPrincipal);
+                VProgram_API.AssumeTrustedBrowser(conc.authenticatedClient);
+
+                var idp = VProgram_API.GetParticipant<Google_IdP>(googlePrincipal);
+                return idp.Ghost_CheckSignedIn(VProgram_API.UnderlyingPrincipal(conc.authenticatedClient), conc.googleUsername);
             }
         }
 
         [BCTOmitImplementation]
-        static SVX2_Test_AuthorizationCodeFlow()
+        static void InitializeMessageStructures()
         {
             // In all cases, we only bother declaring the secret readers we
             // actually need for the protocol flow.  Maybe this is a bad habit.
 
-            authorizationCodeRequestStructure = new MessageStructure<AuthorizationCodeRequest>();
+            authorizationCodeRequestStructure = new MessageStructure<AuthorizationCodeRequest>() { BrowserOnly = true };
             authorizationCodeRequestStructure.AddSecret(nameof(AuthorizationCodeRequest.state),
                 // The sender (the client) gets implicitly added.
                 (msg) => new PrincipalHandle[] { msg.rpPrincipal });
 
-            authorizationCodeResponseStructure = new MessageStructure<AuthorizationCodeResponse>();
+            authorizationCodeResponseStructure = new MessageStructure<AuthorizationCodeResponse>() { BrowserOnly = true };
             authorizationCodeResponseStructure.AddSecret(nameof(AuthorizationCodeRequest.state),
                 (msg) => new PrincipalHandle[] { });
             authorizationCodeResponseStructure.AddSecret(nameof(AuthorizationCodeResponse.authorizationCode),
@@ -352,6 +385,12 @@ namespace SVAuth
 
             // Nothing interesting here.
             validationResponseStructure = new MessageStructure<ValidationResponse>();
+        }
+
+        // Do not BCTOmitImplementation this; it affects some static field initializers that we want.
+        static SVX2_Test_AuthorizationCodeFlow()
+        {
+            InitializeMessageStructures();
         }
 
         [BCTOmitImplementation]

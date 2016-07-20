@@ -24,6 +24,11 @@ namespace SVX2
         // This will go away once we merge SVX_Common and SVX_Ops into one
         // assembly and use BCT attributes to control what gets translated.
 
+        // WARNING: This has to be public for serialization, but it is null in
+        // the vProgram and if you touch it there, you may make the verification
+        // unsound.  (Better ideas?  A property that raises an assertion failure
+        // (NOT an exception, which is an assume) if accessed in the vProgram?)
+        //
         // FIXME: Restrict the possible types of SymTs before exposing this to
         // untrusted input.  I can't justify the time to implement the
         // restriction yet. ~ t-mattmc@microsoft.com 2016-07-14
@@ -91,13 +96,23 @@ namespace SVX2
     public static class VProgram_API
     {
         internal static bool InVProgram = false;
+        internal static bool InPredicate = false;
+
+        // Don't AssumeActsFor until InVProgram is set correctly.  If we wanted
+        // to be fancy, we could make InVProgram a property with different
+        // implementations in .NET and extra_stubs.bpl.
+        internal static void InitVProgram()
+        {
+            InVProgram = true;
+            AssumeActsFor(trustedServerPrincipal, trustedPrincipal);
+        }
 
         // TODO: Change to Dictionary<Tuple<string, Type>, object> (or a
         // custom class in place of Tuple) once we have suitable stubs to
         // compare the keys by value.
         static Dictionary<Principal, Dictionary<Type, object>> participants = new Dictionary<Principal, Dictionary<Type, object>>();
 
-        internal static T GetParticipant<T>(Principal principal) where T : new()
+        public static T GetParticipant<T>(Principal principal) where T : new()
         {
             Dictionary<Type, object> dict1;
             if (!participants.TryGetValue(principal, out dict1))
@@ -270,9 +285,13 @@ namespace SVX2
         // Wrapper: the easiest way to get BCT to record the arguments.
         internal static void AssumeValidSecret(string secretValue, object theParams, PrincipalHandle[] originalReaders)
         {
-            foreach (var reader in originalReaders)
+            // Just get BCT to record the reader.
+            if (InVProgram)
             {
-                // Just get BCT to record the reader.
+                foreach (var reader in originalReaders)
+                {
+                    var readerIsTrusted = IsTrusted(reader);
+                }
             }
             AssumeValidSecretImpl(secretValue, theParams, originalReaders);
         }
@@ -287,9 +306,53 @@ namespace SVX2
         }
 
         [BCTOmitImplementation]
-        internal static Principal UnderlyingPrincipal(PrincipalHandle ph)
+        public static Principal UnderlyingPrincipal(PrincipalHandle ph)
         {
             throw new NotImplementedException();
+        }
+
+        // The principals that act for __trusted are trusted for the purpose of
+        // the current verification.  Saves us from axiomatizing separately that
+        // if we trust a principal, we trust everyone who acts for them.
+        internal static Principal trustedPrincipal = Principal.Of("__trusted");
+
+        // This principal has no meaning except to define a set of trusted
+        // servers that is closed under acts-for.
+        internal static Principal trustedServerPrincipal = Principal.Of("__trustedServer");
+
+        internal static bool IsTrusted(PrincipalHandle ph)
+        {
+            return ActsFor(ph, trustedPrincipal);
+        }
+
+        public static void AssumeTrusted(PrincipalHandle ph)
+        {
+            if (!InPredicate)
+                throw new InvalidOperationException("Trust assumptions may only be made from the predicate.");
+            Contract.Assume(IsTrusted(ph));
+        }
+
+        [BCTOmitImplementation]
+        private static void AssumeNoOneElseActsFor(PrincipalHandle ph)
+        {
+            throw new NotImplementedException();
+        }
+
+        // No other principal may act for the underlying principal of the browser.
+        public static void AssumeTrustedBrowser(PrincipalHandle ph)
+        {
+            AssumeTrusted(ph);  // checks InPredicate
+            AssumeNoOneElseActsFor(ph);
+        }
+
+        // No one who acts for a trusted server may be sender of a message with
+        // a "browser only" message structure.  Of course, trusted servers may
+        // /produce/ such messages.
+        public static void AssumeTrustedServer(PrincipalHandle ph)
+        {
+            if (!InPredicate)
+                throw new InvalidOperationException("Trust assumptions may only be made from the predicate.");
+            Contract.Assume(ActsFor(ph, trustedServerPrincipal));
         }
     }
 }

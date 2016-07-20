@@ -9,6 +9,8 @@ implementation {:inline 1} System.String.Concat$System.String$System.String(str0
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Principals
+
 // Pretend that PrincipalHandles are interned, like strings.
 
 // XXX Do we need to actually axiomatize that the principal has the name we asked for?
@@ -41,6 +43,10 @@ implementation {:inline 1} SVX2.PrincipalHandle.op_Inequality$SVX2.PrincipalHand
 ///////////////////////////////////////////////////////////////////////////////
 // Acts-for
 
+// Corral should be able to see at runtime that this is assigned a principal, so
+// it is its own underlying principal.
+// var F$SVX2.VProgram_API.trustedPrincipal : Ref;
+
 // We don't care what this returns for Refs that aren't PrincipalHandles.
 function UnderlyingPrincipal(principalHandle: Ref) : Ref;
 axiom (forall p: Ref :: $DynamicType(UnderlyingPrincipal(p)) == T$SVX2.Principal());
@@ -69,6 +75,11 @@ implementation SVX2.VProgram_API.UnderlyingPrincipal$SVX2.PrincipalHandle(ph$in:
 implementation SVX2.VProgram_API.ActsFor$SVX2.PrincipalHandle$SVX2.PrincipalHandle(actor$in: Ref, target$in: Ref) returns ($result: bool)
 {
   $result := ActsFor(actor$in, target$in);
+}
+
+implementation SVX2.VProgram_API.AssumeNoOneElseActsFor$SVX2.PrincipalHandle(ph$in: Ref)
+{
+  assume (forall actor: Ref :: ActsFor(actor, ph$in) ==> UnderlyingPrincipal(actor) == UnderlyingPrincipal(ph$in));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -101,5 +112,23 @@ implementation SVX2.VProgram_API.AssumeValidSecretImpl$System.String$System.Obje
     // This duplicates the logic of VProgram_API.ActsForAny, but I don't see any
     // way to factor it out because we can't call a procedure inside the forall
     // and a function can't read global variables.
-    (exists i: int :: i >= 0 && i < $ArrayLength(readers$in) && ActsFor(bearer, $ArrayContents[readers$in][i])));
+    (exists i: int :: i >= 0 && i < $ArrayLength(readers$in) &&
+	  (ActsFor(bearer, $ArrayContents[readers$in][i]) || !ActsFor($ArrayContents[readers$in][i], F$SVX2.VProgram_API.trustedPrincipal))
+	  ));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Declarable predicates
+
+function AllDeclarablePredicates1Arg(dp: Ref, arg1: Ref): bool;
+function AllDeclarablePredicates2Arg(dp: Ref, arg1: Ref, arg2: Ref): bool;
+
+implementation SVX2.DeclarablePredicate`1.Check$`0($this: Ref, arg1$in: Ref) returns ($result: bool)
+{
+  $result := AllDeclarablePredicates1Arg($this, arg1$in);
+}
+
+implementation SVX2.DeclarablePredicate`2.Check$`0$`1($this: Ref, arg1$in: Ref, arg2$in: Ref) returns ($result: bool)
+{
+  $result := AllDeclarablePredicates2Arg($this, arg1$in, arg2$in);
 }

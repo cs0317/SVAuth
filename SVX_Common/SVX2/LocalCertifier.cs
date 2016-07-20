@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
 using SVXSettings = SVX.SVXSettings;
-using Utils = SVX.Utils;
 using System.Diagnostics;
 using Newtonsoft.Json;
 using System.Reflection;
@@ -15,6 +14,7 @@ namespace SVX2
     // Most of LocalCertifier is copy/paste from SVX1 VProgramGenerator.
     // Put the boring stuff in a separate file.
 
+    [BCTOmit]
     static class LocalCertifier
     {
         internal static bool Certify(CertificationRequest c)

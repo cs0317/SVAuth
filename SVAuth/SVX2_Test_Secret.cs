@@ -99,6 +99,8 @@ namespace SVAuth
         }
 
         public static bool LoginSafety(AuthenticationConclusion conc) {
+            VProgram_API.AssumeTrusted(idpPrincipal);
+            VProgram_API.AssumeTrusted(rpPrincipal);
             // BCT accepts this code but silently mistranslates it!
             //return VProgram_API.ActsForAny(conc.authenticatedClient,
             //    new PrincipalHandle[] { idpPrincipal, rpPrincipal, IdPUserPrincipal(conc.idpUsername) });
@@ -129,7 +131,7 @@ namespace SVAuth
             SVX_Ops.TransferForTesting(rpReq, idpPrincipal, aliceRP);
 
             var conc = SVX_Ops.Call(rp.SignInRP, rpReq);
-            SVX_Ops.Certify(conc, LoginSafety, new Principal[] { idpPrincipal, rpPrincipal });
+            SVX_Ops.Certify(conc, LoginSafety);
         }
     }
 }

@@ -24,9 +24,32 @@ namespace BytecodeTranslator.Diagnostics
 }
 
 // The use cases so far are method and /static/ constructor.
+// WARNING: If you omit implementation of a static constructor, you are also
+// omitting static field initializers that are moved into the static constructor
+// by the compiler!
 // ~ t-mattmc@microsoft.com 2016-07-14
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor, Inherited = false)]
 public class BCTOmitImplementationAttribute : Attribute
+{
+
+}
+
+// - We won't support this for assemblies: just don't pass the assembly.
+// - Don't consider modules.
+// - We won't support this for parameters, etc.
+// - Currently BCT doesn't process event and property members at all, but only
+//   the underlying accessor methods.  To be able to omit events and properties,
+//   we'd need BCT to look them up when it reaches the accessor method.
+[AttributeUsage(
+    // CCI ITypeDefinition
+    AttributeTargets.Class | AttributeTargets.Delegate | AttributeTargets.Enum |
+    AttributeTargets.Interface | AttributeTargets.Struct |
+    // CCI IMethodDefinition
+    AttributeTargets.Method | AttributeTargets.Constructor |
+    // CCI IFieldDefinition
+    AttributeTargets.Field,
+    Inherited = false)]
+public class BCTOmitAttribute : Attribute
 {
 
 }

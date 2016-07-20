@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Reflection;
 using Newtonsoft.Json;
-using Utils = SVX.Utils;
 using System.Runtime.CompilerServices;
+using System.Diagnostics.Contracts;
 
 [assembly: InternalsVisibleTo("VProgram")]
 
@@ -18,6 +18,7 @@ namespace SVX2
 
         }
 
+        [BCTOmit]
         private static SymT GatherUsefulSymTs(SVX_MSG msg)
         {
             // Want to warn if the msg is inactive but has a symT set, at least
@@ -51,19 +52,21 @@ namespace SVX2
                 nestedSymTs = nestedSymTs
             };
         }
+        [BCTOmit]
         private static SymT GatherSymTs(SVX_MSG msg)
         {
             return GatherUsefulSymTs(msg) ??
                 new SymTNondet { messageTypeFullName = msg.GetType().FullName };
         }
 
-        private static T FillSymT<T>(T msg, SymT symT) where T : SVX_MSG
+        [BCTOmit]
+        private static void RecordCall(SVX_MSG output, Delegate del, SVX_MSG[] inputs)
         {
-            msg.active = true;
-            msg.SVX_symT = symT;
-            return msg;
+            output.active = true;
+            output.SVX_symT = MakeSymTForMethodCall(del, inputs.Select((input) => GatherSymTs(input)).ToArray());
         }
 
+        [BCTOmit]
         private static SymT MakeSymTForMethodCall(Delegate del, SymT[] inputSymTs)
         {
             Participant participant = del.Target as Participant;
@@ -85,7 +88,14 @@ namespace SVX2
         public static T Call<T1, T>(Func<T1, T> f, T1 input)
             where T : SVX_MSG where T1 : SVX_MSG
         {
-            return FillSymT(f(input), MakeSymTForMethodCall(f, new SymT[] { GatherSymTs(input) }));
+            var output = f(input);
+            if (!VProgram_API.InVProgram)
+            {
+                var args = new SVX_MSG[1];
+                args[0] = input;
+                RecordCall(output, f, args);
+            }
+            return output;
         }
         // Note: SVX will automatically detect based on message IDs if input2
         // resulted from a sequence of operations on input1, but not the other
@@ -93,9 +103,18 @@ namespace SVX2
         public static T Call<T1, T2, T>(Func<T1, T2, T> f, T1 input1, T2 input2)
             where T : SVX_MSG where T1 : SVX_MSG where T2 : SVX_MSG
         {
-            return FillSymT(f(input1, input2), MakeSymTForMethodCall(f, new SymT[] { GatherSymTs(input1), GatherSymTs(input2) }));
+            var output = f(input1, input2);
+            if (!VProgram_API.InVProgram)
+            {
+                var args = new SVX_MSG[2];
+                args[0] = input1;
+                args[1] = input2;
+                RecordCall(output, f, args);
+            }
+            return output;
         }
 
+        [BCTOmit]
         class SymTCleaner
         {
             int nextNewMessageId = 0;
@@ -127,16 +146,18 @@ namespace SVX2
             }
         }
 
-        public static void Certify<T>(T msg, Func<T, bool> predicate, Principal[] trustedParties,
-            Tuple<Principal, Type>[] predicateParticipants = null)
+        // Will be called from translated assemblies.  Only once we have
+        // as-needed translation will we be able to omit the declaration.
+        [BCTOmitImplementation]
+        public static void Certify<T>(T msg, Predicate<T> predicate,
+            // params is convenient for now.  Think if it's appropriate long-term.
+            params Tuple<Principal, Type>[] predicateParticipants)
             where T : SVX_MSG
         {
             if (predicate.Target != null)
                 // For now.  As long as we allow participants on SVX method
                 // calls, it wouldn't be bad to allow them here too.
                 throw new ArgumentException("Predicate must be a static method");
-            if (predicateParticipants == null)
-                predicateParticipants = new Tuple<Principal, Type>[0];
 
             var scrutineeSymT = GatherSymTs(msg);
             // Clean up for cacheability.
@@ -150,8 +171,6 @@ namespace SVX2
                 methodArgTypeFullName = mi.GetParameters()[0].ParameterType.FullName,
                 predicateParticipants = predicateParticipants.Select(
                     (t) => new ParticipantId { principal = t.Item1, typeFullName = t.Item2.FullName }).ToArray(),
-                // XXX Establish a style guide for passing lists around.
-                trustedParties = trustedParties.ToArray()
             };
 
             // TODO: Cache based on c.  Means we need to implement Equals/GetHashCode.
@@ -163,9 +182,10 @@ namespace SVX2
         // In support of old examples.  Won't be part of the real SVX API.
         public static void TransferForTesting(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender)
         {
-            Transfer(msg, producer, sender, null);
+            Transfer(msg, producer, sender, null, false);
         }
 
+        [BCTOmit]
         class ProducerReplacer
         {
             internal PrincipalHandle placeholderDirectClient, realDirectClient;
@@ -178,13 +198,10 @@ namespace SVX2
             }
         }
 
-        internal static void Transfer(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender, PrincipalHandle realDirectClient)
+        // Crashes the CCI unstacker. :(
+        [BCTOmitImplementation]
+        private static void TransferProd(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender, PrincipalHandle realDirectClient, bool browserOnly)
         {
-            if (producer == null || sender == null)
-                // Auto-generate them instead?  But we'd need to know the issuer.
-                // We may eventually have a global variable for the current party.
-                throw new ArgumentNullException();
-
             var originalSymT = (SymT)msg.SVX_symT ?? new SymTNondet { messageTypeFullName = msg.GetType().FullName };
 
             // XXX Warn if one is set and the other isn't?
@@ -196,20 +213,56 @@ namespace SVX2
 
                 // If we try to define ProducerReplacer as a lambda, we get "Use
                 // of unassigned local variable" on the recursive call.
-                originalSymT = new ProducerReplacer {
+                originalSymT = new ProducerReplacer
+                {
                     placeholderDirectClient = msg.SVX_directClient,
                     realDirectClient = realDirectClient
                 }.Rewrite(originalSymT);
             }
 
-            msg.SVX_producer = producer;
-            msg.SVX_sender = sender;
-            msg.SVX_directClient = null;
-            msg.SVX_symT = new SymTTransfer {
+            msg.SVX_symT = new SymTTransfer
+            {
                 originalSymT = originalSymT,
                 producer = producer,
                 sender = sender,
-                hasSender = true
+                hasSender = true,
+                browserOnly = browserOnly
+            };
+            msg.active = true;
+        }
+
+        internal static void Transfer(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender, PrincipalHandle realDirectClient, bool browserOnly)
+        {
+            if (producer == null || sender == null)
+                // Auto-generate them instead?  But we'd need to know the issuer.
+                // We may eventually have a global variable for the current party.
+                throw new ArgumentNullException();
+
+            if (VProgram_API.InVProgram)
+            {
+                if (browserOnly)
+                    Contract.Assume(!VProgram_API.ActsFor(sender, VProgram_API.trustedServerPrincipal));
+            }
+            else
+            {
+                TransferProd(msg, producer, sender, realDirectClient, browserOnly);
+            }
+
+            // Make the same metadata changes in the vProgram as in production.
+            msg.SVX_producer = producer;
+            msg.SVX_sender = sender;
+            msg.SVX_directClient = null;
+        }
+
+        // Crashes the CCI unstacker. :(
+        [BCTOmitImplementation]
+        private static void TransferNestedProd(SVX_MSG msg, PrincipalHandle producer)
+        {
+            msg.SVX_symT = new SymTTransfer
+            {
+                originalSymT = (SymT)msg.SVX_symT ?? new SymTNondet { messageTypeFullName = msg.GetType().FullName },
+                producer = producer,
+                hasSender = false
             };
             msg.active = true;
         }
@@ -220,16 +273,28 @@ namespace SVX2
                 // Auto-generate it instead?  But we'd need to know the issuer.
                 // We may eventually have a global variable for the current party.
                 throw new ArgumentNullException();
+
+            if (!VProgram_API.InVProgram)
+            {
+                TransferNestedProd(msg, producer);
+            }
+
+            // Make the same metadata changes in the vProgram as in production.
             msg.SVX_producer = producer;
             // Do not change sender.
             msg.SVX_directClient = null;
-            msg.SVX_symT = new SymTTransfer
-            {
-                originalSymT = (SymT)msg.SVX_symT ?? new SymTNondet { messageTypeFullName = msg.GetType().FullName },
-                producer = producer,
-                hasSender = false
-            };
-            msg.active = true;
+        }
+
+        // Run the action in the VProgram only.  Meant for actions that have no
+        // side effects on production (e.g., declaring predicates) and may rely
+        // on data not available in production (e.g., underlying principals).
+        // TODO: Better enforce the lack of side effects.
+        // TODO: As long as we can't handle compiler-generated closures, want to
+        // provide a few more overloads of this method to pass arguments?
+        public static void Ghost(Action a)
+        {
+            if (VProgram_API.InVProgram)
+                a();
         }
     }
 

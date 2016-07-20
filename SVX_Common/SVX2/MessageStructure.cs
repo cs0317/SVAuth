@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace SVX2
 {
+    [BCTOmit]
     public class MessageStructure<TMessage> where TMessage : SVX_MSG
     {
         abstract class FieldHandler
@@ -17,6 +18,8 @@ namespace SVX2
 
         // TBD how to represent handlers for nested fields.
         Dictionary<string /*fieldName*/, FieldHandler> fieldHandlers = new Dictionary<string, FieldHandler>();
+
+        public bool BrowserOnly { get; set; }
 
         public MessageStructure()
         {
@@ -110,8 +113,11 @@ namespace SVX2
             });
         }
 
+        // target is the redirection target, null if sending directly.
         public void Export(TMessage message, PrincipalHandle receiver, PrincipalHandle target)
         {
+            if (target == null && BrowserOnly)
+                throw new InvalidOperationException("Server attempted to send a browser-only message.");
             foreach (var handler in fieldHandlers.Values)
             {
                 handler.Export(message, receiver, target);
@@ -131,7 +137,7 @@ namespace SVX2
         private void Import(TMessage message, PrincipalHandle producer, PrincipalHandle sender, PrincipalHandle realDirectClient)
         {
             // Set up secretsVerifiedOnImport field so Extract can add to it.
-            SVX_Ops.Transfer(message, producer, sender, realDirectClient);
+            SVX_Ops.Transfer(message, producer, sender, realDirectClient, BrowserOnly);
 
             // Extract all fields before importing any, in case getKnownReaders
             // for one secret references information extracted from another
