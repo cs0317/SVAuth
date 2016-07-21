@@ -21,7 +21,8 @@ namespace SVX
         // version of SVAuth, so better leave this set to true.
         public bool CertifyLocally;
 
-        // Folder for SVX data.  Will be automatically created if it doesn't exist.
+        // Folder for SVX runtime data.  Will be automatically created if it doesn't exist.
+        // May be relative to working directory, assumed to be SVAuth project directory.
         public string SVXFolderPath;
 
         // Certification server settings:

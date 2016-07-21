@@ -40,7 +40,7 @@
   "SVXSettings": {
     "MyPartyName": "RP",
     "TrustedParties": [ "RP", "AS" ],
-    "SVXFolderPath": "C:\\SVX",
+    "SVXFolderPath": "..\\svx-runtime-data",
     "CertifyLocally": true,
     "DLLServerAddress": "http://protoagnostic.cloudapp.net:8700/",
     "Token": "NRhFVgSo0khCjh+lhPuhSKb/8wHntjI+",

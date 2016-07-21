@@ -1,0 +1,3 @@
+[submodule "bytecodetranslator"]
+	path = bytecodetranslator
+	url = https://github.com/mattmccutchen-microsoft/bytecodetranslator.git
