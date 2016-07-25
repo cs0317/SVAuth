@@ -46,7 +46,7 @@ namespace SVAuth.ServiceProviders.Microsoft
             routeBuilder.MapRoute("login/Microsoft", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/Microsoft", RP.AuthorizationCodeFlow_Login_CallbackAsync);
         }
-        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG)
+        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID)
         {
             MSAuthenticationRequest MSAuthenticationRequest = new MSAuthenticationRequest();
             MSAuthenticationRequest.client_id = client_id;

@@ -94,10 +94,10 @@ namespace SVAuth.OpenID20
             set { realm = value; }
         }
 
-        public abstract AuthenticationRequest createAuthenticationRequest(SVX.SVX_MSG inputMSG);
-        public AuthenticationRequest _createAuthenticationRequest(SVX.SVX_MSG inputMSG)
+        public abstract AuthenticationRequest createAuthenticationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID);
+        public AuthenticationRequest _createAuthenticationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID)
         {
-            var outputMSG = createAuthenticationRequest(inputMSG);
+            var outputMSG = createAuthenticationRequest(inputMSG, SVAuthSessionID);
             SVX.SVX_Ops.recordme(this, inputMSG, outputMSG);
             return outputMSG;
         }
@@ -105,7 +105,8 @@ namespace SVAuth.OpenID20
         public Task Login_StartAsync(HttpContext context)
         {
             SVX.SVX_MSG inputMSG = new SVX.SVX_MSG();
-            var _AuthenticationRequest = _createAuthenticationRequest(inputMSG);
+            string SVAuthSessionID=Utils.SetNewSVAuthSessionIDHeader(context);
+            var _AuthenticationRequest = _createAuthenticationRequest(inputMSG, SVAuthSessionID);
             var rawReq = marshalAuthenticationRequest(_AuthenticationRequest);
             context.Response.Redirect(rawReq);
 

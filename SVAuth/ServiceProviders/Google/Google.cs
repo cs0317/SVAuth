@@ -51,7 +51,7 @@ namespace SVAuth.ServiceProviders.Google
             routeBuilder.MapRoute("login/Google", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/Google", RP.ImplicitFlow_Login_CallbackAsync);
         }
-        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG)
+        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID)
         {
             GGAuthenticationRequest GGAuthenticationRequest = new GGAuthenticationRequest();
             GGAuthenticationRequest.client_id = client_id;

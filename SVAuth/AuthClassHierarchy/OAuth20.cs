@@ -186,10 +186,10 @@ namespace SVAuth.OAuth20
         protected abstract string VProgramMainContent { get; }
 
         /*** Methods about AuthorizationRequest ***/
-        public abstract AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG);
-        public AuthorizationRequest _createAuthorizationRequest(SVX.SVX_MSG inputMSG)
+        public abstract AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID);
+        public AuthorizationRequest _createAuthorizationRequest(SVX.SVX_MSG inputMSG,string SVAuthSessionID)
         {
-            var outputMSG = createAuthorizationRequest(inputMSG);
+            var outputMSG = createAuthorizationRequest(inputMSG, SVAuthSessionID);
             SVX.SVX_Ops.recordme(this, inputMSG, outputMSG);
             return outputMSG;
         }
@@ -238,7 +238,8 @@ namespace SVAuth.OAuth20
             SVX.SVX_MSG inputMSG = new SVX.SVX_MSG();
             // This message should never contain meaningful data.
             //JsonConvert.DeserializeObject<SVX.SVX_MSG>(Utils.ReadStream(context.Request.Body));
-            var _AuthorizationRequest = _createAuthorizationRequest(inputMSG);
+            string SVAuthSessionID=Utils.SetNewSVAuthSessionIDHeader(context);
+            var _AuthorizationRequest = _createAuthorizationRequest(inputMSG, SVAuthSessionID);
             var rawReq = marshalAuthorizationRequest(_AuthorizationRequest);
             context.Response.Redirect(rawReq);
 

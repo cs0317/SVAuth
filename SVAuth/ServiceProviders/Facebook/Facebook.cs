@@ -62,7 +62,7 @@ namespace SVAuth.ServiceProviders.Facebook
         protected override string VProgramMainContent => File.ReadAllText("ServiceProviders/Facebook/VProgram.cs");
 
         /*** implementing the methods for AuthorizationRequest ***/
-        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG)
+        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID)
         {
             FBAuthorizationRequest _FBAuthorizationRequest = new FBAuthorizationRequest();
             _FBAuthorizationRequest.client_id = client_id;      

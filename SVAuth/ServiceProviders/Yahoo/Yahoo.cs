@@ -75,7 +75,7 @@ namespace SVAuth.ServiceProviders.Yahoo
             routeBuilder.MapRoute("login/Yahoo", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/Yahoo", RP.Login_CallbackAsync);
         }
-        public override OpenID20.AuthenticationRequest createAuthenticationRequest(SVX.SVX_MSG inputMSG)
+        public override OpenID20.AuthenticationRequest createAuthenticationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID)
         {
             AuthenticationRequest AuthenticationRequest = new AuthenticationRequest();
             AuthenticationRequest.openid__mode = "checkid_setup";
