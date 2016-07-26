@@ -186,14 +186,14 @@ namespace SVAuth.OAuth20
         protected abstract string VProgramMainContent { get; }
 
         /*** Methods about AuthorizationRequest ***/
-        public abstract AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG);
-        public AuthorizationRequest _createAuthorizationRequest(SVX.SVX_MSG inputMSG)
+        public abstract AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID);
+        public AuthorizationRequest _createAuthorizationRequest(SVX.SVX_MSG inputMSG,string SVAuthSessionID)
         {
-            var outputMSG = createAuthorizationRequest(inputMSG);
+            var outputMSG = createAuthorizationRequest(inputMSG, SVAuthSessionID);
             SVX.SVX_Ops.recordme(this, inputMSG, outputMSG);
             return outputMSG;
         }
-        public abstract string /*Uri*/ marshalCreateAuthorizationRequest(AuthorizationRequest _AuthorizationRequest);
+        public abstract string /*Uri*/ marshalAuthorizationRequest(AuthorizationRequest _AuthorizationRequest);
 
         /*** Methods about AccessTokenRequest ***/
         protected virtual Type LoginCallbackRequestType { get { return typeof(AuthorizationResponse); } }
@@ -204,7 +204,7 @@ namespace SVAuth.OAuth20
             SVX.SVX_Ops.recordme(this, inputMSG, outputMSG);
             return outputMSG;
         }
-        public virtual HttpRequestMessage marshalCreateAccessTokenRequest(AccessTokenRequest _AccessTokenRequest) { return null; }
+        public virtual HttpRequestMessage marshalAccessTokenRequest(AccessTokenRequest _AccessTokenRequest) { return null; }
 
         /*** Methods about UserProfileRequest ***/
         protected virtual Type AccessTokenResponseType { get { return typeof(AccessTokenResponse); } }
@@ -216,7 +216,7 @@ namespace SVAuth.OAuth20
             SVX.SVX_Ops.recordme(this, inputMSG, outputMSG, false, true);
             return outputMSG;
         }
-        public virtual HttpRequestMessage marshalCreateUserProfileRequest(UserProfileRequest _UserProfileRequest) { return null; }
+        public virtual HttpRequestMessage marshalUserProfileRequest(UserProfileRequest _UserProfileRequest) { return null; }
 
         /*** Methods about Conclusion ***/
         protected virtual Type UserProfileResponseType { get { return typeof(UserProfileResponse); } }
@@ -238,8 +238,9 @@ namespace SVAuth.OAuth20
             SVX.SVX_MSG inputMSG = new SVX.SVX_MSG();
             // This message should never contain meaningful data.
             //JsonConvert.DeserializeObject<SVX.SVX_MSG>(Utils.ReadStream(context.Request.Body));
-            var _AuthorizationRequest = _createAuthorizationRequest(inputMSG);
-            var rawReq = marshalCreateAuthorizationRequest(_AuthorizationRequest);
+            string SVAuthSessionID=Utils.SetNewSVAuthSessionIDHeader(context);
+            var _AuthorizationRequest = _createAuthorizationRequest(inputMSG, SVAuthSessionID);
+            var rawReq = marshalAuthorizationRequest(_AuthorizationRequest);
             context.Response.Redirect(rawReq);
 
             return Task.CompletedTask;
@@ -257,7 +258,7 @@ namespace SVAuth.OAuth20
             SVX.SVX_MSG inputMSG = (SVX.SVX_MSG)Utils.ObjectFromQuery(
                 context.Request.Query, LoginCallbackRequestType);
             var _AccessTokenRequest = _createAccessTokenRequest(inputMSG);
-            var rawReq = marshalCreateAccessTokenRequest(_AccessTokenRequest);
+            var rawReq = marshalAccessTokenRequest(_AccessTokenRequest);
             var RawAccessTokenResponse = await SVX.Utils.PerformHttpRequestAsync(rawReq);
             Trace.Write("Got AccessTokenResponse");
 
@@ -267,7 +268,7 @@ namespace SVAuth.OAuth20
             SVX.SVX_Ops.recordCustom(ModelAuthorizationServerType, _AccessTokenRequest, inputMSG2,
                 nameof(AuthorizationServer.TokenEndpoint), "AS", false, false);
             var _UserProfileRequest = _createUserProfileRequest(inputMSG2);
-            var rawReq2 = marshalCreateUserProfileRequest(_UserProfileRequest);
+            var rawReq2 = marshalUserProfileRequest(_UserProfileRequest);
             var RawUserProfileResponse = await SVX.Utils.PerformHttpRequestAsync(rawReq2);
             Trace.Write("Got UserProfileResponse");
 

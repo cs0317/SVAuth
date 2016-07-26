@@ -103,6 +103,7 @@ namespace SVAuth
             ServiceProviders.Facebook.Facebook_RP.Init(routeBuilder);
             ServiceProviders.Microsoft.Microsoft_RP.Init(routeBuilder);
             ServiceProviders.Google.Google_RP.Init(routeBuilder);
+            ServiceProviders.Yahoo.Yahoo_RP.Init(routeBuilder);
             app.UseRouter(routeBuilder.Build());
         }
 

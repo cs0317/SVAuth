@@ -72,7 +72,7 @@ namespace SVAuth.OIDC10
            // SVX.SVX_Ops.recordCustom(new DummyConcreteAuthorizationServer(), _UserProfileRequest, inputMSG3,
            //    nameof(DummyConcreteAuthorizationServer.DummyGetUserProfile), "AS", false, false);
             var _AccessTokenRequest = _createAccessTokenRequest(inputMSG);
-            var rawReq = marshalCreateAccessTokenRequest(_AccessTokenRequest);
+            var rawReq = marshalAccessTokenRequest(_AccessTokenRequest);
             var RawAccessTokenResponse = await SVX.Utils.PerformHttpRequestAsync(rawReq);
             Trace.Write("Got AccessTokenResponse");
 

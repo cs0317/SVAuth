@@ -17,6 +17,6 @@ if (!(strlen($_SESSION['UserID'])>0) ) { ?>
 	  }
     </script>
 
-    <img OnClick="Facebook_login();" src="/SVAuth/images/Facebook_login.png" width=100 height=40 oncontextmenu="copyToClipboard('&lt;?php include dirname($_SERVER[&#34;PATH_TRANSLATED&#34;]).&#34;\\buttons\\Facebook_login_button.inc&#34; ?&gt;');return false;"/>
+    <img OnClick="Facebook_login();" src="/SVAuth/images/Facebook_login.jpg" width=100 height=40 oncontextmenu="copyToClipboard('&lt;?php include dirname($_SERVER[&#34;PATH_TRANSLATED&#34;]).&#34;\\buttons\\Facebook_login_button.inc&#34; ?&gt;');return false;"/>
 <?php } ?>
 

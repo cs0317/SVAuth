@@ -28,6 +28,7 @@
 <?php include dirname($_SERVER["PATH_TRANSLATED"])."\buttons\Facebook_login_button.inc" ?>
 <?php include dirname($_SERVER['PATH_TRANSLATED'])."\buttons\Microsoft_login_button.inc" ?>
 <?php include dirname($_SERVER['PATH_TRANSLATED'])."\buttons\Google_login_button.inc" ?>
+<?php include dirname($_SERVER['PATH_TRANSLATED'])."\buttons\Yahoo_login_button.inc" ?>
 </div>
 
 <h3>First, test this page:<br /></h3>

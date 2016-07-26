@@ -100,5 +100,14 @@ namespace SVAuth
             context.Response.Headers.Add("Set-Cookie", setcookie.ToArray());
             context.Response.Redirect(context.Request.Cookies["LoginPageUrl"]);
         }
+
+        public static string SetNewSVAuthSessionIDHeader(HttpContext context)
+         {
+            string SVAuthSessionID = "1234567890";
+            string[] setcookie=new string[1];
+            setcookie[0]="SVAuthSessionID="+ SVAuthSessionID + "; path=/";
+            context.Response.Headers.Add("Set-Cookie", setcookie);
+            return SVAuthSessionID;
+         }
     }
 }

@@ -46,7 +46,7 @@ namespace SVAuth.ServiceProviders.Microsoft
             routeBuilder.MapRoute("login/Microsoft", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/Microsoft", RP.AuthorizationCodeFlow_Login_CallbackAsync);
         }
-        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG)
+        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID)
         {
             MSAuthenticationRequest MSAuthenticationRequest = new MSAuthenticationRequest();
             MSAuthenticationRequest.client_id = client_id;
@@ -56,7 +56,7 @@ namespace SVAuth.ServiceProviders.Microsoft
             MSAuthenticationRequest.response_mode = "form_post";
             return MSAuthenticationRequest;
         }
-        public override string marshalCreateAuthorizationRequest(OAuth20.AuthorizationRequest MSAuthenticationRequest)
+        public override string marshalAuthorizationRequest(OAuth20.AuthorizationRequest MSAuthenticationRequest)
         {
             return AuthorizationEndpointUrl + "?" + Utils.ObjectToUrlEncodedString(MSAuthenticationRequest);
         }
@@ -73,7 +73,7 @@ namespace SVAuth.ServiceProviders.Microsoft
             return _AccessTokenRequest;
         }
 
-        public override HttpRequestMessage marshalCreateAccessTokenRequest(OAuth20.AccessTokenRequest _AccessTokenRequest)
+        public override HttpRequestMessage marshalAccessTokenRequest(OAuth20.AccessTokenRequest _AccessTokenRequest)
         {
             HttpRequestMessage requestMessage = new HttpRequestMessage();
             requestMessage.Method = HttpMethod.Post;

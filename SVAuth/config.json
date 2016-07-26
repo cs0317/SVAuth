@@ -33,6 +33,10 @@
     "Google": {
       "clientID": "303824059686-i6ef58367t5i50k8j6bbarvhgudu4nes.apps.googleusercontent.com",
       "clientSecret": "XX9_EcCsMx1gtZhJv_3vdIMg"
+    },
+    "Yahoo": {
+      "clientID": "dj0yJmk9OWl3QUE4OGkyQUswJmQ9WVdrOVZUTnlUVk5sTjJjbWNHbzlNQS0tJnM9Y29uc3VtZXJzZWNyZXQmeD00Yw--",
+      "clientSecret": "5d14dd29003e144a0f6af4b3b1831c45378aa9d2"
     }
   },
 
