@@ -40,15 +40,11 @@
     }
   },
 
+  "stateSecretKey": "your logins are belong to us",
+
   "__SECTION_3__": "Do not modify this section unless you know what you are doing.",
   "SVXSettings": {
-    "MyPartyName": "RP",
-    "TrustedParties": [ "RP", "AS" ],
-    "SVXFolderPath": "..\\svx-runtime-data",
-    "CertifyLocally": true,
-    "DLLServerAddress": "http://protoagnostic.cloudapp.net:8700/",
-    "Token": "NRhFVgSo0khCjh+lhPuhSKb/8wHntjI+",
-    "PoirotRoot": "C:\\PoirotEnlistment"
+    "SVXFolderPath": "..\\svx-runtime-data"
   },
-  "sendInternalTrafficViaFiddler": false
+  "sendInternalTrafficViaFiddler": true
 }

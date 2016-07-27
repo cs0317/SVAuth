@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace SVX2
+namespace SVX
 {
     [BCTOmit]
     public class FieldAccessor<TObject, TField>

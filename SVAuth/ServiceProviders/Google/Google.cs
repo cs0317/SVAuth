@@ -74,7 +74,7 @@ namespace SVAuth.ServiceProviders.Google
         {
             var RawRequestUrl = SignatureValidationUrl + "?id_token=" + AuthenticationResponse.id_token.ToString();
             var rawReq = new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
-            var RawResponse = SVX.Utils.PerformHttpRequestAsync(rawReq).Result;
+            var RawResponse = Utils.PerformHttpRequestAsync(rawReq).Result;
             if (RawResponse.StatusCode != System.Net.HttpStatusCode.OK)
                 return false;
             set_parse_id_token(AuthenticationResponse, JObject.Parse(RawResponse.Content.ReadAsStringAsync().Result));
@@ -84,7 +84,7 @@ namespace SVAuth.ServiceProviders.Google
         {           
             var RawRequestUrl = UserProfileUrl + "?access_token=" + access_token;
             var rawReq= new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
-            var RawResponse = SVX.Utils.PerformHttpRequestAsync(rawReq).Result;
+            var RawResponse = Utils.PerformHttpRequestAsync(rawReq).Result;
             return (string)(JObject.Parse(RawResponse.Content.ReadAsStringAsync().Result)["name"]);
         }
         /*** implementing the methods for AuthenticationConclusion ***/
@@ -102,7 +102,6 @@ namespace SVAuth.ServiceProviders.Google
              AuthConclusion.FullName = getFullName(((OIDC10.AuthenticationResponse_with_id_token)inputMSG).access_token);
              return AuthConclusion;
         }
-        protected override string VProgramMainContent => null;
         protected override Type ModelAuthorizationServerType => typeof(OAuth20.AuthorizationServer);
     }
 }

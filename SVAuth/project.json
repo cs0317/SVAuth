@@ -4,8 +4,7 @@
       "version": "1.0.0",
       "type": "platform"
     },
-    "SVX_Ops": "1.0.0-*",
-    "SVX_Common": "1.0.0-*",
+    "SVX": "1.0.0-*",
     "Microsoft.AspNetCore.Diagnostics": "1.0.0",
     "Microsoft.AspNetCore.Routing": "1.0.0",
     "Microsoft.AspNetCore.Server.Kestrel": "1.0.0",
@@ -31,7 +30,11 @@
     "preserveCompilationContext": true,
     "compile": {
       "exclude": [
-        "ServiceProviders/*/VProgram.cs"
+        "AuthClassHierarchy/OIDC10.cs",
+        "AuthClassHierarchy/OpenID20.cs",
+        "ServiceProviders/Google/Google.cs",
+        "ServiceProviders/Microsoft/Microsoft.cs",
+        "ServiceProviders/Yahoo/Yahoo.cs"
       ]
     }
   },

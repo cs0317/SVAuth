@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading.Tasks;
-using SVX2;
+using SVX;
 
 namespace SVAuth
 {
-    public static class SVX2_Test_Secret
+    public static class SVX_Test_Secret
     {
         static readonly Principal idpPrincipal = Principal.Of("IdP");
         static readonly Principal rpPrincipal = Principal.Of("RP");
@@ -64,7 +64,8 @@ namespace SVAuth
 
         public class IdP : Participant
         {
-            public Principal SVXPrincipal => idpPrincipal;
+            public IdP(Principal principal) : base(principal) { }
+
             private SSOSecretGenerator ssoSecretGenerator = new SSOSecretGenerator();
 
             public SignInRPReq SignInIdP(SignInIdPReq req)
@@ -79,7 +80,7 @@ namespace SVAuth
                 var ssoSecretParams = new SSOSecretParams { username = req.username };
                 var resp = new SignInRPReq {
                     username = req.username,
-                    ssoSecret = ssoSecretGenerator.Generate(ssoSecretParams, SVXPrincipal)
+                    ssoSecret = ssoSecretGenerator.Generate(ssoSecretParams, SVX_Principal)
                 };
                 ssoSecretGenerator.Verify(ssoSecretParams, resp.ssoSecret);
                 return resp;
@@ -87,7 +88,7 @@ namespace SVAuth
         }
         public class RP : Participant
         {
-            public Principal SVXPrincipal => rpPrincipal;
+            public RP(Principal principal) : base(principal) { }
 
             public AuthenticationConclusion SignInRP(SignInRPReq req)
             {
@@ -96,26 +97,29 @@ namespace SVAuth
                     idpUsername = req.username
                 };
             }
-        }
 
-        public static bool LoginSafety(AuthenticationConclusion conc) {
-            VProgram_API.AssumeTrusted(idpPrincipal);
-            VProgram_API.AssumeTrusted(rpPrincipal);
-            // BCT accepts this code but silently mistranslates it!
-            //return VProgram_API.ActsForAny(conc.authenticatedClient,
-            //    new PrincipalHandle[] { idpPrincipal, rpPrincipal, IdPUserPrincipal(conc.idpUsername) });
-            var targets = new PrincipalHandle[3];
-            targets[0] = idpPrincipal;
-            targets[1] = rpPrincipal;
-            targets[2] = IdPUserPrincipal(conc.idpUsername);
-            return VProgram_API.ActsForAny(conc.authenticatedClient, targets);
+            public bool LoginSafety(AuthenticationConclusion conc)
+            {
+                var userPrincipal = IdPUserPrincipal(conc.idpUsername);
+                VProgram_API.AssumeTrusted(idpPrincipal);
+                VProgram_API.AssumeTrusted(rpPrincipal);
+                VProgram_API.AssumeTrusted(userPrincipal);
+                // BCT accepts this code but silently mistranslates it!
+                //return VProgram_API.ActsForAny(conc.authenticatedClient,
+                //    new PrincipalHandle[] { idpPrincipal, rpPrincipal, IdPUserPrincipal(conc.idpUsername) });
+                var targets = new PrincipalHandle[3];
+                targets[0] = idpPrincipal;
+                targets[1] = rpPrincipal;
+                targets[2] = userPrincipal;
+                return VProgram_API.ActsForAny(conc.authenticatedClient, targets);
+            }
         }
 
         [BCTOmitImplementation]
         public static void Test()
         {
-            var idp = new IdP();
-            var rp = new RP();
+            var idp = new IdP(idpPrincipal);
+            var rp = new RP(rpPrincipal);
 
             var aliceIdP = PrincipalFacet.GenerateNew(idpPrincipal);
             var aliceRP = PrincipalFacet.GenerateNew(rpPrincipal);
@@ -131,7 +135,7 @@ namespace SVAuth
             SVX_Ops.TransferForTesting(rpReq, idpPrincipal, aliceRP);
 
             var conc = SVX_Ops.Call(rp.SignInRP, rpReq);
-            SVX_Ops.Certify(conc, LoginSafety);
+            SVX_Ops.Certify(conc, rp.LoginSafety);
         }
     }
 }

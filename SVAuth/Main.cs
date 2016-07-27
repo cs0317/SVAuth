@@ -20,14 +20,14 @@ namespace SVAuth
             // be specified in config.json.  The "Launch URL" in the project
             // properties should match. ~ t-mattmc@microsoft.com 2016-06-01
             Config.Init();
-            //SVX.SVX_Ops.Init();
-            SVX2.SVX_Ops.Init();
+            Utils.InitForReal();
+            SVX.SVX_Ops.Init();
 
-            //RunServer();
-            //SVX2_Test_Concat.Test();
-            //SVX2_Test_Secret.Test();
-            SVX2_Test_ImplicitFlow.Test();
-            SVX2_Test_AuthorizationCodeFlow.Test();
+            RunServer();
+            //SVX_Test_Concat.Test();
+            //SVX_Test_Secret.Test();
+            //SVX_Test_ImplicitFlow.Test();
+            //SVX_Test_AuthorizationCodeFlow.Test();
 
             /* When the program is run under the debugger in Visual Studio, the
              * output window closes immediately when the program exits.  Emulate
@@ -101,9 +101,11 @@ namespace SVAuth
             var routeBuilder = new RouteBuilder(app);
             routeBuilder.MapGet("", MainPageHandler);
             ServiceProviders.Facebook.Facebook_RP.Init(routeBuilder);
+#if false
             ServiceProviders.Microsoft.Microsoft_RP.Init(routeBuilder);
             ServiceProviders.Google.Google_RP.Init(routeBuilder);
             ServiceProviders.Yahoo.Yahoo_RP.Init(routeBuilder);
+#endif
             app.UseRouter(routeBuilder.Build());
         }
 

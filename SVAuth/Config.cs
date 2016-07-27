@@ -37,6 +37,7 @@ namespace SVAuth
         }
 
         // http://docs.telerik.com/fiddler/Configure-Fiddler/Tasks/MonitorLocalTraffic
+        // SVAuth will not work if this option is enabled and Fiddler is not running.
         public bool sendInternalTrafficViaFiddler = false;
         public string internalPlatformHostname =>
             sendInternalTrafficViaFiddler ? "localhost.fiddler" : "localhost";
@@ -61,10 +62,16 @@ namespace SVAuth
         public class AppRegistration_
         {
             public ServiceProviders.Facebook.FBAppRegistration Facebook;
+#if false
             public ServiceProviders.Microsoft.MSAppRegistration Microsoft;
             public ServiceProviders.Google.GGAppRegistration Google;
             public ServiceProviders.Yahoo.YahooAppRegistration Yahoo;
+#endif
         }
+
+        // The same key is used for all OAuth 2.0 IdPs, but the state value will
+        // be different depending on the IdP.
+        public string stateSecretKey;
 
         public string agentRootUrl =>
             $"{AgentSettings.scheme}://{WebAppSettings.hostname}:{AgentSettings.port}/";
@@ -73,6 +80,7 @@ namespace SVAuth
             $"SVAuth/platforms/{WebAppSettings.platform.name}/";
         public string MainPageUrl =>
             WebAppSettings.platformRootUrl + "AllInOne." + WebAppSettings.platform.fileExtension;
+        public SVX.Principal rpPrincipal => SVX.Principal.Of(WebAppSettings.hostname);
 
         // Configuration loader:
 

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 // ~ t-mattmc@microsoft.com 2016-05-31
 namespace SVAuth.GenericAuth
 {
+#if false
     /***********************************************************/
     /*               Messages between parties                  */
     /***********************************************************/
@@ -46,6 +47,23 @@ namespace SVAuth.GenericAuth
         ID_Claim getEntry(string IdPSessionSecret, string Realm);
         bool setEntry(string IdPSessionSecret, string Realm, ID_Claim _ID_Claim);
     }
+#endif
+
+    static class GenericAuthStandards
+    {
+        // We need this several places (model IdPs and secret generators that
+        // the vProgram instantiates independently), so see how long we can get
+        // away with just standardizing it rather than finding a way to call the
+        // correct implementation in each place.
+        public static SVX.Principal GetIdPUserPrincipal(SVX.Principal idpPrincipal, string userID) =>
+            SVX.Principal.Of(idpPrincipal.name + ":" + userID);
+
+        // We might be able to make this more precise by taking the host name,
+        // but I don't want to deal with making that analyzable in the vProgram
+        // right now.
+        public static SVX.Principal GetUrlTargetPrincipal(string url) =>
+            SVX.Principal.Of("url_target:" + url);
+    }
 
     /***********************************************************/
     /*                          Parties                        */
@@ -54,8 +72,20 @@ namespace SVAuth.GenericAuth
     /*         AS is both IdP and Authorization Server         */
     /***********************************************************/
 
-    public abstract class AS
+    public abstract class AS : SVX.Participant
     {
+        public AS(SVX.Principal asPrincipal) : base(asPrincipal) { }
+
+        // A few definitions that are needed by the RP.  Wait and see if we need
+        // to make them virtual.
+
+        protected SVX.DeclarablePredicate<SVX.Principal /*underlying client*/, string /*username*/> SignedInPredicate
+            = new SVX.DeclarablePredicate<SVX.Principal, string>();
+
+        public bool Ghost_CheckSignedIn(SVX.Principal underlyingPrincipal, string userID) =>
+            SignedInPredicate.Check(underlyingPrincipal, userID);
+
+#if false
         public IdPAuthRecords_Base IdentityRecords;
 
         public SignInIdP_Resp_SignInRP_Req SignInIdP(SignInIdP_Req req)
@@ -71,54 +101,77 @@ namespace SVAuth.GenericAuth
 
         public abstract ID_Claim Process_SignInIdP_req(SignInIdP_Req req);
         public abstract SignInIdP_Resp_SignInRP_Req Redir(string dest, ID_Claim _ID_Claim);
+#endif
     }
 
-    public class AuthenticationConclusion : SVX.SVX_MSG
+    public class UserProfile
     {
         // Should this rather be an abstract property for consistency with the
         // design of the other abstract messages? ~ t-mattmc@microsoft.com 2016-06-01
         public string UserID;
     }
 
-    public abstract class RP
+    public class AuthenticationConclusion : SVX.SVX_MSG
     {
+        public SVX.PrincipalHandle authenticatedClient;
+
+        // Putting the user profile in its own class was the easiest way to
+        // avoid sending authenticatedClient to the platform adapter and seems
+        // to be a sensible thing to do in its own right.
+        public UserProfile userProfile;
+    }
+
+    public abstract class RP : SVX.Participant
+    {
+        public RP(SVX.Principal rpPrincipal) : base(rpPrincipal) { }
+
+        // idpParticipantId.type should extend AS.
+        protected abstract SVX.ParticipantId idpParticipantId { get; }
+
         // Set this if you want to test the protocol before you have the
         // verification working.
         protected bool BypassCertification = false;
 
+#if false
         public abstract string Domain { get; set; }
         public abstract string Realm { get; set; }
-        public void VerifyAuthentication(AuthenticationConclusion conclusion)
+#endif
+        public async Task AuthenticationDone(AuthenticationConclusion conclusion, SVAuthRequestContext context)
         {
-            GlobalObjects_base.BadPersonCannotSignInAsGoodPerson(conclusion);
-        }
-        public async Task AuthenticationDone(AuthenticationConclusion conclusion, HttpContext context)
-        {
+            if (context.client != conclusion.authenticatedClient)
+                throw new Exception("Attempt to apply an AuthenticationConclusion to the wrong session.");
+
             if (!BypassCertification)
             {
-                /* Compared to the original AuthPlatelet, I'm choosing to record a
-                 * separate SVX method right here for the certification.  Otherwise,
-                 * it would be easy for a new protocol class (like OAuth20) to
-                 * accidentally do the certification outside the last SVX method so
-                 * that the vProgram doesn't include the verification, which would
-                 * completely nullify SVX in a way that's hard to notice.  Of
-                 * course, we have more to do to try to prevent other similarly
-                 * devastating mistakes in setting up SVX.
-                 * ~ t-mattmc@microsoft.com 2016-06-07
-                 */
-                var verifiedMsg = new SVX.SVX_MSG();
-                SVX.SVX_Ops.recordCustom(GetType(), conclusion, verifiedMsg, nameof(VerifyAuthentication),
-                    SVX.SVXSettings.settings.MyPartyName, false, false);
-                if (!SVX.SVX_Ops.Certify(verifiedMsg))
-                {
-                    throw new Exception("SVX certification failed.");
-                }
+                SVX.SVX_Ops.Certify(conclusion, LoginSafety, idpParticipantId);
+                SVX.SVX_Ops.Certify(conclusion, LoginXSRFPrevention, idpParticipantId);
             }
             await Utils.AbandonAndCreateSessionAsync(conclusion, context);
         }
+
+        public bool LoginSafety(AuthenticationConclusion conc)
+        {
+            var idp = (AS)SVX.VProgram_API.GetParticipant(idpParticipantId);
+            var idpUserPrincipal = GenericAuthStandards.GetIdPUserPrincipal(idp.SVX_Principal, conc.userProfile.UserID);
+            SVX.VProgram_API.AssumeTrustedServer(idp.SVX_Principal);
+            SVX.VProgram_API.AssumeTrustedServer(SVX_Principal);
+            SVX.VProgram_API.AssumeTrusted(idpUserPrincipal);
+
+            return SVX.VProgram_API.ActsFor(conc.authenticatedClient, idpUserPrincipal);
+        }
+
+        public bool LoginXSRFPrevention(AuthenticationConclusion conc)
+        {
+            var idp = (AS)SVX.VProgram_API.GetParticipant(idpParticipantId);
+            SVX.VProgram_API.AssumeTrustedServer(idp.SVX_Principal);
+            SVX.VProgram_API.AssumeTrustedServer(SVX_Principal);
+            SVX.VProgram_API.AssumeTrustedBrowser(conc.authenticatedClient);
+
+            return idp.Ghost_CheckSignedIn(SVX.VProgram_API.UnderlyingPrincipal(conc.authenticatedClient), conc.userProfile.UserID);
+        }
     }
 
-
+#if false
     /****************************************************************/
     /* The definition of the "Authentication/Authorization" problem */
     /****************************************************************/
@@ -145,4 +198,5 @@ namespace SVAuth.GenericAuth
         bool Bool();
         SVX.SVX_MSG SVX_MSG();
     }
+#endif
 }

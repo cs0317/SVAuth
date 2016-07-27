@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace SVX2
+namespace SVX
 {
     [BCTOmit]
     class VProgramEmitter
@@ -37,23 +37,24 @@ namespace SVX2
         // Utilities
         static string Quote(string x)
         {
-            // TODO: Figure out the right way to make a C# string literal.
-            Contract.Assume(Regex.IsMatch(x, "^[_A-Za-z0-9]*$"));
-            return "\"" + x + "\"";
+            // Hope the C# compiler (and any tools we might use to view vPrograms) are fuzz-proof...
+            return "@\"" + x.Replace("\"", "\"\"") + "\"";
         }
+        static string EmitPrincipal(Principal p) =>
+            "SVX.Principal.Of(" + Quote(p.name) + ")";
         static string EmitPrincipalHandle(PrincipalHandle ph)
         {
             Principal p;
             PrincipalFacet pf;
             if ((p = ph as Principal) != null)
             {
-                return "SVX2.Principal.Of(" + Quote(p.name) + ")";
+                return EmitPrincipal(p);
             }
             else if ((pf = ph as PrincipalFacet) != null)
             {
                 // I don't think we use this, but might as well implement it.
                 // ~ t-mattmc@microsoft.com 2016-07-19
-                return "SVX2.PrincipalFacet.Of(" + EmitPrincipalHandle(pf.issuer) + ", " + Quote(pf.id) + ")";
+                return "SVX.PrincipalFacet.Of(" + EmitPrincipalHandle(pf.issuer) + ", " + Quote(pf.id) + ")";
             }
             else
             {
@@ -61,7 +62,11 @@ namespace SVX2
             }
         }
         static string EmitPrincipalHandleOrNondet(PrincipalHandle p)
-            => (p == null) ? "SVX2.VProgram_API.Nondet<SVX2.PrincipalHandle>()" : EmitPrincipalHandle(p);
+            => (p == null) ? "SVX.VProgram_API.Nondet<SVX.PrincipalHandle>()" : EmitPrincipalHandle(p);
+
+        static string EmitParticipant(SymTParticipantId id) =>
+            string.Format("SVX.VProgram_API.GetParticipant<{0}>({1})",
+                FormatTypeFullName(id.typeFullName), EmitPrincipalHandle(id.principal));
 
         // This method is designed to meet our current needs, where messageVar
         // is assumed to always be nonnull.
@@ -87,23 +92,21 @@ namespace SVX2
 
         // Nested types... Should we use a wrapper class in SymTs (that is
         // still serializable, unlike System.Type) and move this method there?
-        string FormatTypeFullName(string fullName) => fullName.Replace('+', '.');
+        static string FormatTypeFullName(string fullName) => fullName.Replace('+', '.');
 
-        Type GetTypeByFullName(string fullName)
-        {
-            /* Currently, we assume all concrete message types are in the
-             * SVAuth assembly.  To lift that restriction, we'd have to
-             * either include the assembly qualified name in the SymT or
-             * just look for the type in all uploaded assemblies.  Once we
-             * can have N parties with assemblies named "SVAuth" with
-             * different code or even different definitions of the
-             * transferred message types (!), we'll need to add the hash of
-             * the assembly and we'll need to copy messages one field at a
-             * time between the differently defined types. */
-            return Type.GetType(fullName + ", SVAuth");
-        }
+        /* Currently, we assume all concrete message types are in the
+         * SVAuth assembly.  To lift that restriction, we'd have to
+         * either include the assembly qualified name in the SymT or
+         * just look for the type in all uploaded assemblies.  Once we
+         * can have N parties with assemblies named "SVAuth" with
+         * different code or even different definitions of the
+         * transferred message types (!), we'll need to add the hash of
+         * the assembly and we'll need to copy messages one field at a
+         * time between the differently defined types. */
+        static Type GetTypeByFullName(string fullName) =>
+            Type.GetType(fullName + ", SVAuth");
 
-        HashSet<ParticipantId> participantsSeen = new HashSet<ParticipantId>();
+        HashSet<SymTParticipantId> participantsSeen = new HashSet<SymTParticipantId>();
         void ScanParticipants(SymT symT)
         {
             var symTMethod = symT as SymTMethod;
@@ -151,25 +154,37 @@ namespace SVX2
                 // FIXME: Nondetting arbitrary data structures will cause
                 // aliasing nightmares.  We need to emit a specialized Nondet
                 // for each message type.
-                AppendFormattedLine("{0} {1} = SVX2.VProgram_API.Nondet<{0}>();",
+                AppendFormattedLine("{0} {1} = SVX.VProgram_API.Nondet<{0}>();",
                     FormatTypeFullName(symTNondet.messageTypeFullName), outputVarName);
             }
             else if ((symTMethod = symT as SymTMethod) != null)
             {
                 var newScope = new MessageReuseScope { outer = scope };
                 var argVarNames = new List<string>();
-                foreach (var inputSymT in symTMethod.inputSymTs)
+                for (int i = 0; i < symTMethod.methodArgTypeFullNames.Length; i++)
                 {
-                    var inputVarName = EmitMessage(inputSymT, newScope);
-                    newScope.availableMessages[inputSymT.messageId] = inputVarName;
+                    SymT inputSymT = symTMethod.inputSymTs[i];
+                    string inputVarName;
+                    if (inputSymT != null)
+                    {
+                        inputVarName = EmitMessage(inputSymT, newScope);
+                        newScope.availableMessages[inputSymT.messageId] = inputVarName;
+                    }
+                    else
+                    {
+                        // Nondet non-message argument.  One could argue for using a SymTNondet
+                        // even for non-message types.
+                        inputVarName = nextVar("arg");
+                        AppendFormattedLine("{0} {1} = SVX.VProgram_API.Nondet<{0}>();",
+                            FormatTypeFullName(symTMethod.methodArgTypeFullNames[i]), inputVarName);
+                    }
                     argVarNames.Add(inputVarName);
                 }
                 outputVarName = nextVar("msg");
-                AppendFormattedLine("{0} {1} = SVX2.VProgram_API.GetParticipant<{2}>(SVX2.Principal.Of({3})).{4}({5});",
+                AppendFormattedLine("{0} {1} = {2}.{3}({4});",
                     FormatTypeFullName(symTMethod.methodReturnTypeFullName), outputVarName,
-                    FormatTypeFullName(symTMethod.participantId.typeFullName),
-                    Quote(symTMethod.participantId.principal.name), symTMethod.methodName,
-                    string.Join(", ", argVarNames));
+                    EmitParticipant(symTMethod.participantId),
+                    symTMethod.methodName, string.Join(", ", argVarNames));
             }
             else if ((symTComposite = symT as SymTComposite) != null)
             {
@@ -225,10 +240,10 @@ namespace SVX2
             else if ((symTTransfer = symT as SymTTransfer) != null)
             {
                 string producerVarName = nextVar("producer");
-                AppendFormattedLine("SVX2.PrincipalHandle {0} = {1};", producerVarName, EmitPrincipalHandleOrNondet(symTTransfer.producer));
+                AppendFormattedLine("SVX.PrincipalHandle {0} = {1};", producerVarName, EmitPrincipalHandleOrNondet(symTTransfer.producer));
                 outputVarName = nextVar("msg");
                 AppendFormattedLine("{0} {1};", FormatTypeFullName(symTTransfer.MessageTypeFullName), outputVarName);
-                AppendFormattedLine("if (SVX2.VProgram_API.IsTrusted({0})) {{", producerVarName);
+                AppendFormattedLine("if (SVX.VProgram_API.IsTrusted({0})) {{", producerVarName);
                 {
                     IncreaseIndent();
                     string inputVarName = EmitMessage(symTTransfer.originalSymT, scope);
@@ -236,11 +251,14 @@ namespace SVX2
                     // To maintain soundness of the model, update the metadata
                     // of nested messages the same way TransferNested would in
                     // production, even though we don't use their SymTs.
+                    // XXX: symTTransfer.payloadSecretsVerifiedOnImport could
+                    // contain non-message payload secrets once we support them,
+                    // and we'd need to skip them here.
                     foreach (var entry in symTTransfer.payloadSecretsVerifiedOnImport)
                     {
                         AppendFormattedLine("System.Diagnostics.Contracts.Contract.Assume({0} != null);",
                             MakeFieldPathNullConditional(outputVarName, entry.fieldPath));
-                        AppendFormattedLine("SVX2.SVX_Ops.TransferNested({0}, new {1}().Signer);",
+                        AppendFormattedLine("SVX.SVX_Ops.TransferNested({0}, new {1}().Signer);",
                             outputVarName, FormatTypeFullName(entry.secretGeneratorTypeFullName));
                     }
                     DecreaseIndent();
@@ -262,14 +280,14 @@ namespace SVX2
                 if (symTTransfer.hasSender)
                 {
                     // Note: Transfer does not use the realDirectClient arg in the vProgram.
-                    AppendFormattedLine("SVX2.SVX_Ops.Transfer({0}, {1}, {2}, null, {3});",
+                    AppendFormattedLine("SVX.SVX_Ops.Transfer({0}, {1}, {2}, null, {3});",
                         outputVarName, producerVarName, EmitPrincipalHandleOrNondet(symTTransfer.sender),
                         // http://stackoverflow.com/a/491367 :/
                         symTTransfer.browserOnly.ToString().ToLower());
                 }
                 else
                 {
-                    AppendFormattedLine("SVX2.SVX_Ops.TransferNested({0}, {1});",
+                    AppendFormattedLine("SVX.SVX_Ops.TransferNested({0}, {1});",
                         outputVarName, producerVarName);
                 }
 
@@ -293,7 +311,7 @@ namespace SVX2
                         outputVarName, entry.fieldPath);
                     // XXX We're assuming the generator has a no-arg public
                     // constructor and doesn't need any configuration parameters.
-                    AppendFormattedLine("SVX2.VProgram_API.AssumeValidSecret({0}.{1}.secretValue, " +
+                    AppendFormattedLine("SVX.VProgram_API.AssumeValidSecret({0}.{1}.secretValue, " +
                         "{0}.{1}.theParams, new {2}().GetReaders({0}.{1}.theParams));",
                         outputVarName, entry.fieldPath, FormatTypeFullName(entry.secretGeneratorTypeFullName));
                 }
@@ -303,9 +321,9 @@ namespace SVX2
                     Type messageType = GetTypeByFullName(symTTransfer.MessageTypeFullName);
                     foreach (var acc in FieldFinder<Secret>.FindFields(messageType))
                     {
-                        AppendFormattedLine("SVX2.VProgram_API.AssumeBorne({0}.SVX_producer, {1});",
+                        AppendFormattedLine("SVX.VProgram_API.AssumeBorne({0}.SVX_producer, {1});",
                             outputVarName, MakeFieldPathNullConditional(outputVarName, acc.path + ".secretValue"));
-                        AppendFormattedLine("SVX2.VProgram_API.AssumeBorne({0}.SVX_sender, {1});",
+                        AppendFormattedLine("SVX.VProgram_API.AssumeBorne({0}.SVX_sender, {1});",
                             outputVarName, MakeFieldPathNullConditional(outputVarName, acc.path + ".secretValue"));
                     }
                 }
@@ -324,15 +342,16 @@ namespace SVX2
             AppendFormattedLine("public static void Main() {{");
             IncreaseIndent();
 
-            AppendFormattedLine("SVX2.VProgram_API.InitVProgram();");
+            AppendFormattedLine("SVX.VProgram_API.InitVProgram();");
 
             sb.AppendLine();
 
+            participantsSeen.Add(certReq.participantId);
             participantsSeen.UnionWith(certReq.predicateParticipants);
             ScanParticipants(certReq.scrutineeSymT);
             foreach (var participant in participantsSeen)
-                AppendFormattedLine("SVX2.VProgram_API.CreateParticipant({0}, new {1}());",
-                    EmitPrincipalHandle(participant.principal), FormatTypeFullName(participant.typeFullName));
+                AppendFormattedLine("SVX.VProgram_API.CreateParticipant({0}, new {1}({0}));",
+                    EmitPrincipal(participant.principal), FormatTypeFullName(participant.typeFullName));
 
             sb.AppendLine();
 
@@ -340,12 +359,12 @@ namespace SVX2
 
             sb.AppendLine();
 
-            AppendFormattedLine("SVX2.VProgram_API.InPredicate = true;");
+            AppendFormattedLine("SVX.VProgram_API.InPredicate = true;");
             // We list System.Diagnostics.Contracts as a direct dependency as a
             // good practice, even though we'll nearly always get it as an
             // indirect dependency.
             AppendFormattedLine("System.Diagnostics.Contracts.Contract.Assert({0}.{1}({2}));",
-                FormatTypeFullName(certReq.methodDeclaringTypeFullName), certReq.methodName, scrutineeVarName);
+                EmitParticipant(certReq.participantId), certReq.methodName, scrutineeVarName);
 
             DecreaseIndent();
             AppendFormattedLine("}}");

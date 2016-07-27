@@ -4,7 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SVX2
+namespace SVX
 {
     // Add as many as we need.
     public class DeclarablePredicate<T1>

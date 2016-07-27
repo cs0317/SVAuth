@@ -98,7 +98,6 @@ namespace SVAuth.ServiceProviders.Microsoft
             AuthConclusion.FullName = ((JwtToken)jwtToken).name;
             return AuthConclusion;
         }
-        protected override string VProgramMainContent => null;
         protected override Type ModelAuthorizationServerType => typeof(OAuth20.AuthorizationServer);
     }
 }

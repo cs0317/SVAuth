@@ -2,6 +2,7 @@
   "profiles": {
     "SVAuth": {
       "commandName": "Project",
+      "launchBrowser": true,
       "launchUrl": "http://localhost:3000",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"

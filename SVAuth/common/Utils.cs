@@ -8,13 +8,34 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SVAuth
 {
     public static class Utils
     {
-        // Currently, nothing here requires initialization. ~ t-mattmc@microsoft.com 2016-06-14
+        // The httpClient is going to live here until we have a client library
+        // for the certification server again.
+        // ~ t-mattmc@microsoft.com 2016-07-22
+        public static void InitForReal()
+        {
+            httpClient = new HttpClient(new HttpClientHandler { UseCookies = false });
+        }
+
+        // XXX Better place to put it?
+        // XXX Where to dispose?
+        static HttpClient httpClient;
+
+        public static async Task<HttpResponseMessage> PerformHttpRequestAsync(HttpRequestMessage req)
+        {
+            HttpResponseMessage resp = await httpClient.SendAsync(req);
+            resp.EnsureSuccessStatusCode();
+            return resp;
+        }
+
+        // Serialization stuff.
 
         public static JObject ReflectObject(object o)
         {
@@ -70,9 +91,22 @@ namespace SVAuth
             return content.ReadAsStringAsync().Result;
         }
 
-        public static async Task AbandonAndCreateSessionAsync(GenericAuth.AuthenticationConclusion conclusion, HttpContext context)
+        public static string Digest(string input) =>
+            // Go between string and byte[], increasing the length both ways!
+            SVX.Utils.ToUrlSafeBase64String(
+                SHA256.Create()
+                .ComputeHash(Encoding.UTF8.GetBytes(input)));
+
+        public static string Hmac(string input, string key) =>
+            SVX.Utils.ToUrlSafeBase64String(
+                new HMACSHA256(Encoding.UTF8.GetBytes(key))
+                .ComputeHash(Encoding.UTF8.GetBytes(input)));
+
+        // Session management
+
+        public static async Task AbandonAndCreateSessionAsync(GenericAuth.AuthenticationConclusion conclusion, SVAuthRequestContext context)
         {
-            Console.WriteLine(JsonConvert.SerializeObject(conclusion));
+            Console.WriteLine(JsonConvert.SerializeObject(conclusion.userProfile));
             //return;
 
             string createSessionEndpoint =
@@ -81,33 +115,63 @@ namespace SVAuth
 
             var abandonSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);
             abandonSessionRequest.Headers.Add("Cookie",
-                "ASP.NET_SessionId="+context.Request.Cookies["ASP.NET_SessionId"]  
+                "ASP.NET_SessionId="+context.http.Request.Cookies["ASP.NET_SessionId"]  
                    + ";" +
-                "PHPSESSID=" + context.Request.Cookies["PHPSESSID"]
+                "PHPSESSID=" + context.http.Request.Cookies["PHPSESSID"]
                 );
 
-            HttpResponseMessage abandonSessionResponse = await SVX.Utils.PerformHttpRequestAsync(abandonSessionRequest);
+            HttpResponseMessage abandonSessionResponse = await PerformHttpRequestAsync(abandonSessionRequest);
             Trace.Write("Abandoned session");
 
             var createSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);
             createSessionRequest.Headers.Add("Cookie","");
-            createSessionRequest.Content = ObjectToUrlEncodedContent(conclusion);
-            HttpResponseMessage createSessionResponse = await SVX.Utils.PerformHttpRequestAsync(createSessionRequest);
+            createSessionRequest.Content = ObjectToUrlEncodedContent(conclusion.userProfile);
+            HttpResponseMessage createSessionResponse = await PerformHttpRequestAsync(createSessionRequest);
             Trace.Write("Created session");
 
             var setcookie = createSessionResponse.Headers.GetValues("Set-Cookie");
             // HTTP request and response data structures are subtly different between the HTTP client and server libraries...
-            context.Response.Headers.Add("Set-Cookie", setcookie.ToArray());
-            context.Response.Redirect(context.Request.Cookies["LoginPageUrl"]);
+            // What we really want is "add another Set-Cookie value, creating
+            // the header if it doesn't exist yet".  For now, just try to create
+            // the header, and we'll get an exception if there was already one
+            // (e.g., for the SVAuthSessionID, which shouldn't normally be set
+            // in the same response).
+            context.http.Response.Headers.Add("Set-Cookie", setcookie.ToArray());
+            context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
         }
+    }
 
-        public static string SetNewSVAuthSessionIDHeader(HttpContext context)
-         {
-            string SVAuthSessionID = "1234567890";
-            string[] setcookie=new string[1];
-            setcookie[0]="SVAuthSessionID="+ SVAuthSessionID + "; path=/";
-            context.Response.Headers.Add("Set-Cookie", setcookie);
-            return SVAuthSessionID;
-         }
+    public class SVAuthRequestContext
+    {
+        // Shorter name than style guidelines would normally dictate,
+        // because we'll use it so much.
+        public readonly HttpContext http;
+
+        // Currently, we always use cookies.  The first time we write a real
+        // implementation of the server side of a server-to-server call, we'll
+        // need an option to disable cookies and just generate a random facet
+        // every time.
+        public readonly SVX.PrincipalFacet client;
+
+        const string cookieName = "SVAuthSessionID";
+
+        // This will automatically set an agent cookie if the client did not
+        // pass one.  Call it only once on a given HttpContext, because it
+        // isn't smart enough to check if there's already a Set-Cookie.
+        public SVAuthRequestContext(SVX.Principal serverPrincipal, HttpContext httpContext)
+        {
+            http = httpContext;
+            string sessionId;
+            if (!httpContext.Request.Cookies.TryGetValue(cookieName, out sessionId))
+            {
+                sessionId = SVX.Utils.RandomIdString();
+                httpContext.Response.Headers.Add("Set-Cookie", $"{cookieName}={sessionId}; path=/");
+            }
+            // Arguably it would be better design to start with the public
+            // session ID and compute the session cookie as an HMAC, but
+            // this is a little easier.
+            string publicSessionId = Utils.Digest(sessionId);
+            client = SVX.PrincipalFacet.Of(serverPrincipal, publicSessionId);
+        }
     }
 }

@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "SVAuth": "1.0.0-*",
-    "SVX_Common": "1.0.0-*",
+    "SVX": "1.0.0-*",
     "System.Diagnostics.Contracts": "4.0.1",
     "Microsoft.NETCore.App": {
       "version": "1.0.0",

@@ -1,11 +1,29 @@
 ///////////////////////////////////////////////////////////////////////////////
-// String concatenation is deterministic.  Used by SVX2_Test example.
+// String concatenation is deterministic.  Used by SVX_Test_Concat example.
 
 function StringConcat(x: Ref, y: Ref) : Ref;
 
-implementation {:inline 1} System.String.Concat$System.String$System.String(str0$in: Ref, str1$in: Ref) returns ($result: Ref)
+// Hm, I wonder what triggers Z3 would actually choose by default.
+axiom (forall x, y, z: Ref :: {StringConcat(x, StringConcat(y, z))} {StringConcat(StringConcat(x, y), z)}
+  StringConcat(x, StringConcat(y, z)) == StringConcat(StringConcat(x, y), z));
+
+// A given program is not guaranteed to reference all of these and cause BCT to
+// translate their declarations, so allow these definitions to stand alone.  (In
+// other cases, we use "implementation" so Corral gives us an error and we find
+// out up front if our implementation doesn't match the intended translated
+// declaration.)
+
+procedure {:inline 1} System.String.Concat$System.String$System.String(str0$in: Ref, str1$in: Ref) returns ($result: Ref)
 {
   $result := StringConcat(str0$in, str1$in);
+}
+procedure {:inline 1} System.String.Concat$System.String$System.String$System.String(str0$in: Ref, str1$in: Ref, str2$in: Ref) returns ($result: Ref)
+{
+  $result := StringConcat(str0$in, StringConcat(str1$in, str2$in));
+}
+procedure {:inline 1} System.String.Concat$System.String$System.String$System.String$System.String(str0$in: Ref, str1$in: Ref, str2$in: Ref, str3$in: Ref) returns ($result: Ref)
+{
+  $result := StringConcat(str0$in, StringConcat(str1$in, StringConcat(str2$in, str3$in)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -20,22 +38,22 @@ axiom (forall name1, name2: Ref :: Principal.Of(name1) == Principal.Of(name2) ==
 function PrincipalFacet.Of(issuer: Ref, id: Ref) : Ref;
 axiom (forall issuer1, id1, issuer2, id2: Ref :: PrincipalFacet.Of(issuer1, id1) == PrincipalFacet.Of(issuer2, id2) ==> (issuer1 == issuer2 && id1 == id2));
 
-implementation {:inline 1} SVX2.Principal.Of$System.String(name$in: Ref) returns ($result: Ref)
+implementation {:inline 1} SVX.Principal.Of$System.String(name$in: Ref) returns ($result: Ref)
 {
   $result := Principal.Of(name$in);
 }
 
-implementation {:inline 1} SVX2.PrincipalFacet.Of$SVX2.Principal$System.String(issuer$in: Ref, id$in: Ref) returns ($result: Ref)
+implementation {:inline 1} SVX.PrincipalFacet.Of$SVX.Principal$System.String(issuer$in: Ref, id$in: Ref) returns ($result: Ref)
 {
   $result := PrincipalFacet.Of(issuer$in, id$in);
 }
 
-implementation {:inline 1} SVX2.PrincipalHandle.op_Equality$SVX2.PrincipalHandle$SVX2.PrincipalHandle(a$in: Ref, b$in: Ref) returns ($result: bool)
+implementation {:inline 1} SVX.PrincipalHandle.op_Equality$SVX.PrincipalHandle$SVX.PrincipalHandle(a$in: Ref, b$in: Ref) returns ($result: bool)
 {
   $result := (a$in == b$in);
 }
 
-implementation {:inline 1} SVX2.PrincipalHandle.op_Inequality$SVX2.PrincipalHandle$SVX2.PrincipalHandle(a$in: Ref, b$in: Ref) returns ($result: bool)
+implementation {:inline 1} SVX.PrincipalHandle.op_Inequality$SVX.PrincipalHandle$SVX.PrincipalHandle(a$in: Ref, b$in: Ref) returns ($result: bool)
 {
   $result := (a$in != b$in);
 }
@@ -45,12 +63,12 @@ implementation {:inline 1} SVX2.PrincipalHandle.op_Inequality$SVX2.PrincipalHand
 
 // Corral should be able to see at runtime that this is assigned a principal, so
 // it is its own underlying principal.
-// var F$SVX2.VProgram_API.trustedPrincipal : Ref;
+// var F$SVX.VProgram_API.trustedPrincipal : Ref;
 
 // We don't care what this returns for Refs that aren't PrincipalHandles.
 function UnderlyingPrincipal(principalHandle: Ref) : Ref;
-axiom (forall p: Ref :: $DynamicType(UnderlyingPrincipal(p)) == T$SVX2.Principal());
-axiom (forall p: Ref :: $DynamicType(p) == T$SVX2.Principal() ==> UnderlyingPrincipal(p) == p);
+axiom (forall p: Ref :: $DynamicType(UnderlyingPrincipal(p)) == T$SVX.Principal());
+axiom (forall p: Ref :: $DynamicType(p) == T$SVX.Principal() ==> UnderlyingPrincipal(p) == p);
 
 // Meaningful for principals only.  Note, we do not assume antisymmetry.
 //
@@ -67,23 +85,23 @@ function ActsFor(actorHandle: Ref, targetHandle: Ref) : bool {
   PrincipalActsFor(UnderlyingPrincipal(actorHandle), UnderlyingPrincipal(targetHandle))
 }
 
-implementation SVX2.VProgram_API.UnderlyingPrincipal$SVX2.PrincipalHandle(ph$in: Ref) returns ($result: Ref)
+implementation SVX.VProgram_API.UnderlyingPrincipal$SVX.PrincipalHandle(ph$in: Ref) returns ($result: Ref)
 {
   $result := UnderlyingPrincipal(ph$in);
 }
 
-implementation SVX2.VProgram_API.ActsFor$SVX2.PrincipalHandle$SVX2.PrincipalHandle(actor$in: Ref, target$in: Ref) returns ($result: bool)
+implementation SVX.VProgram_API.ActsFor$SVX.PrincipalHandle$SVX.PrincipalHandle(actor$in: Ref, target$in: Ref) returns ($result: bool)
 {
   $result := ActsFor(actor$in, target$in);
 }
 
-implementation SVX2.VProgram_API.AssumeNoOneElseActsFor$SVX2.PrincipalHandle(ph$in: Ref)
+implementation SVX.VProgram_API.AssumeNoOneElseActsFor$SVX.PrincipalHandle(ph$in: Ref)
 {
   assume (forall actor: Ref :: ActsFor(actor, ph$in) ==> UnderlyingPrincipal(actor) == UnderlyingPrincipal(ph$in));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Secrets
+// Tokens
 
 // TODO: Maybe we should actually keep a data structure of what secrets we know
 // are valid and/or borne.  It wouldn't be as "pure" as logical assumptions, but
@@ -92,29 +110,33 @@ implementation SVX2.VProgram_API.AssumeNoOneElseActsFor$SVX2.PrincipalHandle(ph$
 
 function Borne(bearer: Ref, secretValue: Ref) : bool;
 
-function SecretParams(secretValue: Ref) : Ref;
+function TokenParams(tokenValue: Ref) : Ref;
 
-implementation SVX2.VProgram_API.AssumeBorneImpl$SVX2.PrincipalHandle$System.String(bearer$in: Ref, secretValue$in: Ref)
+implementation SVX.VProgram_API.AssumeBorneImpl$SVX.PrincipalHandle$System.String(bearer$in: Ref, secretValue$in: Ref)
 {
   // Note, secretValue may be null.  This should be harmless.
   assume Borne(bearer$in, secretValue$in);
 }
 
-implementation SVX2.VProgram_API.AssumeValidSecretImpl$System.String$System.Object$SVX2.PrincipalHandlearray(secretValue$in: Ref, theParams$in: Ref, readers$in: Ref)
+implementation SVX.VProgram_API.AssumeTokenParamsImpl$System.String$System.Object(tokenValue$in: Ref, theParams$in: Ref)
 {
   // FIXME: This is unsound if two distinct but equal parameter objects are
   // allocated in C#.  We should be able to get away with this for both the
   // implicit flow (where the payload secret is never taken apart in the
   // vProgram) and the authorization code flow (by nondetting one of the
   // parameter objects). ~ t-mattmc@microsoft.com 2016-07-18
-  assume SecretParams(secretValue$in) == theParams$in;
+  assume TokenParams(tokenValue$in) == theParams$in;
+}
+
+implementation SVX.VProgram_API.AssumeAuthenticatesBearerImpl$System.String$SVX.PrincipalHandlearray(secretValue$in: Ref, readers$in: Ref)
+{
   assume (forall bearer: Ref :: Borne(bearer, secretValue$in) ==>
     // This duplicates the logic of VProgram_API.ActsForAny, but I don't see any
     // way to factor it out because we can't call a procedure inside the forall
     // and a function can't read global variables.
     (exists i: int :: i >= 0 && i < $ArrayLength(readers$in) &&
-	  (ActsFor(bearer, $ArrayContents[readers$in][i]) || !ActsFor($ArrayContents[readers$in][i], F$SVX2.VProgram_API.trustedPrincipal))
-	  ));
+      (ActsFor(bearer, $ArrayContents[readers$in][i]) || !ActsFor($ArrayContents[readers$in][i], F$SVX.VProgram_API.trustedPrincipal))
+      ));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -123,12 +145,12 @@ implementation SVX2.VProgram_API.AssumeValidSecretImpl$System.String$System.Obje
 function AllDeclarablePredicates1Arg(dp: Ref, arg1: Ref): bool;
 function AllDeclarablePredicates2Arg(dp: Ref, arg1: Ref, arg2: Ref): bool;
 
-implementation SVX2.DeclarablePredicate`1.Check$`0($this: Ref, arg1$in: Ref) returns ($result: bool)
+implementation SVX.DeclarablePredicate`1.Check$`0($this: Ref, arg1$in: Ref) returns ($result: bool)
 {
   $result := AllDeclarablePredicates1Arg($this, arg1$in);
 }
 
-implementation SVX2.DeclarablePredicate`2.Check$`0$`1($this: Ref, arg1$in: Ref, arg2$in: Ref) returns ($result: bool)
+implementation SVX.DeclarablePredicate`2.Check$`0$`1($this: Ref, arg1$in: Ref, arg2$in: Ref) returns ($result: bool)
 {
   $result := AllDeclarablePredicates2Arg($this, arg1$in, arg2$in);
 }

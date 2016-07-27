@@ -6,29 +6,19 @@ using System.Threading.Tasks;
 
 namespace SVX
 {
-    // Move to SVX_Common 2016-07-20 because it's needed by SVX2.  Hope this
-    // doesn't break SVX1.  (There's really nothing tricky here.)
     [BCTOmit]
     public class SVXSettings
     {
         // Must be set before any SVX_Ops things are constructed.
         public static SVXSettings settings;
 
-        public string MyPartyName;
-        public string[] TrustedParties;
-
         // We do not yet have a certification server compatible with the current
-        // version of SVAuth, so better leave this set to true.
-        public bool CertifyLocally;
+        // version of SVAuth.
+        //public bool CertifyLocally;
 
         // Folder for SVX runtime data.  Will be automatically created if it doesn't exist.
         // May be relative to working directory, assumed to be SVAuth project directory.
         public string SVXFolderPath;
-
-        // Certification server settings:
-
-        public string DLLServerAddress;
-        public string Token;
 
         // Local certification settings:
 
@@ -42,16 +32,6 @@ namespace SVX
         // purposes.
         public bool KeepVPrograms = true;
 
-        // TODO: Document how to set up a Poirot enlistment.
-        public string PoirotRoot;
-
-        // Misc:
-
-        // This is so much more sensible than duplicating the logic many places
-        // in SVX_Ops.  We can make these nonpublic if we care.  Ideally we'd
-        // have a framework to memoize these and take care of the lifetime
-        // issues, but it's just not worth worrying about. ~ t-mattmc@microsoft.com 2016-06-03
-        public string methodsFolder => Path.Combine(SVXFolderPath, "methods");
-        public string dllsFolder => Path.Combine(SVXFolderPath, "dlls");
+        public bool ReadableVProgramFolderNames = true;
     }
 }

@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading.Tasks;
-using SVX2;
+using SVX;
 
 namespace SVAuth
 {
-    public class SVX2_Test_Concat : Participant
+    public class SVX_Test_Concat : Participant
     {
         public class Concat2Request : SVX_MSG
         {
@@ -27,7 +27,7 @@ namespace SVAuth
             public string first, second, third, output;
         }
 
-        public Principal SVXPrincipal => Principal.Of("Alice");
+        public SVX_Test_Concat(Principal principal) : base(principal) { }
 
         // This is going to be an SVX method.
         public Concat2Response Concat2(Concat2Request req)
@@ -56,7 +56,7 @@ namespace SVAuth
             VProgram_API.AssumeActsFor(Principal.Of("Carol"), Principal.Of("Alice"));
             return x;
         }
-        public static bool Predicate(Concat3Response resp) {
+        public bool Predicate(Concat3Response resp) {
             VProgram_API.AssumeTrusted(Principal.Of("Alice"));
             var tmp = resp.first + resp.second;
             var expected = tmp + resp.third;
@@ -65,9 +65,9 @@ namespace SVAuth
         [BCTOmitImplementation]
         public static void Test()
         {
-            var p = new SVX2_Test_Concat();
             var alice = Principal.Of("Alice");
             var bob = Principal.Of("Bob");
+            var p = new SVX_Test_Concat(alice);
 
             var req1 = new Concat2Request("A", "B");
             var resp1 = SVX_Ops.Call(p.Concat2, req1);
@@ -85,7 +85,7 @@ namespace SVAuth
             // we would assume in any real protocol.
             var respWithAssumption = SVX_Ops.Call(p.AssumeProducerActsForAlice, chainResp);
 
-            SVX_Ops.Certify(respWithAssumption, Predicate);
+            SVX_Ops.Certify(respWithAssumption, p.Predicate);
         }
     }
 }

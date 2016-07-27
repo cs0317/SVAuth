@@ -13,17 +13,13 @@ using System.Threading.Tasks;
 // many things in SVX_Common and unfortunately doesn't use nameof/typeof because
 // it would just be too much clutter.
 
-namespace SVX2
+namespace SVX
 {
     // Doing the completely naive thing for now: mutable fields.
     public class SVX_MSG
     {
-        // We don't want to translate all the SymT code; neither do we want a
-        // dependency from SVX_Common to SVX_Ops, or to make another assembly.
-        // So use object. :/
-        // This will go away once we merge SVX_Common and SVX_Ops into one
-        // assembly and use BCT attributes to control what gets translated.
-
+        // This is still "object" because of C# accessibility constraints.
+        //
         // WARNING: This has to be public for serialization, but it is null in
         // the vProgram and if you touch it there, you may make the verification
         // unsound.  (Better ideas?  A property that raises an assertion failure
@@ -34,6 +30,11 @@ namespace SVX2
         // restriction yet. ~ t-mattmc@microsoft.com 2016-07-14
         [JsonProperty(TypeNameHandling = TypeNameHandling.All)]
         public object /*SymT*/ SVX_symT;
+
+        // Better ideas? ~ t-mattmc@microsoft.com 2016-07-27
+        [JsonIgnore]
+        public bool SVX_serializeSymT = true;
+        public bool ShouldSerializeSVX_symT() => SVX_serializeSymT;
 
         // Fields that are set on import so they can be used from SVX methods.
         // These will usually be null in messages being exported; if so, they
@@ -47,7 +48,7 @@ namespace SVX2
         // It is public for serialization but shouldn't otherwise be manipulated
         // by protocol code.
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public PrincipalHandle SVX_directClient;
+        public PrincipalHandle SVX_placeholderRequestProducer;
 
         // True if we know the symT is valid from our point of view.  When a
         // message is imported, the developer will set the symT field to the
@@ -72,9 +73,30 @@ namespace SVX2
     }
 
     // We might be able to get away without translating this, but it's fine to translate too.
-    public interface Participant
+    public class Participant
     {
-        Principal SVXPrincipal { get; }
+        public Principal SVX_Principal { get; }
+
+        public Participant(Principal principal)
+        {
+            SVX_Principal = principal;
+        }
+
+        // Concrete participant classes must have a constructor of the form:
+        //
+        // MyParticipant(Principal principal);
+        //
+        // which will be used to instantiate them in the vProgram, passing in
+        // the principal originally returned by SVX_Principal.  Eventually, we
+        // want to support recording of arbitrary configuration parameters for
+        // all objects that are instantiated in the vProgram, but in the
+        // meantime, this is a bare minimum to let us create RPs with the real
+        // RP principal without hard-coding it.  IdPs may still hard-code the
+        // IdP principal and assert that the one passed is correct.
+        //
+        // (Currently, since the vProgram is emitted as C# source, constructors
+        // with additional parameters that have defaults will work, but we may
+        // change this in the future.)
     }
 
     // Types of assumptions we need to allow:
@@ -112,21 +134,21 @@ namespace SVX2
         // compare the keys by value.
         static Dictionary<Principal, Dictionary<Type, object>> participants = new Dictionary<Principal, Dictionary<Type, object>>();
 
-        public static T GetParticipant<T>(Principal principal) where T : new()
+        public static T GetParticipant<T>(Principal principal)
+        {
+            return (T)GetParticipant(new ParticipantId(principal, typeof(T)));
+        }
+
+        public static object GetParticipant(ParticipantId id)
         {
             Dictionary<Type, object> dict1;
-            if (!participants.TryGetValue(principal, out dict1))
+            if (!participants.TryGetValue(id.principal, out dict1))
             {
                 dict1 = new Dictionary<Type, object>();
-                participants[principal] = dict1;
+                participants[id.principal] = dict1;
             }
             object participantObj;
-            T participant;
-            if (dict1.TryGetValue(typeof(T), out participantObj))
-            {
-                participant = (T)participantObj;
-            }
-            else
+            if (!dict1.TryGetValue(id.type, out participantObj))
             {
                 throw new NotImplementedException(
                     "Dynamic creation of participants is not implemented.  " +
@@ -135,15 +157,27 @@ namespace SVX2
                     "participants used in the predicate that might not be " +
                     "used in a method call must be specified as " +
                     "predicateParticipants so they get created.");
+                // As of 2016-07-26, we are calling a constructor with the
+                // principal as a parameter, so we can no longer use
+                // "T : new()".
+
+                // XXX Strictly enforce that the public version of
+                // GetParticipant can be called only in the predicate and only
+                // on participants that were declared?  We may just implement
+                // the "new T()" instead.
+
                 // Apparently "new T()" compiles to
                 // System.Activator.CreateInstance, which BCT doesn't support.
                 // It would be a reasonable feature to add to BCT, but it's too
                 // much work for the moment.
                 // ~ t-mattmc@microsoft.com 2016-07-11
+
+                // Now that this code is moved to a method that doesn't have T,
+                // we would just use Activator.CreateInstance(id.type).
                 //participant = new T();
                 //dict1[typeof(T)] = participant;
             }
-            return participant;
+            return participantObj;
         }
 
         internal static void CreateParticipant<T>(Principal principal, T participant)
@@ -168,7 +202,10 @@ namespace SVX2
         // nondet of a Ref is unsafe in BCT-based models: it can cause aliasing
         // and heap pollution.  We need to emit a custom nondet method for each
         // type. ~ t-mattmc@microsoft.com 2016-07-15
-        internal static T Nondet<T>()
+        //
+        // Model IdPs now call this.  Consider restricting it later.
+        // ~ t-mattmc@microsoft.com 2016-07-27
+        public static T Nondet<T>()
         {
             T ret = NondetImpl<T>();
             Contract.Assume(ret.GetType() == typeof(T));
@@ -277,15 +314,26 @@ namespace SVX2
         }
 
         [BCTOmitImplementation]
-        private static void AssumeValidSecretImpl(string secretValue, object theParams, PrincipalHandle[] originalReaders)
+        private static void AssumeTokenParamsImpl(string tokenValue, object theParams)
         {
             // Does nothing in production.
+        }
+
+        [BCTOmitImplementation]
+        private static void AssumeAuthenticatesBearerImpl(string secretValue, PrincipalHandle[] originalReaders)
+        {
+            // Does nothing in production.
+        }
+
+        internal static void AssumeValidToken(string tokenValue, object theParams)
+        {
+            AssumeTokenParamsImpl(tokenValue, theParams);
         }
 
         // Wrapper: the easiest way to get BCT to record the arguments.
         internal static void AssumeValidSecret(string secretValue, object theParams, PrincipalHandle[] originalReaders)
         {
-            // Just get BCT to record the reader.
+            // Just get BCT to record the readers.
             if (InVProgram)
             {
                 foreach (var reader in originalReaders)
@@ -293,7 +341,8 @@ namespace SVX2
                     var readerIsTrusted = IsTrusted(reader);
                 }
             }
-            AssumeValidSecretImpl(secretValue, theParams, originalReaders);
+            AssumeTokenParamsImpl(secretValue, theParams);
+            AssumeAuthenticatesBearerImpl(secretValue, originalReaders);
         }
 
         // Substitute for Contract.Assert in SVX-recorded code.  TODO explain.

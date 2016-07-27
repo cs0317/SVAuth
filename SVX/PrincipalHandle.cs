@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
 
-namespace SVX2
+namespace SVX
 {
     [JsonConverter(typeof(PrincipalJsonConverter))]
     public abstract class PrincipalHandle
@@ -72,8 +72,12 @@ namespace SVX2
     [JsonConverter(typeof(PrincipalJsonConverter))]
     public class Principal : PrincipalHandle
     {
-        // TODO: Standardize the name format.
+        // The naming conventions are not finalized, but for now we are using
+        // hostnames and some other special formats that cannot be confused with
+        // hostnames.  (Want to introduce actual data structures for those
+        // formats?)
         public readonly string name;
+
         private Principal(string name)
         {
             if (name == null)

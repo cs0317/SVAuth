@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SVX2
+namespace SVX
 {
     [BCTOmit]
     public class MessageStructure<TMessage> where TMessage : SVX_MSG
@@ -13,7 +13,7 @@ namespace SVX2
         {
             internal virtual void Export(TMessage message, PrincipalHandle receiver, PrincipalHandle target) { }
             internal virtual void Import(TMessage message, PrincipalHandle producer, PrincipalHandle sender) { }
-            internal virtual void Extract(TMessage message) { }
+            internal virtual void Extract(bool fake, TMessage message) { }
         }
 
         // TBD how to represent handlers for nested fields.
@@ -78,12 +78,15 @@ namespace SVX2
             internal MessagePayloadSecretGenerator<TInnerMessage> generator;
             internal bool verifyOnImport;
 
-            internal override void Extract(TMessage message)
+            internal override void Extract(bool fake, TMessage message)
             {
-                var secret = accessor.Get(message);
+                var secret = fake ? null : accessor.Get(message);
                 if (verifyOnImport)
                 {
-                    generator.VerifyAndExtract(secret);
+                    if (!fake)
+                    {
+                        generator.VerifyAndExtract(secret);
+                    }
                     ((SymTTransfer)message.SVX_symT).payloadSecretsVerifiedOnImport.Add(new VerifyOnImportEntry {
                         fieldPath = accessor.name,
                         secretGeneratorTypeFullName = generator.GetType().FullName
@@ -91,7 +94,10 @@ namespace SVX2
                 }
                 else
                 {
-                    generator.ExtractUnverified(secret);
+                    if (!fake)
+                    {
+                        generator.ExtractUnverified(secret);
+                    }
                 }
             }
         }
@@ -113,54 +119,91 @@ namespace SVX2
             });
         }
 
-        // target is the redirection target, null if sending directly.
+        // target is the redirection target, null if not a redirection.
+        //
+        // Wow, there's a lot of code that is only used in a small fraction of
+        // cases, but I still find it easiest to understand to have all the
+        // logic in one method and then define various restricted entry points.
+        // ~ t-mattmc@microsoft.com 2016-07-25
+        private void Export(bool fake, TMessage message,
+            PrincipalHandle receiver, PrincipalHandle target, PrincipalHandle requestProducer)
+        {
+            if (!fake)
+            {
+                if (target == null && BrowserOnly)
+                    throw new InvalidOperationException("Server attempted to send a browser-only message.");
+                foreach (var handler in fieldHandlers.Values)
+                {
+                    handler.Export(message, receiver, target);
+                }
+            }
+            message.SVX_placeholderRequestProducer = requestProducer;
+        }
+
         public void Export(TMessage message, PrincipalHandle receiver, PrincipalHandle target)
         {
-            if (target == null && BrowserOnly)
-                throw new InvalidOperationException("Server attempted to send a browser-only message.");
-            foreach (var handler in fieldHandlers.Values)
-            {
-                handler.Export(message, receiver, target);
-            }
+            Export(false, message, receiver, target, null);
+        }
+        public void FakeExport(TMessage message)
+        {
+            Export(true, message, null, null, null);
         }
 
         // For cleanliness in serialization, provide a separate API so that
-        // message.SVX_directClient is only set when we expect the receiver to
-        // use it.
-        public void ExportDirectResponse(TMessage message, PrincipalHandle receiver)
+        // message.SVX_placeholderRequestProducer is only set when we expect the
+        // receiver to use it.
+        public void ExportDirectResponse(TMessage message, PrincipalHandle receiver, PrincipalHandle requestProducer)
         {
-            // Factor out a private helper method if necessary in the future.
-            Export(message, receiver, null);
-            message.SVX_directClient = receiver;
+            Export(false, message, receiver, null, requestProducer);
+        }
+        public void FakeExportDirectResponse(TMessage message, PrincipalHandle requestProducer)
+        {
+            Export(true, message, null, null, requestProducer);
         }
 
-        private void Import(TMessage message, PrincipalHandle producer, PrincipalHandle sender, PrincipalHandle realDirectClient)
+        private void Import(bool fake, TMessage message, PrincipalHandle producer, PrincipalHandle sender, PrincipalHandle realRequestProducer)
         {
             // Set up secretsVerifiedOnImport field so Extract can add to it.
-            SVX_Ops.Transfer(message, producer, sender, realDirectClient, BrowserOnly);
+            SVX_Ops.Transfer(message, producer, sender, realRequestProducer, BrowserOnly);
 
             // Extract all fields before importing any, in case getKnownReaders
             // for one secret references information extracted from another
             // field.
             foreach (var handler in fieldHandlers.Values)
             {
-                handler.Extract(message);
+                handler.Extract(fake, message);
             }
-            foreach (var handler in fieldHandlers.Values)
+            if (!fake)
             {
-                handler.Import(message, producer, sender);
+                foreach (var handler in fieldHandlers.Values)
+                {
+                    handler.Import(message, producer, sender);
+                }
             }
         }
 
         public void Import(TMessage message, PrincipalHandle producer, PrincipalHandle sender)
         {
-            Import(message, producer, sender, null);
+            Import(false, message, producer, sender, null);
+        }
+        public void FakeImport(TMessage message, PrincipalHandle producer, PrincipalHandle sender)
+        {
+            Import(true, message, producer, sender, null);
         }
 
         // TODO: client needs to tie in to some ambient "current principal" variable
+        private void ImportDirectResponse(bool fake, TMessage message, PrincipalHandle server, PrincipalHandle client)
+        {
+            Import(fake, message, server, server, client);
+        }
+
         public void ImportDirectResponse(TMessage message, PrincipalHandle server, PrincipalHandle client)
         {
-            Import(message, server, server, client);
+            ImportDirectResponse(false, message, server, client);
+        }
+        public void FakeImportDirectResponse(TMessage message, PrincipalHandle server, PrincipalHandle client)
+        {
+            ImportDirectResponse(true, message, server, client);
         }
     }
 }

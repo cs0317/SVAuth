@@ -5,14 +5,65 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace SVX2
+namespace SVX
 {
-    // Properties of tokens:
-    // - Bearer or not
-    // - Authenticates SVX_MSG or not
-    // - Contains the original parameters or not
+    // /All/ tokens uniquely identify the original parameters.
+    //
+    // Optional properties of tokens (can be combined):
+    // - Authenticates the bearer: "Secret"
+    // - Authenticates an SVX_MSG: "Message"
+    //   - Future: Authenticates a custom predicate: term TBD
+    // - Embeds the original parameters: "Payload"
+    //
     // (We are just adding support for the combinations we need in actual
     // protocols.  It's hard to know if we got everything.)
+
+    /* A TokenGenerator (any variant) should have the property that, for the purposes of our
+     * model, there is no way to come up with a secretValue that passes Verify
+     * for particular parameters except to get it from Generate.  Examples:
+     * signatures or HMACs.  For signatures, if you have only the public key,
+     * you can define a TokenGenerator where RawGenerate throws an
+     * InvalidOperationException. */
+
+    public abstract class TokenGenerator<TParams>
+    {
+        protected abstract string RawGenerate(TParams theParams);
+
+        // On verification failure, this should throw an exception.  This makes
+        // it easy to provide info about the nature of the failure rather than
+        // just a boolean.  (The alternative would be to return a boolean and
+        // log the info somewhere else.)
+        protected abstract void RawVerify(TParams theParams, string tokenValue);
+
+        [BCTOmitImplementation]
+        string RawGenerateWrapper(TParams theParams)
+        {
+            return RawGenerate(theParams);
+        }
+
+        public string Generate(TParams theParams)
+        {
+            var tokenValue = RawGenerateWrapper(theParams);
+            VProgram_API.AssumeValidToken(tokenValue, theParams);
+            return tokenValue;
+        }
+
+        [BCTOmitImplementation]
+        void RawVerifyWrapper(TParams theParams, string tokenValue)
+        {
+            RawVerify(theParams, tokenValue);
+        }
+
+        // I guess if you really want to try a Verify that might fail and catch
+        // the exception, then the AssumeValidToken won't happen in that case.
+        public void Verify(TParams theParams, string tokenValue)
+        {
+            RawVerifyWrapper(theParams, tokenValue);
+            // I'm not sure this is necessary; hopefully it won't hurt.
+            VProgram_API.Assert(tokenValue != null);
+            VProgram_API.AssumeValidToken(tokenValue, theParams);
+        }
+    }
 
     // Why does C# require that base classes be accessible?
     [JsonConverter(typeof(SecretJsonConverter))]
@@ -101,12 +152,6 @@ namespace SVX2
         }
     }
 
-    /* A SecretGenerator should have the property that, for the purposes of our
-     * model, there is no way to come up with a secretValue that passes Verify
-     * for particular parameters except to get it from Generate.  Examples:
-     * signatures or HMACs.  For signatures, if you have only the public key,
-     * you can define a SecretGenerator where RawGenerate throws an
-     * InvalidOperationException. */
     public abstract class SecretGenerator<TParams>
     {
         protected abstract string RawGenerate(TParams theParams);
@@ -166,7 +211,6 @@ namespace SVX2
             RawVerifyWrapper(theParams, secret);
             // I'm not sure this is necessary; hopefully it won't hurt.
             VProgram_API.Assert(secret.secretValue != null);
-            var thisType = GetType();
             VProgram_API.AssumeValidSecret(secret.secretValue, theParams, GetReaders(theParams));
         }
     }

@@ -73,7 +73,7 @@ namespace SVAuth.OIDC10
            //    nameof(DummyConcreteAuthorizationServer.DummyGetUserProfile), "AS", false, false);
             var _AccessTokenRequest = _createAccessTokenRequest(inputMSG);
             var rawReq = marshalAccessTokenRequest(_AccessTokenRequest);
-            var RawAccessTokenResponse = await SVX.Utils.PerformHttpRequestAsync(rawReq);
+            var RawAccessTokenResponse = await Utils.PerformHttpRequestAsync(rawReq);
             Trace.Write("Got AccessTokenResponse");
 
             JObject jObject = JObject.Parse(RawAccessTokenResponse.Content.ReadAsStringAsync().Result);

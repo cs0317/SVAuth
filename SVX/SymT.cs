@@ -4,22 +4,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SVX2
+namespace SVX
 {
     // Non-public fields don't get serialized by default.  I don't feel like
     // making them all public just for this.  For now,
     // MemberSerialization.Fields does what we want.
 
+    // Like ParticipantId but doesn't contain an actual Type object, so easier
+    // to serialize.
     [BCTOmit]
     [JsonObject(MemberSerialization.Fields)]
-    class ParticipantId
+    class SymTParticipantId
     {
         internal Principal principal;
         internal string typeFullName;
 
         public override bool Equals(object other)
         {
-            var other2 = other as ParticipantId;
+            var other2 = other as SymTParticipantId;
             return other2 != null && principal == other2.principal && typeFullName == other2.typeFullName;
         }
 
@@ -61,15 +63,17 @@ namespace SVX2
     [JsonObject(MemberSerialization.Fields)]
     class SymTMethod : SymT
     {
-        internal ParticipantId participantId;
+        internal SymTParticipantId participantId;
         internal string methodName;
         internal string methodReturnTypeFullName;
         internal string[] methodArgTypeFullNames;
+
+        // Careful: contains nulls for nondet non-message arguments.
         [JsonProperty(ItemTypeNameHandling = TypeNameHandling.All)]
         internal SymT[] inputSymTs;
 
         internal override string MessageTypeFullName => methodReturnTypeFullName;
-        internal override IEnumerable<SymT> EmbeddedSymTs => inputSymTs;
+        internal override IEnumerable<SymT> EmbeddedSymTs => inputSymTs.Where((symT) => symT != null);
         internal override SymT RewriteEmbeddedSymTs(Func<SymT, SymT> rewriter) =>
             new SymTMethod
             {
@@ -78,7 +82,8 @@ namespace SVX2
                 methodName = methodName,
                 methodReturnTypeFullName = methodReturnTypeFullName,
                 methodArgTypeFullNames = methodArgTypeFullNames,
-                inputSymTs = inputSymTs.Select(rewriter).ToArray()
+                inputSymTs = inputSymTs.Select(
+                    (symT) => (symT == null) ? null : rewriter(symT)).ToArray()
             };
     }
 
@@ -193,10 +198,11 @@ namespace SVX2
     {
         [JsonProperty(TypeNameHandling = TypeNameHandling.All)]
         internal SymT scrutineeSymT;
-        internal string methodDeclaringTypeFullName;
+        internal SymTParticipantId participantId;
+        //internal string methodDeclaringTypeFullName;
         internal string methodName;
         internal string methodArgTypeFullName;
-        internal ParticipantId[] predicateParticipants;
+        internal SymTParticipantId[] predicateParticipants;
     }
 
 }

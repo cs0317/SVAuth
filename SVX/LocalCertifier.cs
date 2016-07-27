@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 using System.Reflection;
 using System.Text;
 
-namespace SVX2
+namespace SVX
 {
     // Most of LocalCertifier is copy/paste from SVX1 VProgramGenerator.
     // Put the boring stuff in a separate file.
@@ -17,15 +17,34 @@ namespace SVX2
     [BCTOmit]
     static class LocalCertifier
     {
+        static string RemoveNamespaces(string fullName)
+        {
+            int pos = fullName.LastIndexOf('.');
+            return (pos == -1) ? fullName : fullName.Substring(pos + 1);
+        }
+
         internal static bool Certify(CertificationRequest c)
         {
+            string folderName;
+            if (SVXSettings.settings.ReadableVProgramFolderNames)
+            {
+                folderName =
+                    // I think being easier to interpret outweighs sorting
+                    // correctly if you change your local time zone. :/
+                    DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + "_" +
+                    // There's no justification for this rule other than that it
+                    // works for our current examples.
+                    RemoveNamespaces(c.participantId.typeFullName).Replace('+', '.') + "." + c.methodName;
+            }
+            else
+            {
+                folderName = Utils.ToUrlSafeBase64String(Guid.NewGuid().ToByteArray());
+            }
             byte[] time = BitConverter.GetBytes(DateTime.UtcNow.ToBinary());
-            byte[] key = Guid.NewGuid().ToByteArray();
             // Slashes would be a problem, so use URL-safe base 64.  .NET does
             // not seem to have a built-in function for it, so just do it
             // manually. :(
-            string rand_folder = Utils.ToUrlSafeBase64String(time.Concat(key).ToArray());
-            string tempVProgramPath = Path.Combine(SVXSettings.settings.VProgramPath, rand_folder);
+            string tempVProgramPath = Path.Combine(SVXSettings.settings.VProgramPath, folderName);
             Console.WriteLine("Generating and verifying vProgram in: " + tempVProgramPath);
 
             try
@@ -106,12 +125,12 @@ namespace SVX2
             process.StartInfo.FileName = @"C:\Windows\System32\cmd.exe";
             process.StartInfo.Arguments = "/c run.bat";
             process.StartInfo.RedirectStandardOutput = true;
+            // For future reference:
             // process.StartInfo.Environment is initialized to the current
             // process's environment, so the subprocess inherits anything we
             // don't change.
             // http://stackoverflow.com/a/14582921
             // https://github.com/dotnet/corefx/blob/2ff9b2a1e367a9694af6bdaf9856ea12f9ae13cd/src/System.Diagnostics.Process/src/System/Diagnostics/ProcessStartInfo.cs#L88
-            process.StartInfo.Environment.Add("POIROT_ROOT", SVXSettings.settings.PoirotRoot);
             process.Start();
 
             // There should be a library for this...

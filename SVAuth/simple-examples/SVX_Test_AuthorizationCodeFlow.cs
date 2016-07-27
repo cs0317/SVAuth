@@ -3,17 +3,17 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading.Tasks;
-using SVX2;
+using SVX;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
 namespace SVAuth
 {
-    // Obviously, much of this is copy and paste from SVX2_Test_ImplicitFlow,
+    // Obviously, much of this is copy and paste from SVX_Test_ImplicitFlow,
     // but factoring out the commonality would have been a distraction from this
     // exercise.  We'll see that factoring out when we migrate the real
     // implementations to SVX2.
-    public static class SVX2_Test_AuthorizationCodeFlow
+    public static class SVX_Test_AuthorizationCodeFlow
     {
         static readonly Principal googlePrincipal = Principal.Of("Google");
         static readonly Principal mattMerchantPrincipal = Principal.Of("MattMerchant");
@@ -33,6 +33,8 @@ namespace SVAuth
 
         public class GoogleAuthorizationCodeGenerator : SecretGenerator<AuthorizationCodeParams>
         {
+            // We could make the idpPrincipal a parameter, but don't bother yet.
+
             protected override PrincipalHandle[] GetReaders(object theParams)
             {
                 var params2 = (AuthorizationCodeParams)theParams;
@@ -91,13 +93,6 @@ namespace SVAuth
             public PrincipalHandle authenticatedClient;
             public string googleUsername;
         }
-        // This is an SVX_MSG just so it can be passed to an SVX method as a
-        // nondet argument.  If we add support for untracked arguments, we can
-        // just pass theParams by itself.
-        public class AuthorizationCodeParamsMessage : SVX_MSG
-        {
-            public AuthorizationCodeParams theParams;
-        }
         public class RPAuthenticationConclusion : SVX_MSG
         {
             public PrincipalHandle authenticatedClient;
@@ -106,7 +101,12 @@ namespace SVAuth
 
         public class Google_IdP : Participant
         {
-            public Principal SVXPrincipal => googlePrincipal;
+            public Google_IdP(Principal principal) : base(principal)
+            {
+                // Not bothering to make the idpPrincipal a parameter.
+                Contract.Assert(principal == googlePrincipal);
+            }
+
             private GoogleAuthorizationCodeGenerator authorizationCodeGenerator = new GoogleAuthorizationCodeGenerator();
 
             private DeclarablePredicate<Principal /*underlying client*/, string /*username*/> SignedInPredicate
@@ -119,7 +119,7 @@ namespace SVAuth
                 var req = JsonConvert.DeserializeObject<AuthorizationCodeRequest>(codeRequestStr);
                 authorizationCodeRequestStructure.Import(req,
                     // We don't know who produced the request.
-                    PrincipalFacet.GenerateNew(SVXPrincipal),
+                    PrincipalFacet.GenerateNew(SVX_Principal),
                     client);
 
                 // In reality, AuthenticateClient couldn't be done
@@ -196,41 +196,36 @@ namespace SVAuth
 
             public string ValidationEndpoint(string validationRequestStr)
             {
+                PrincipalHandle producer = PrincipalFacet.GenerateNew(googlePrincipal);
                 PrincipalHandle client = PrincipalFacet.GenerateNew(googlePrincipal);
 
                 var req = JsonConvert.DeserializeObject<ValidationRequest>(validationRequestStr);
                 validationRequestStructure.Import(req,
-                    // Assume validation requests are not XSRF-able.
-                    // TODO: Think more carefully about this.
-                    client,
+                    producer,
                     client);
 
-                var paramsMsg = new AuthorizationCodeParamsMessage
-                {
-                    theParams = authorizationCodeParamsDict[req.authorizationCode]
-                };
+                var resp = SVX_Ops.Call(SVX_MakeValidationResponse, req,
+                    authorizationCodeParamsDict[req.authorizationCode]);
 
-                var resp = SVX_Ops.Call(SVX_MakeValidationResponse, req, paramsMsg);
-
-                validationResponseStructure.ExportDirectResponse(resp, client);
+                validationResponseStructure.ExportDirectResponse(resp, client, producer);
                 return JsonConvert.SerializeObject(resp);
             }
 
-            public ValidationResponse SVX_MakeValidationResponse(ValidationRequest req, AuthorizationCodeParamsMessage paramsMsg)
+            public ValidationResponse SVX_MakeValidationResponse(ValidationRequest req, AuthorizationCodeParams paramsHint)
             {
                 // As long as we're using the interim implementation of
                 // AssumeValidSecret that assumes the parameters of equal
                 // secrets are reference equal, it's critical that we don't do
-                // anything that will introduce a contradiction.  With theParams
+                // anything that will introduce a contradiction.  With paramsHint
                 // as nondet, we should be OK for now.
-                var theParams = paramsMsg.theParams;
+
                 // Comment out these 2 lines to see the verification fail.
-                if (theParams.rpPrincipal != req.rpPrincipal)
+                if (paramsHint.rpPrincipal != req.rpPrincipal)
                     throw new Exception("Authorization code RP mismatch");
-                authorizationCodeGenerator.Verify(theParams, req.authorizationCode);
+                authorizationCodeGenerator.Verify(paramsHint, req.authorizationCode);
                 return new ValidationResponse
                 {
-                    googleUsername = theParams.googleUsername
+                    googleUsername = paramsHint.googleUsername
                 };
             }
 
@@ -243,19 +238,27 @@ namespace SVAuth
         class StateParams
         {
             // We expect this to be a facet issued by the RP.
-            internal PrincipalHandle client;
+            public PrincipalHandle client;
+            public Principal idpPrincipal;
         }
-        class MattMerchant_Google_StateGenerator : SecretGenerator<StateParams>
+        class StateGenerator : SecretGenerator<StateParams>
         {
+            readonly Principal rpPrincipal;
+            internal StateGenerator(Principal rpPrincipal)
+            {
+                this.rpPrincipal = rpPrincipal;
+            }
+
             protected override PrincipalHandle[] GetReaders(object theParams)
             {
                 var params2 = (StateParams)theParams;
-                return new PrincipalHandle[] { googlePrincipal, mattMerchantPrincipal, params2.client };
+                return new PrincipalHandle[] { params2.idpPrincipal, rpPrincipal, params2.client };
             }
 
             protected override string RawGenerate(StateParams theParams)
             {
-                return "mattmerchant_google_state:" + theParams.client;
+                // Pretend this does an HMAC with an RP-specific key.
+                return JsonConvert.SerializeObject(theParams);
             }
 
             protected override void RawVerify(StateParams theParams, string secretValue)
@@ -267,10 +270,12 @@ namespace SVAuth
 
         public class MattMerchant_RP : Participant
         {
-            // XXX Definitely needs to be a parameter.
-            public Principal SVXPrincipal => mattMerchantPrincipal;
+            public MattMerchant_RP(Principal principal) : base(principal)
+            {
+                stateGenerator = new StateGenerator(principal);
+            }
 
-            MattMerchant_Google_StateGenerator stateGenerator = new MattMerchant_Google_StateGenerator();
+            StateGenerator stateGenerator;
 
             // Something here is tripping up BCT.  Just exclude it until we have
             // fully as-needed translation.
@@ -279,10 +284,10 @@ namespace SVAuth
             {
                 var req = new AuthorizationCodeRequest
                 {
-                    rpPrincipal = SVXPrincipal,
+                    rpPrincipal = SVX_Principal,
                     state = stateGenerator.Generate(
-                        new StateParams { client = client },
-                        SVXPrincipal)
+                        new StateParams { client = client, idpPrincipal = googlePrincipal },
+                        SVX_Principal)
                 };
                 authorizationCodeRequestStructure.Export(req, client, googlePrincipal);
                 return JsonConvert.SerializeObject(req);
@@ -293,7 +298,7 @@ namespace SVAuth
                 var authorizationCodeResponse = JsonConvert.DeserializeObject<AuthorizationCodeResponse>(idTokenResponseStr);
                 authorizationCodeResponseStructure.Import(authorizationCodeResponse,
                     // We don't know who produced the redirection.
-                    PrincipalFacet.GenerateNew(SVXPrincipal),
+                    PrincipalFacet.GenerateNew(SVX_Principal),
                     client);
 
                 var validationRequest = SVX_Ops.Call(SVX_MakeValidationRequest, authorizationCodeResponse);
@@ -304,7 +309,7 @@ namespace SVAuth
                 var validationResponseStr = idp.ValidationEndpoint(validationRequestStr);
 
                 var validationResponse = JsonConvert.DeserializeObject<ValidationResponse>(validationResponseStr);
-                validationResponseStructure.ImportDirectResponse(validationResponse, googlePrincipal, SVXPrincipal);
+                validationResponseStructure.ImportDirectResponse(validationResponse, googlePrincipal, SVX_Principal);
 
                 // SVX will automatically detect using message IDs that
                 // validationResponse actually resulted from
@@ -315,7 +320,7 @@ namespace SVAuth
                 var conc = SVX_Ops.Call(SVX_SignInRP, authorizationCodeResponse, validationResponse);
 
                 SVX_Ops.Certify(conc, LoginSafety);
-                SVX_Ops.Certify(conc, LoginXSRFPrevention, Tuple.Create(googlePrincipal, typeof(Google_IdP)));
+                SVX_Ops.Certify(conc, LoginXSRFPrevention, new ParticipantId(googlePrincipal, typeof(Google_IdP)));
                 // AbandonAndCreateSession...
             }
 
@@ -323,12 +328,12 @@ namespace SVAuth
             {
                 // May as well fail fast.  It should also pass verification to do this in SVX_SignInRP.
                 // Pull new { ... } out to work around BCT mistranslation.
-                var stateParams = new StateParams { client = resp.SVX_sender };
+                var stateParams = new StateParams { client = resp.SVX_sender, idpPrincipal = googlePrincipal };
                 stateGenerator.Verify(stateParams, resp.state);
                 return new ValidationRequest
                 {
                     authorizationCode = resp.authorizationCode,
-                    rpPrincipal = SVXPrincipal  // Like in the original authorization code request.
+                    rpPrincipal = SVX_Principal  // Like in the original authorization code request.
                 };
             }
 
@@ -341,20 +346,20 @@ namespace SVAuth
                 };
             }
 
-            public static bool LoginSafety(RPAuthenticationConclusion conc)
+            public bool LoginSafety(RPAuthenticationConclusion conc)
             {
                 var googleUser = GoogleUserPrincipal(conc.googleUsername);
                 VProgram_API.AssumeTrustedServer(googlePrincipal);
-                VProgram_API.AssumeTrustedServer(mattMerchantPrincipal);
+                VProgram_API.AssumeTrustedServer(SVX_Principal);
                 VProgram_API.AssumeTrusted(googleUser);
 
                 return VProgram_API.ActsFor(conc.authenticatedClient, googleUser);
             }
 
-            public static bool LoginXSRFPrevention(RPAuthenticationConclusion conc)
+            public bool LoginXSRFPrevention(RPAuthenticationConclusion conc)
             {
                 VProgram_API.AssumeTrustedServer(googlePrincipal);
-                VProgram_API.AssumeTrustedServer(mattMerchantPrincipal);
+                VProgram_API.AssumeTrustedServer(SVX_Principal);
                 VProgram_API.AssumeTrustedBrowser(conc.authenticatedClient);
 
                 var idp = VProgram_API.GetParticipant<Google_IdP>(googlePrincipal);
@@ -388,7 +393,7 @@ namespace SVAuth
         }
 
         // Do not BCTOmitImplementation this; it affects some static field initializers that we want.
-        static SVX2_Test_AuthorizationCodeFlow()
+        static SVX_Test_AuthorizationCodeFlow()
         {
             InitializeMessageStructures();
         }
@@ -396,11 +401,11 @@ namespace SVAuth
         [BCTOmitImplementation]
         public static void Test()
         {
-            var idp = new Google_IdP();
-            var rp = new MattMerchant_RP();
+            var idp = new Google_IdP(googlePrincipal);
+            var rp = new MattMerchant_RP(Principal.Of("MattMerchant"));
 
             var aliceIdP = PrincipalFacet.GenerateNew(googlePrincipal);
-            var aliceRP = PrincipalFacet.GenerateNew(mattMerchantPrincipal);
+            var aliceRP = PrincipalFacet.GenerateNew(rp.SVX_Principal);
 
             var codeRequestStr = rp.LoginStart(aliceRP);
             var codeResponseStr = idp.CodeEndpoint(aliceIdP, codeRequestStr);
