@@ -23,13 +23,6 @@ namespace SVAuth.OAuth20
     {
         public string response_type;
         public string client_id;
-#if false
-        public override string Realm
-        {
-            get { return client_id; }
-            set { client_id = value; }
-        }
-#endif
         public string redirect_uri;
         public string scope;
         public SVX.Secret state;
@@ -79,12 +72,6 @@ namespace SVAuth.OAuth20
     public class UserProfileResponse : SVX.SVX_MSG
     {
     }
-#if false
-    public class LoginResponse
-    {
-        public string status;
-    }
-#endif
 
     [BCTOmit]
     public class MessageStructures
@@ -123,40 +110,6 @@ namespace SVAuth.OAuth20
             userProfileResponse = new SVX.MessageStructure<UserProfileResponse>();
         }
     }
-
-#if false
-    /***********************************************************/
-    /*               Data structures on parties                */
-    /***********************************************************/
-
-    //The data strctures of AuthorizationCodeEntry and AccessTokenEntry are the same, but the procedures handling them are different.
-    public class AuthorizationCodeEntry
-    {
-        public string IdPSessionSecret;
-        public string client_id;
-        public string scope;
-    }
-
-    public class AccessTokenEntry
-    {
-        public string IdPSessionSecret;
-        public string client_id;
-        public string scope;
-    }
-
-    /*
-    public interface AuthorizationCodeRecs : GenericAuth.IdPAuthRecords_Base
-    {
-        string findISSByClientIDAndCode(string client_id, string authorization_code);
-    }
-
-    public interface AccessTokenRecs : GenericAuth.IdPAuthRecords_Base
-    {
-        string findISSByClientIDAndAccessToken(string client_id, string access_token);
-        string findISSByClientIDAndRefreshToken(string client_id, string refresh_token);
-    }
-    */
-#endif
 
     /***********************************************************/
     /*                          Parties                        */
@@ -227,24 +180,10 @@ namespace SVAuth.OAuth20
         }
 
         public string client_id;
-#if false
-        public override string Realm
-        {
-            get { return client_id; }
-            set { client_id = value; }
-        }
-#endif
         public string client_secret;
         public string TokenEndpointUrl;
         public string AuthorizationEndpointUrl;
         public string redirect_uri;
-#if false
-        public override string Domain
-        {
-            get { return redirect_uri; }
-            set { redirect_uri = value; }
-        }
-#endif
         internal StateGenerator stateGenerator;
 
         // Why are the parameters optional?  I don't see how this class can work without them. ~ t-mattmc@microsoft.com 2016-05-31
@@ -605,85 +544,6 @@ namespace SVAuth.OAuth20
             return CreateUserProfileResponse(tokenParamsHint.userID);
         }
 
-#if false
-        static NondetOAuth20 NondetOAuth20;
-        public Dictionary<string, AuthorizationCodeEntry> AuthorizationCodes = new Dictionary<string, AuthorizationCodeEntry>();
-        public Dictionary<string, AccessTokenEntry> AccessTokens = new Dictionary<string, AccessTokenEntry>();
-        public AuthorizationServer()
-        {
-            AuthorizationCodes[NondetOAuth20.String()] = NondetOAuth20.AuthorizationCodeEntry();
-        }
-       public override GenericAuth.ID_Claim Process_SignInIdP_req(GenericAuth.SignInIdP_Req req1)
-        {
-            AuthorizationRequest req = (AuthorizationRequest)req1;
-            switch (req.response_type)
-            {
-                case "code":
-                    return get_ID_Claim_From_Authorization_Request(req);
-                default:
-                    return null;
-            }
-        }
-
-        virtual public AccessTokenResponse TokenEndpoint(SVX.SVX_MSG req1)
-        {
-           //System.Diagnostics.Contracts.Contract.Assert(false);
-            AuthorizationCodeEntry AuthorizationCodeEntry;
-            AccessTokenRequest req = (AccessTokenRequest)req1;
-            if (req == null) return null;
-            //System.Diagnostics.Contracts.Contract.Assert(false);
-            AccessTokenResponse resp = new AccessTokenResponse();
-            //SVX_Ops.recordme(this, req, resp);
-            switch (req.grant_type)
-            {
-                case "authorization_code":
-                    AuthorizationCodeEntry = AuthorizationCodes[req.code];
-                    if (AuthorizationCodeEntry == null)
-                        return null;
-                    if (AuthorizationCodeEntry.client_id != req.client_id)
-                        return null;
-                    if (IdentityRecords.getEntry(AuthorizationCodeEntry.IdPSessionSecret, AuthorizationCodeEntry.client_id).Redir_dest
-                            != req.redirect_uri)
-                        return null;
-                    string AccessToken = createAccessToken(AuthorizationCodeEntry);
-                    resp.access_token = AccessToken;
-                    resp.refresh_token = "access_token";
-                    resp.expires_in = "";
-                    resp.refresh_token = null;
-                    return resp;
-                case "refresh_token":
-                    return null;
-                default:
-                    return null;
-            }
-        }
-
-        public UserProfileResponse UserProfileEndpoint(SVX.SVX_MSG req1)
-        {
-
-            UserProfileRequest req = (UserProfileRequest)req1;
-            if (req == null) return null;
-            AccessTokenEntry AccessTokenEntry = AccessTokens[req.access_token];
-            if (AccessTokenEntry == null) return null;
-
-            //SVX_Ops.recordme(this, req, resp);
-            return createUserProfileResponse((OAuth20.ID_Claim)IdentityRecords.getEntry(AccessTokenEntry.IdPSessionSecret,AccessTokenEntry.client_id));
-        }
-        public abstract ID_Claim get_ID_Claim_From_Authorization_Request(AuthorizationRequest req);
-        public abstract string createAccessToken(AuthorizationCodeEntry AuthorizationCodeEntry);
-        public abstract UserProfileResponse createUserProfileResponse(ID_Claim ID_Claim);
-#endif
-
     }
 
-#if false
-    public interface NondetOAuth20 : GenericAuth.Nondet_Base
-    {
-        int Int();
-        string String();
-        bool Bool();
-        SVX.SVX_MSG SVX_MSG();
-        AuthorizationCodeEntry AuthorizationCodeEntry();
-    }
-#endif
 }

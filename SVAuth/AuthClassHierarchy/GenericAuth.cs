@@ -8,46 +8,6 @@ using System.Threading.Tasks;
 // ~ t-mattmc@microsoft.com 2016-05-31
 namespace SVAuth.GenericAuth
 {
-#if false
-    /***********************************************************/
-    /*               Messages between parties                  */
-    /***********************************************************/
-    public abstract class SignInIdP_Req : SVX.SVX_MSG
-    {
-        // Ignoring this is right for the one caller so far, in Facebook.  When
-        // we have another caller that needs something different, we'll figure
-        // out the best design. ~ t-mattmc@microsoft.com 2016-06-01
-        [JsonIgnore]
-        public string IdPSessionSecret;
-        // Serialize the concrete properties instead.
-        [JsonIgnore]
-        public abstract string Realm { get; set; }
-    }
-
-    public abstract class SignInIdP_Resp_SignInRP_Req : SVX.SVX_MSG
-    {
-    }
-
-    public abstract class SignInRP_Resp : SVX.SVX_MSG
-    {
-    }
-
-    /***********************************************************/
-    /*               Data structures on parties                */
-    /***********************************************************/
-
-    public abstract class ID_Claim
-    {
-        public abstract string GetUserID(string UserID_Field_Name);
-        public abstract string Redir_dest { get; }
-    }
-
-    public interface IdPAuthRecords_Base
-    {
-        ID_Claim getEntry(string IdPSessionSecret, string Realm);
-        bool setEntry(string IdPSessionSecret, string Realm, ID_Claim _ID_Claim);
-    }
-#endif
 
     static class GenericAuthStandards
     {
@@ -85,23 +45,6 @@ namespace SVAuth.GenericAuth
         public bool Ghost_CheckSignedIn(SVX.Principal underlyingPrincipal, string userID) =>
             SignedInPredicate.Check(underlyingPrincipal, userID);
 
-#if false
-        public IdPAuthRecords_Base IdentityRecords;
-
-        public SignInIdP_Resp_SignInRP_Req SignInIdP(SignInIdP_Req req)
-        {
-            GlobalObjects_base.SignInIdP_Req = req;
-
-            if (req == null) return null;
-            ID_Claim _ID_Claim = Process_SignInIdP_req(req);
-            if (IdentityRecords.setEntry(req.IdPSessionSecret, req.Realm, _ID_Claim) == false)
-                return null;
-            return Redir(_ID_Claim.Redir_dest, _ID_Claim);
-        }
-
-        public abstract ID_Claim Process_SignInIdP_req(SignInIdP_Req req);
-        public abstract SignInIdP_Resp_SignInRP_Req Redir(string dest, ID_Claim _ID_Claim);
-#endif
     }
 
     public class UserProfile
@@ -132,10 +75,6 @@ namespace SVAuth.GenericAuth
         // verification working.
         protected bool BypassCertification = false;
 
-#if false
-        public abstract string Domain { get; set; }
-        public abstract string Realm { get; set; }
-#endif
         public async Task AuthenticationDone(AuthenticationConclusion conclusion, SVAuthRequestContext context)
         {
             if (context.client != conclusion.authenticatedClient)
@@ -171,32 +110,4 @@ namespace SVAuth.GenericAuth
         }
     }
 
-#if false
-    /****************************************************************/
-    /* The definition of the "Authentication/Authorization" problem */
-    /****************************************************************/
-    public class GlobalObjects_base
-    {
-        public static SignInIdP_Req SignInIdP_Req;
-        public static AS AS;
-        public static RP RP;
-
-        // TODO (t-mattmc@microsoft.com): Rename to NecessaryCondition1.
-        public static void BadPersonCannotSignInAsGoodPerson(AuthenticationConclusion conclusion)
-        {
-            ID_Claim ID_claim = AS.IdentityRecords.getEntry(
-                                        SignInIdP_Req.IdPSessionSecret,
-                                        RP.Realm);
-            Contract.Assert(ID_claim.Redir_dest == RP.Domain && ID_claim.GetUserID("email") == conclusion.UserID);
-        }
-    }
-
-    public interface Nondet_Base
-    {
-        int Int();
-        string String();
-        bool Bool();
-        SVX.SVX_MSG SVX_MSG();
-    }
-#endif
 }
