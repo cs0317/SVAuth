@@ -17,7 +17,7 @@ namespace SVAuth.OpenID20
     /*               Messages between parties                  */
     /***********************************************************/
 
-    public class AuthenticationRequest : GenericAuth.SignInIdP_Req
+    public class AuthenticationRequest : SVX.SVX_MSG
     {
         [JsonProperty("openid.ns")]
         public string openid__ns = "http://specs.openid.net/auth/2.0";
@@ -37,14 +37,9 @@ namespace SVAuth.OpenID20
         public string openid__sreg__required;
         [JsonProperty("openid.sreg.policy_url")]
         public string openid__sreg__policy_url; */
-        public override string Realm
-        {
-            get { return openid__realm; }
-            set { openid__realm = value; }
-        }
     }
 
-    public class AuthenticationResponse  /* a.k.a. PositiveAssertion in the OpenID 2.0 spec */: GenericAuth.SignInIdP_Resp_SignInRP_Req
+    public class AuthenticationResponse : SVX.SVX_MSG  /* a.k.a. PositiveAssertion in the OpenID 2.0 spec */
     {
         [JsonProperty("openid.ns")]
         public string openid__ns = "http://specs.openid.net/auth/2.0";
@@ -75,68 +70,54 @@ namespace SVAuth.OpenID20
         public string realm;
         public string IdP_OpenID20_Uri;
         public string return_to_uri;
-        public RelyingParty(string IdP_OpenID20_Uri1, string return_to_uri1)
+        public RelyingParty(SVX.Principal rpPrincipal, string IdP_OpenID20_Uri1, string return_to_uri1)
+            : base(rpPrincipal)
         {
             Uri uri = new Uri(return_to_uri1);
             realm = uri.Host;
             return_to_uri = return_to_uri1;
             IdP_OpenID20_Uri = IdP_OpenID20_Uri1;
         }
-        public override string Realm
+
+        protected override SVX.ParticipantId idpParticipantId
         {
-            get { return realm; }
-            set { realm = value; }
+            // SVX verification is not implemented yet.
+            get { throw new NotImplementedException(); }
         }
 
-        public override string Domain
-        {
-            get { return realm; }
-            set { realm = value; }
-        }
-
-        public abstract AuthenticationRequest createAuthenticationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID);
-        public AuthenticationRequest _createAuthenticationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID)
-        {
-            var outputMSG = createAuthenticationRequest(inputMSG, SVAuthSessionID);
-            SVX.SVX_Ops.recordme(this, inputMSG, outputMSG);
-            return outputMSG;
-        }
+        public abstract AuthenticationRequest createAuthenticationRequest(SVX.PrincipalFacet client);
         public abstract string /*Uri*/ marshalAuthenticationRequest(AuthenticationRequest _AuthorizationRequest);
-        public Task Login_StartAsync(HttpContext context)
+        public Task Login_StartAsync(HttpContext httpContext)
         {
-            SVX.SVX_MSG inputMSG = new SVX.SVX_MSG();
-            string SVAuthSessionID=Utils.SetNewSVAuthSessionIDHeader(context);
-            var _AuthenticationRequest = _createAuthenticationRequest(inputMSG, SVAuthSessionID);
+            var context = new SVAuthRequestContext(SVX_Principal, httpContext);
+
+            var _AuthenticationRequest = createAuthenticationRequest(context.client);
             var rawReq = marshalAuthenticationRequest(_AuthenticationRequest);
-            context.Response.Redirect(rawReq);
+            context.http.Response.Redirect(rawReq);
 
             return Task.CompletedTask;
         }
         public abstract AuthenticationResponse verify_and_parse_AuthenticationResponse(HttpContext context);
         public abstract GenericAuth.AuthenticationConclusion createConclusion(AuthenticationResponse inputMSG);
-        public GenericAuth.AuthenticationConclusion _createConclusion(AuthenticationResponse inputMSG)
+        public async Task Login_CallbackAsync(HttpContext httpContext)
         {
-            var outputMSG = this.createConclusion(inputMSG);
-            SVX.SVX_Ops.recordme(this, inputMSG, outputMSG, true, true);
-            return outputMSG;
-        }
-        public async Task Login_CallbackAsync(HttpContext context)
-        {
-
             Trace.Write("Login_CallbackAsync");
-            AuthenticationResponse inputMSG = verify_and_parse_AuthenticationResponse(context);
+            var context = new SVAuthRequestContext(SVX_Principal, httpContext);
+            AuthenticationResponse inputMSG = verify_and_parse_AuthenticationResponse(context.http);
+            // Just enough for createConclusion until we do a real SVX import.
+            inputMSG.SVX_sender = context.client;
 
             if (inputMSG==null)
             {
-                context.Response.Redirect(context.Request.Cookies["LoginPageUrl"]);
+                context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
                 return;
             }
             Trace.Write("Got Valid AuthenticationResponse");
 
-            GenericAuth.AuthenticationConclusion conclusion = _createConclusion(inputMSG);
+            GenericAuth.AuthenticationConclusion conclusion = createConclusion(inputMSG);
             if (conclusion == null)
             {
-                context.Response.Redirect(context.Request.Cookies["LoginPageUrl"]);
+                context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
                 return;
             }
 

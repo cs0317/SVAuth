@@ -82,6 +82,13 @@ namespace SVX
             return new Secret { secretValue = secretValue };
         }
 
+        // Obviously, this pokes a hole in the soundness of SVX.  For use by
+        // code that's in the process of migrating to SVX. :/
+        public void BypassExportCheck()
+        {
+            exportApproved = true;
+        }
+
         public string Export()
         {
             if (!exportApproved)

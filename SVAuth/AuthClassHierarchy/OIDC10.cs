@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Reflection;
 using JwtCore;
+using SVAuth.OAuth20;
 
 namespace SVAuth.OIDC10
 {
@@ -30,18 +31,12 @@ namespace SVAuth.OIDC10
         public string acr_values = null;
     }
 
-    public class AuthenticationResponse : OAuth20.AuthorizationResponse
-    {
-    }
     public class AuthenticationResponse_with_id_token : OAuth20.AuthorizationResponse
     {
         public string id_token, access_token;
         public JwtToken parsed_id_token;
     }
 
-    public class TokenRequest : OAuth20.AccessTokenRequest
-    {
-    }
     public class JwtToken 
     {
         public string aud, iss, exp, sub;
@@ -54,7 +49,8 @@ namespace SVAuth.OIDC10
 
     public abstract class RelyingParty : OAuth20.Client
     {
-        public RelyingParty(string client_id1, string redierct_uri1, string client_secret1, string AuthorizationEndpointUrl1, string TokenEndpointUrl1)
+        public RelyingParty(SVX.Principal rpPrincipal, string client_id1, string redierct_uri1, string client_secret1, string AuthorizationEndpointUrl1, string TokenEndpointUrl1)
+            : base(rpPrincipal)
         {
             client_id = client_id1;
             redirect_uri = redierct_uri1;
@@ -62,44 +58,63 @@ namespace SVAuth.OIDC10
             AuthorizationEndpointUrl = AuthorizationEndpointUrl1;
             TokenEndpointUrl = TokenEndpointUrl1;
         }
+
+        protected override ModelAuthorizationServer CreateModelAuthorizationServer()
+        {
+            // SVX verification is not implemented yet.
+            throw new NotImplementedException();
+        }
+
         protected abstract void set_parse_id_token(SVX.SVX_MSG msg, JObject id_token);
-        public override async Task AuthorizationCodeFlow_Login_CallbackAsync(HttpContext context)
+        // Use a different name: SVX is not guaranteed to handle method overloading.
+        public virtual GenericAuth.AuthenticationConclusion createConclusionOidc(
+            AuthorizationResponse authenticationResponse, TokenResponse tokenResponse) { return null; }
+        public override async Task AuthorizationCodeFlow_Login_CallbackAsync(HttpContext httpContext)
         {
             Trace.Write("AuthorizationCodeFlow_Login_CallbackAsync");
+            var context = new SVAuthRequestContext(SVX_Principal, httpContext);
 
-            SVX.SVX_MSG inputMSG = (SVX.SVX_MSG)Utils.ObjectFromFormPost(
-                context.Request.Form, LoginCallbackRequestType);
-           // SVX.SVX_Ops.recordCustom(new DummyConcreteAuthorizationServer(), _UserProfileRequest, inputMSG3,
-           //    nameof(DummyConcreteAuthorizationServer.DummyGetUserProfile), "AS", false, false);
-            var _AccessTokenRequest = _createAccessTokenRequest(inputMSG);
+            var authenticationResponse = (OAuth20.AuthorizationResponse)Utils.ObjectFromFormPost(
+                context.http.Request.Form, LoginCallbackRequestType);
+            // Just enough for createConclusionOidc until we do a real SVX import.
+            authenticationResponse.SVX_sender = context.client;
+            var _AccessTokenRequest = createAccessTokenRequest(authenticationResponse);
+            // OAuth20 defines "code" as a secret, but OIDC10 isn't using SVX
+            // yet.  This seems to be the least bad workaround.
+            _AccessTokenRequest.code.BypassExportCheck();
             var rawReq = marshalAccessTokenRequest(_AccessTokenRequest);
             var RawAccessTokenResponse = await Utils.PerformHttpRequestAsync(rawReq);
             Trace.Write("Got AccessTokenResponse");
 
             JObject jObject = JObject.Parse(RawAccessTokenResponse.Content.ReadAsStringAsync().Result);
-            TokenResponse inputMSG2 = Utils.UnreflectObject<TokenResponse>(jObject);
-            JObject id_token = JObject.Parse(JwtCore.JsonWebToken.Decode(inputMSG2.id_token.ToString(), "", false));
-            set_parse_id_token(inputMSG2, id_token);
-            var conclusion = _createConclusion(inputMSG2);
+            TokenResponse tokenResponse = Utils.UnreflectObject<TokenResponse>(jObject);
+            JObject id_token = JObject.Parse(JwtCore.JsonWebToken.Decode(tokenResponse.id_token.ToString(), "", false));
+            set_parse_id_token(tokenResponse, id_token);
+            var conclusion = createConclusionOidc(authenticationResponse, tokenResponse);
             await AuthenticationDone(conclusion, context);
         }
         public virtual bool verify_and_decode_ID_Token(AuthenticationResponse_with_id_token AuthenticationResponse) { return false; }
-        public async Task ImplicitFlow_Login_CallbackAsync(HttpContext context)
+        public virtual GenericAuth.AuthenticationConclusion createConclusionOidcImplicit(
+            AuthenticationResponse_with_id_token authenticationResponse) { return null; }
+        public async Task ImplicitFlow_Login_CallbackAsync(HttpContext httpContext)
         {
             Trace.Write("ImplicitFlow_Login_CallbackAsync");
+            var context = new SVAuthRequestContext(SVX_Principal, httpContext);
             AuthenticationResponse_with_id_token inputMSG = (AuthenticationResponse_with_id_token)Utils.ObjectFromFormPost
-                (context.Request.Form, typeof(AuthenticationResponse_with_id_token));
+                (context.http.Request.Form, typeof(AuthenticationResponse_with_id_token));
+            // Just enough for createConclusionOidcImplicit until we do a real SVX import.
+            inputMSG.SVX_sender = context.client;
             if (!verify_and_decode_ID_Token(inputMSG))
             {
-                context.Response.Redirect(context.Request.Cookies["LoginPageUrl"]);
+                context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
                 return;
             }
             Trace.Write("Got Valid AuthenticationResponse");
 
-            GenericAuth.AuthenticationConclusion conclusion = _createConclusion(inputMSG);
+            GenericAuth.AuthenticationConclusion conclusion = createConclusionOidcImplicit(inputMSG);
             if (conclusion == null)
             {
-                context.Response.Redirect(context.Request.Cookies["LoginPageUrl"]);
+                context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
                 return;
             }
 

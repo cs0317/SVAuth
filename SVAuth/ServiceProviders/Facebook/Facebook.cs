@@ -50,9 +50,9 @@ namespace SVAuth.ServiceProviders.Facebook
             new Facebook_IdP_Default(Facebook_IdP_Default.facebookPrincipal);
 
         // Very little of this is Facebook-specific.  Consider moving it to
-        // OAuth20.  (Exception: it's unclear if "user profile" is an OAuth20
-        // concept at all, so maybe the entirety of that should move to Facebook
-        // with only a hook remaining in OAuth20.)
+        // OAuth20.  (Exception: it's unclear if the user profile request is an
+        // OAuth20 concept at all, so maybe the entirety of that should move to
+        // Facebook with only a hook remaining in OAuth20.)
 
         /*** implementing the methods for AuthorizationRequest ***/
         public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.PrincipalFacet client)

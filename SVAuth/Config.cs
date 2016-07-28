@@ -62,11 +62,9 @@ namespace SVAuth
         public class AppRegistration_
         {
             public ServiceProviders.Facebook.FBAppRegistration Facebook;
-#if false
             public ServiceProviders.Microsoft.MSAppRegistration Microsoft;
             public ServiceProviders.Google.GGAppRegistration Google;
             public ServiceProviders.Yahoo.YahooAppRegistration Yahoo;
-#endif
         }
 
         // The same key is used for all OAuth 2.0 IdPs, but the state value will

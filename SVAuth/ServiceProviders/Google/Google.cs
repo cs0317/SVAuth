@@ -17,11 +17,11 @@ namespace SVAuth.ServiceProviders.Google
     public class GGAuthenticationRequest : OIDC10.AuthenticationRequest
     {
     }
-    public class JwtToken: OIDC10.JwtToken
+    public class GGJwtToken: OIDC10.JwtToken
     {
         public string name, email, email_verified;
     }
-    public class GGAuthConclusion : GenericAuth.AuthenticationConclusion
+    public class GGUserProfile : GenericAuth.UserProfile
     {
         public string Email;
         public string FullName;
@@ -31,8 +31,8 @@ namespace SVAuth.ServiceProviders.Google
     {
         public string UserProfileUrl,SignatureValidationUrl;
 
-        public Google_RP(string client_id1, string return_uri1, string client_secret1, string AuthorizationEndpointUrl1, string UserProfileUrl1, string SignatureValidationUrl1)
-        : base(client_id1, return_uri1, client_secret1, AuthorizationEndpointUrl1, null)
+        public Google_RP(SVX.Principal rpPrincipal, string client_id1, string return_uri1, string client_secret1, string AuthorizationEndpointUrl1, string UserProfileUrl1, string SignatureValidationUrl1)
+        : base(rpPrincipal, client_id1, return_uri1, client_secret1, AuthorizationEndpointUrl1, null)
         {
             BypassCertification = true;
             UserProfileUrl = UserProfileUrl1;
@@ -41,6 +41,7 @@ namespace SVAuth.ServiceProviders.Google
         public static void Init(RouteBuilder routeBuilder)
         {
             var RP = new Google_RP(
+                Config.config.rpPrincipal,
                 Config.config.AppRegistration.Google.clientID,
                 Config.config.agentRootUrl + "callback/Google",
                 Config.config.AppRegistration.Google.clientSecret,
@@ -51,7 +52,7 @@ namespace SVAuth.ServiceProviders.Google
             routeBuilder.MapRoute("login/Google", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/Google", RP.ImplicitFlow_Login_CallbackAsync);
         }
-        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID)
+        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.PrincipalFacet client)
         {
             GGAuthenticationRequest GGAuthenticationRequest = new GGAuthenticationRequest();
             GGAuthenticationRequest.client_id = client_id;
@@ -68,7 +69,7 @@ namespace SVAuth.ServiceProviders.Google
 
         protected override void set_parse_id_token(SVX.SVX_MSG msg, JObject id_token)
         {
-           ((OIDC10.AuthenticationResponse_with_id_token)msg).parsed_id_token = Utils.UnreflectObject<JwtToken>(id_token);
+           ((OIDC10.AuthenticationResponse_with_id_token)msg).parsed_id_token = Utils.UnreflectObject<GGJwtToken>(id_token);
         }
         public override bool verify_and_decode_ID_Token(OIDC10.AuthenticationResponse_with_id_token AuthenticationResponse)
         {
@@ -88,21 +89,22 @@ namespace SVAuth.ServiceProviders.Google
             return (string)(JObject.Parse(RawResponse.Content.ReadAsStringAsync().Result)["name"]);
         }
         /*** implementing the methods for AuthenticationConclusion ***/
-        public override GenericAuth.AuthenticationConclusion createConclusion(SVX.SVX_MSG inputMSG)
+        public override GenericAuth.AuthenticationConclusion createConclusionOidcImplicit(
+            OIDC10.AuthenticationResponse_with_id_token authenticationResponse)
         {
-            //recordMe(...)
-
-             var AuthConclusion = new GGAuthConclusion();
-             OIDC10.JwtToken jwtToken = ((OIDC10.AuthenticationResponse_with_id_token)inputMSG).parsed_id_token;
-             if (jwtToken.aud != this.client_id)
+            var AuthConclusion = new GenericAuth.AuthenticationConclusion();
+            AuthConclusion.authenticatedClient = authenticationResponse.SVX_sender;
+            OIDC10.JwtToken jwtToken = authenticationResponse.parsed_id_token;
+            if (jwtToken.aud != this.client_id)
                 return null;
-             AuthConclusion.UserID = ((JwtToken)jwtToken).email;
-             AuthConclusion.Email = ((JwtToken)jwtToken).email;
-             AuthConclusion.GG_ID = ((JwtToken)jwtToken).sub;
-             AuthConclusion.FullName = getFullName(((OIDC10.AuthenticationResponse_with_id_token)inputMSG).access_token);
-             return AuthConclusion;
+            var userProfile = new GGUserProfile();
+            userProfile.UserID = ((GGJwtToken)jwtToken).email;
+            userProfile.Email = ((GGJwtToken)jwtToken).email;
+            userProfile.GG_ID = ((GGJwtToken)jwtToken).sub;
+            userProfile.FullName = getFullName(authenticationResponse.access_token);
+            AuthConclusion.userProfile = userProfile;
+            return AuthConclusion;
         }
-        protected override Type ModelAuthorizationServerType => typeof(OAuth20.AuthorizationServer);
     }
 }
 

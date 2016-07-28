@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
+using SVX;
 
 namespace SVAuth.ServiceProviders.Yahoo
 {
@@ -50,7 +51,7 @@ namespace SVAuth.ServiceProviders.Yahoo
         public string openid__ax__type__fullname;
     }
 
-    public class AuthenticationConclusion : GenericAuth.AuthenticationConclusion
+    public class UserProfile : GenericAuth.UserProfile
     {
         public string Email;
         public string FullName;
@@ -60,8 +61,8 @@ namespace SVAuth.ServiceProviders.Yahoo
     {
         public string SignatureValidationUrl;
 
-        public Yahoo_RP(string Yahoo_Endpoint, string return_to_uri1)
-        : base(Yahoo_Endpoint, return_to_uri1)
+        public Yahoo_RP(SVX.Principal rpPrincipal, string Yahoo_Endpoint, string return_to_uri1)
+        : base(rpPrincipal, Yahoo_Endpoint, return_to_uri1)
         {
             BypassCertification = true;
             SignatureValidationUrl = Yahoo_Endpoint;
@@ -69,13 +70,14 @@ namespace SVAuth.ServiceProviders.Yahoo
         public static void Init(RouteBuilder routeBuilder)
         {
             var RP = new Yahoo_RP(
+                Config.config.rpPrincipal,
                 "https://open.login.yahooapis.com/openid/op/auth",
                 Config.config.agentRootUrl + "callback/Yahoo"               
                 );
             routeBuilder.MapRoute("login/Yahoo", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/Yahoo", RP.Login_CallbackAsync);
         }
-        public override OpenID20.AuthenticationRequest createAuthenticationRequest(SVX.SVX_MSG inputMSG, string SVAuthSessionID)
+        public override OpenID20.AuthenticationRequest createAuthenticationRequest(SVX.PrincipalFacet client)
         {
             AuthenticationRequest AuthenticationRequest = new AuthenticationRequest();
             AuthenticationRequest.openid__mode = "checkid_setup";
@@ -107,7 +109,7 @@ namespace SVAuth.ServiceProviders.Yahoo
             //Signature validation
             var RawRequestUrl = SignatureValidationUrl + context.Request.QueryString.Value.Replace("openid.mode=id_res","openid.mode=check_authentication");
             var rawReq = new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
-            var RawResponse = SVX.Utils.PerformHttpRequestAsync(rawReq).Result;
+            var RawResponse = Utils.PerformHttpRequestAsync(rawReq).Result;
             if (RawResponse.StatusCode != System.Net.HttpStatusCode.OK)
                 return null;
             //Parsing
@@ -117,19 +119,22 @@ namespace SVAuth.ServiceProviders.Yahoo
         public override GenericAuth.AuthenticationConclusion createConclusion(OpenID20.AuthenticationResponse inputMSG)
         {
             var AuthenticationResponse = (AuthenticationResponse)inputMSG;
-            var AuthConclusion = new AuthenticationConclusion();
+            var AuthConclusion = new GenericAuth.AuthenticationConclusion();
+            AuthConclusion.authenticatedClient = inputMSG.SVX_sender;
+            var userProfile = new UserProfile();
 
-            AuthConclusion.UserID = inputMSG.openid__identity;
-            AuthConclusion.Identity = inputMSG.openid__identity;
+            userProfile.UserID = inputMSG.openid__identity;
+            userProfile.Identity = inputMSG.openid__identity;
             
             if (AuthenticationResponse.openid__signed.Contains("ax.type.email") && AuthenticationResponse.openid__signed.Contains("ax.value.email") &&
                 AuthenticationResponse.openid__ax__type__email== "http://axschema.org/contact/email")
-                AuthConclusion.Email = AuthenticationResponse.openid__ax__value__email;
+                userProfile.Email = AuthenticationResponse.openid__ax__value__email;
             
             if (AuthenticationResponse.openid__signed.Contains("ax.type.fullname") && AuthenticationResponse.openid__signed.Contains("ax.value.fullname") && 
                 AuthenticationResponse.openid__ax__type__fullname == "http://axschema.org/namePerson")
-                AuthConclusion.FullName = AuthenticationResponse.openid__ax__value__fullname;
+                userProfile.FullName = AuthenticationResponse.openid__ax__value__fullname;
 
+            AuthConclusion.userProfile = userProfile;
             return AuthConclusion;
         }
     }

@@ -241,8 +241,8 @@ namespace SVAuth.OAuth20
         // conclusion.authenticatedClient should be set to authorizationResponse.SVX_sender.
         // The arguments must be passed in this order for SVX to detect that
         // userProfileResponse resulted from a computation on authorizationResponse.
-        public abstract GenericAuth.AuthenticationConclusion createConclusion(
-            AuthorizationResponse authorizationResponse, UserProfileResponse userProfileResponse);
+        public virtual GenericAuth.AuthenticationConclusion createConclusion(
+            AuthorizationResponse authorizationResponse, UserProfileResponse userProfileResponse) { return null; }
 
         /*************** Start defining OAuth flows ************************/
         public Task Login_StartAsync(HttpContext httpContext)
@@ -252,11 +252,14 @@ namespace SVAuth.OAuth20
             // The SymT doesn't actually get used, but why not.
             var _AuthorizationRequest = SVX.SVX_Ops.Call(createAuthorizationRequest, context.client);
 
-            // NOTE: We are assuming that the target URL used by
-            // marshalAuthorizationRequest belongs to the principal
-            // idpParticipantId.principal.  We haven't extended SVX enforcement
-            // that far yet.
-            messageStructures.authorizationRequest.Export(_AuthorizationRequest, context.client, idpParticipantId.principal);
+            if (!BypassCertification)
+            {
+                // NOTE: We are assuming that the target URL used by
+                // marshalAuthorizationRequest belongs to the principal
+                // idpParticipantId.principal.  We haven't extended SVX enforcement
+                // that far yet.
+                messageStructures.authorizationRequest.Export(_AuthorizationRequest, context.client, idpParticipantId.principal);
+            }
             _AuthorizationRequest.SVX_serializeSymT = false;
             var rawReq = marshalAuthorizationRequest(_AuthorizationRequest);
             context.http.Response.Redirect(rawReq);

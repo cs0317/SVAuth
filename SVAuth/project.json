@@ -30,11 +30,6 @@
     "preserveCompilationContext": true,
     "compile": {
       "exclude": [
-        "AuthClassHierarchy/OIDC10.cs",
-        "AuthClassHierarchy/OpenID20.cs",
-        "ServiceProviders/Google/Google.cs",
-        "ServiceProviders/Microsoft/Microsoft.cs",
-        "ServiceProviders/Yahoo/Yahoo.cs"
       ]
     }
   },
