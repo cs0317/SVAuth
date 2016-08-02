@@ -17,7 +17,7 @@ namespace SVAuth.ServiceProviders.Microsoft
     {
         public string response_mode;
     }
-    public class MSJwtToken: OIDC10.JwtToken
+    public class MSJwtToken: OIDC10.JwtTokenBody
     {
         public string name, preferred_username;
     }

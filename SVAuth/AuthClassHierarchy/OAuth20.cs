@@ -14,6 +14,11 @@ using System.Text;
 
 namespace SVAuth.OAuth20
 {
+    static class OAuth20Standards
+    {
+        public static SVX.Principal OAuthClientIDPrincipal(SVX.Principal idpPrincipal, string clientID) =>
+          SVX.Principal.Of(idpPrincipal.name + ":" + clientID);
+    }
 
     /***********************************************************/
     /*               Messages between parties                  */
@@ -211,6 +216,8 @@ namespace SVAuth.OAuth20
             // is a trusted server.
             SVX.VProgram_API.AssumeActsFor(GenericAuth.GenericAuthStandards.GetUrlTargetPrincipal(redirect_uri), rpPrincipal);
 
+            SVX.VProgram_API.AssumeActsFor(OAuth20Standards.OAuthClientIDPrincipal(idpParticipantId.principal, client_id), rpPrincipal);
+
             stateGenerator = new StateGenerator(rpPrincipal, stateKey);
         }
 
@@ -219,7 +226,7 @@ namespace SVAuth.OAuth20
         // This is a little arbitrary.  When we sort out how to pass
         // configuration to participants, it would be a good opportunity to get
         // rid of this.
-        protected sealed override SVX.ParticipantId idpParticipantId =>
+        protected override SVX.ParticipantId idpParticipantId =>
             SVX.ParticipantId.Of(CreateModelAuthorizationServer());
 
         /*** Methods about AuthorizationRequest ***/

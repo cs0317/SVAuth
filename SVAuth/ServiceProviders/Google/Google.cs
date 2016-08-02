@@ -6,6 +6,8 @@ using System.Diagnostics.Contracts;
 using BytecodeTranslator.Diagnostics;
 using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
+using SVAuth.OIDC10;
+using SVX;
 
 namespace SVAuth.ServiceProviders.Google
 {
@@ -17,7 +19,7 @@ namespace SVAuth.ServiceProviders.Google
     public class GGAuthenticationRequest : OIDC10.AuthenticationRequest
     {
     }
-    public class GGJwtToken: OIDC10.JwtToken
+    public class GGJwtToken : OIDC10.JwtTokenBody
     {
         public string name, email, email_verified;
     }
@@ -27,16 +29,53 @@ namespace SVAuth.ServiceProviders.Google
         public string FullName;
         public string GG_ID;
     }
-    public class Google_RP: OIDC10.RelyingParty
-    {
-        public string UserProfileUrl,SignatureValidationUrl;
 
-        public Google_RP(SVX.Principal rpPrincipal, string client_id1, string return_uri1, string client_secret1, string AuthorizationEndpointUrl1, string UserProfileUrl1, string SignatureValidationUrl1)
-        : base(rpPrincipal, client_id1, return_uri1, client_secret1, AuthorizationEndpointUrl1, null)
+    public class GoogleTokenVerifier : OIDC10.OIDCTokenVerifier
+    {
+        public string SignatureValidationUrl;
+        public override OIDC10.JwtTokenBody UnReflectJwtTokenBody(JObject obj)
         {
-            BypassCertification = true;
+            return (OIDC10.JwtTokenBody)(Utils.UnreflectObject<GGJwtToken>(obj));
+        }
+
+        protected override JwtTokenBody RawVerifyAndExtract(string secretValue)
+        {
+            var RawRequestUrl = SignatureValidationUrl + "?id_token=" + secretValue;
+            var rawReq = new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
+            var RawResponse = Utils.PerformHttpRequestAsync(rawReq).Result;
+            if (RawResponse.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new Exception();
+            JObject jObj = JObject.Parse(RawResponse.Content.ReadAsStringAsync().Result);
+            return Utils.UnreflectObject<GGJwtToken>(jObj);
+        }
+
+        public GoogleTokenVerifier()
+        {
+            IdPPrincipal = Google_IdP.GooglePrincipal;
+        }
+
+    }
+
+    public class MessageStructures : OIDC10.MessageStructures
+    {
+        internal GoogleTokenVerifier GoogleTokenVerifier = new GoogleTokenVerifier()
+            { SignatureValidationUrl = "https://www.googleapis.com/oauth2/v3/tokeninfo"};
+        protected override OIDC10.OIDCTokenVerifier getTokenVerifier()
+        { return GoogleTokenVerifier; }
+        public MessageStructures(SVX.Principal idpPrincipal) : base(idpPrincipal) { }
+    }
+    public class Google_RP : OIDC10.RelyingParty
+    {
+        public string UserProfileUrl, SignatureValidationUrl;
+
+        public Google_RP(SVX.Principal rpPrincipal, string client_id1=null, string return_uri1 = null, string client_secret1 = null,
+                         string AuthorizationEndpointUrl1 = null, string UserProfileUrl1 = null, string SignatureValidationUrl1 = null, string stateKey = null)
+        : base(rpPrincipal, client_id1, return_uri1, client_secret1, AuthorizationEndpointUrl1, null, stateKey)
+        {
+            //BypassCertification = true;
             UserProfileUrl = UserProfileUrl1;
             SignatureValidationUrl = SignatureValidationUrl1;
+
         }
         public static void Init(RouteBuilder routeBuilder)
         {
@@ -47,10 +86,20 @@ namespace SVAuth.ServiceProviders.Google
                 Config.config.AppRegistration.Google.clientSecret,
                 "https://accounts.google.com/o/oauth2/auth",
                 "https://www.googleapis.com/oauth2/v2/userinfo",
-                "https://www.googleapis.com/oauth2/v3/tokeninfo"
-                );
+                "https://www.googleapis.com/oauth2/v3/tokeninfo",
+                Config.config.stateSecretKey);
             routeBuilder.MapRoute("login/Google", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/Google", RP.ImplicitFlow_Login_CallbackAsync);
+        }
+
+        protected override ModelOIDCAuthenticationServer CreateModelOIDCAuthenticationServer()
+        {
+            return new Google_IdP(Google_IdP.GooglePrincipal);
+        }
+
+        public override OIDC10.MessageStructures GetMessageStructures()
+        {
+            return new MessageStructures(Google_IdP.GooglePrincipal);
         }
         public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.PrincipalFacet client)
         {
@@ -60,6 +109,12 @@ namespace SVAuth.ServiceProviders.Google
             GGAuthenticationRequest.scope = "openid email profile";
             GGAuthenticationRequest.redirect_uri = redirect_uri;
             GGAuthenticationRequest.response_mode = "form_post";
+            var stateParams = new OAuth20.StateParams
+            {
+                client = client,
+                idpPrincipal = idpParticipantId.principal
+            };
+            GGAuthenticationRequest.state = stateGenerator.Generate(stateParams, SVX_Principal);
             return GGAuthenticationRequest;
         }
         public override string marshalAuthorizationRequest(OAuth20.AuthorizationRequest MSAuthenticationRequest)
@@ -67,10 +122,12 @@ namespace SVAuth.ServiceProviders.Google
             return AuthorizationEndpointUrl + "?" + Utils.ObjectToUrlEncodedString(MSAuthenticationRequest);
         }
 
+#if false
         protected override void set_parse_id_token(SVX.SVX_MSG msg, JObject id_token)
         {
            ((OIDC10.AuthenticationResponse_with_id_token)msg).parsed_id_token = Utils.UnreflectObject<GGJwtToken>(id_token);
         }
+
         public override bool verify_and_decode_ID_Token(OIDC10.AuthenticationResponse_with_id_token AuthenticationResponse)
         {
             var RawRequestUrl = SignatureValidationUrl + "?id_token=" + AuthenticationResponse.id_token.ToString();
@@ -81,10 +138,11 @@ namespace SVAuth.ServiceProviders.Google
             set_parse_id_token(AuthenticationResponse, JObject.Parse(RawResponse.Content.ReadAsStringAsync().Result));
             return true;
         }
-        protected  string getFullName(string access_token)
-        {           
+#endif
+        protected string getFullName(string access_token)
+        {
             var RawRequestUrl = UserProfileUrl + "?access_token=" + access_token;
-            var rawReq= new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
+            var rawReq = new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
             var RawResponse = Utils.PerformHttpRequestAsync(rawReq).Result;
             return (string)(JObject.Parse(RawResponse.Content.ReadAsStringAsync().Result)["name"]);
         }
@@ -94,16 +152,34 @@ namespace SVAuth.ServiceProviders.Google
         {
             var AuthConclusion = new GenericAuth.AuthenticationConclusion();
             AuthConclusion.authenticatedClient = authenticationResponse.SVX_sender;
-            OIDC10.JwtToken jwtToken = authenticationResponse.parsed_id_token;
-            if (jwtToken.aud != this.client_id)
+            OIDC10.JwtTokenBody jwtTokenBody = authenticationResponse.id_token.theParams;
+            if (jwtTokenBody.aud != this.client_id)
                 return null;
             var userProfile = new GGUserProfile();
-            userProfile.UserID = ((GGJwtToken)jwtToken).email;
-            userProfile.Email = ((GGJwtToken)jwtToken).email;
-            userProfile.GG_ID = ((GGJwtToken)jwtToken).sub;
+            userProfile.UserID = ((GGJwtToken)jwtTokenBody).sub;
+            userProfile.Email = ((GGJwtToken)jwtTokenBody).email;
+            userProfile.GG_ID = ((GGJwtToken)jwtTokenBody).sub;
             userProfile.FullName = getFullName(authenticationResponse.access_token);
             AuthConclusion.userProfile = userProfile;
             return AuthConclusion;
+        }
+    }
+
+    public class Google_IdP : ModelOIDCAuthenticationServer
+    {
+        public static Principal GooglePrincipal = SVX.Principal.Of("accounts.google.com");
+        public Google_IdP(Principal idpPrincipal) : base(idpPrincipal)
+        {
+        }
+
+        protected override OIDC10.MessageStructures getMessageStrctures()
+        {
+            return new MessageStructures(SVX_Principal);
+        }
+
+        protected override OIDCTokenVerifier getTokenGenerator()
+        {
+            return new GoogleTokenVerifier();
         }
     }
 }

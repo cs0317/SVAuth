@@ -30,6 +30,8 @@
     "preserveCompilationContext": true,
     "compile": {
       "exclude": [
+        "ServiceProviders\\Microsoft\\Microsoft.cs"
+
       ]
     }
   },

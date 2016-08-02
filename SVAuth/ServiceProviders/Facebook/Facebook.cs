@@ -43,11 +43,12 @@ namespace SVAuth.ServiceProviders.Facebook
             string stateKey = null)
         : base(rpPrincipal, client_id1, redierct_uri1, client_secret1, AuthorizationEndpointUrl1, TokenEndpointUrl1, stateKey)
         {
+            BypassCertification = false;
             UserProfileUrl = UserProfileUrl1;
         }
 
         protected override OAuth20.ModelAuthorizationServer CreateModelAuthorizationServer() =>
-            new Facebook_IdP_Default(Facebook_IdP_Default.facebookPrincipal);
+            new Facebook_IdP(Facebook_IdP.facebookPrincipal);
 
         // Very little of this is Facebook-specific.  Consider moving it to
         // OAuth20.  (Exception: it's unclear if the user profile request is an
@@ -151,10 +152,10 @@ namespace SVAuth.ServiceProviders.Facebook
             routeBuilder.MapRoute("callback/Facebook", RP.AuthorizationCodeFlow_Login_CallbackAsync);
         }
     }
-    public class Facebook_IdP_Default : OAuth20.ModelAuthorizationServer
+    public class Facebook_IdP : OAuth20.ModelAuthorizationServer
     {
 
-        public Facebook_IdP_Default(SVX.Principal idpPrincipal)
+        public Facebook_IdP(SVX.Principal idpPrincipal)
             : base(idpPrincipal)
         {
             // We only support facebookPrincipal.
