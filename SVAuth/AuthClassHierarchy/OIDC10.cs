@@ -80,7 +80,7 @@ namespace SVAuth.OIDC10
     }
 
 
-
+    [BCTOmit]
     abstract public class MessageStructures: OAuth20.MessageStructures
     {
         public readonly SVX.MessageStructure<AuthenticationResponse_with_id_token> authenticationResponse_with_id_token;
