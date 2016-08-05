@@ -173,15 +173,18 @@ namespace SVAuth.OIDC10
         {
             Trace.Write("ImplicitFlow_Login_CallbackAsync");
             var context = new SVAuthRequestContext(SVX_Principal, httpContext);
-            AuthenticationResponse_with_id_token authenticationResponse_with_id_token = (AuthenticationResponse_with_id_token)Utils.ObjectFromFormPost
-                (context.http.Request.Form, typeof(AuthenticationResponse_with_id_token));
+            AuthenticationResponse_with_id_token authenticationResponse_with_id_token= (AuthenticationResponse_with_id_token)Utils.ObjectFromFormPost
+                (context.http.Request.Form, typeof(AuthenticationResponse_with_id_token));;
+            var idp = CreateModelOIDCAuthenticationServer();
+            var dummyAuthorizationRequest = new AuthorizationRequest();
+            idp.FakeImplicitFlowIDTokenEndpoint(dummyAuthorizationRequest, authenticationResponse_with_id_token);
 
             GetMessageStructures().authenticationResponse_with_id_token.Import(authenticationResponse_with_id_token,
                 SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
                 context.client);
             Trace.Write("Got Valid AuthenticationResponse");
 
-            GenericAuth.AuthenticationConclusion conclusion = createConclusionOidcImplicit(authenticationResponse_with_id_token);
+            GenericAuth.AuthenticationConclusion conclusion = SVX_Ops.Call(createConclusionOidcImplicit,authenticationResponse_with_id_token);
             if (conclusion == null)
             {
                 context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
@@ -251,7 +254,7 @@ namespace SVAuth.OIDC10
             messageStructures.authorizationResponse.FakeExport(resp);
         }
 
-        public void FakeCodeEndpoint(AuthorizationRequest req, AuthenticationResponse_with_id_token resp)
+        public void FakeImplicitFlowIDTokenEndpoint(AuthorizationRequest req, AuthenticationResponse_with_id_token resp)
         {
             var producer = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
             var client = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
