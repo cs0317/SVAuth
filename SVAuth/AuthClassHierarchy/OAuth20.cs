@@ -292,19 +292,8 @@ namespace SVAuth.OAuth20
             var authorizationResponse = (AuthorizationResponse)Utils.ObjectFromQuery(
                 context.http.Request.Query, LoginCallbackRequestType);
 
-            /* UNSOLVED PROBLEM: We are assuming that if we determine that the
-             * incoming message is from a trusted producer (which will be the
-             * case for the LoginXSRFPrevention property after we verify the
-             * state), then it actually came from the code endpoint.  This
-             * should be a safe assumption as long as we don't use the state
-             * generator for anything other than requests to the code endpoint
-             * and the IdP doesn't do anything with the state other than send it
-             * right back, but SVX currently provides no way to verify this
-             * reasoning.
-             */
-            idp.FakeCodeEndpoint(dummyAuthorizationRequest, authorizationResponse);
-
-            messageStructures.authorizationResponse.Import(authorizationResponse,
+            messageStructures.authorizationResponse.ImportWithModel(authorizationResponse,
+                () => { idp.FakeCodeEndpoint(dummyAuthorizationRequest, authorizationResponse); },
                 SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
                 context.client);
 
@@ -317,8 +306,9 @@ namespace SVAuth.OAuth20
             Trace.Write("Got AccessTokenResponse");
             var accessTokenResponse = (AccessTokenResponse)JsonConvert.DeserializeObject(
                 Utils.ReadContent(rawAccessTokenResponse.Content), AccessTokenResponseType);
-            idp.FakeTokenEndpoint(accessTokenRequest, accessTokenResponse);
-            messageStructures.accessTokenResponse.ImportDirectResponse(accessTokenResponse, idp.SVX_Principal, SVX_Principal);
+            messageStructures.accessTokenResponse.ImportDirectResponseWithModel(accessTokenResponse,
+                () => { idp.FakeTokenEndpoint(accessTokenRequest, accessTokenResponse); },
+                idp.SVX_Principal, SVX_Principal);
 
             var userProfileRequest = SVX.SVX_Ops.Call(createUserProfileRequest, accessTokenResponse);
 
@@ -329,8 +319,9 @@ namespace SVAuth.OAuth20
             Trace.Write("Got UserProfileResponse");
             var userProfileResponse = (UserProfileResponse)JsonConvert.DeserializeObject(
                 Utils.ReadContent(rawUserProfileResponse.Content), UserProfileResponseType);
-            idp.FakeUserProfileEndpoint(userProfileRequest, userProfileResponse);
-            messageStructures.userProfileResponse.ImportDirectResponse(userProfileResponse, idp.SVX_Principal, SVX_Principal);
+            messageStructures.userProfileResponse.ImportDirectResponseWithModel(userProfileResponse,
+                () => { idp.FakeUserProfileEndpoint(userProfileRequest, userProfileResponse); },
+                idp.SVX_Principal, SVX_Principal);
 
             var conclusion = SVX.SVX_Ops.Call(createConclusion, authorizationResponse, userProfileResponse);
 

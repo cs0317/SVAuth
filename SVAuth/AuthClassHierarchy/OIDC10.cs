@@ -157,8 +157,8 @@ namespace SVAuth.OIDC10
 
             JObject jObject = JObject.Parse(RawAccessTokenResponse.Content.ReadAsStringAsync().Result);
             TokenResponse tokenResponse = Utils.UnreflectObject<TokenResponse>(jObject);
-            idp.FakeTokenEndpoint(_AccessTokenRequest, tokenResponse);
-            GetMessageStructures().tokenResponse.ImportDirectResponse(tokenResponse,
+            GetMessageStructures().tokenResponse.ImportDirectResponseWithModel(tokenResponse,
+                    () => { idp.FakeTokenEndpoint(_AccessTokenRequest, tokenResponse); },
                     idpParticipantId.principal,
                     SVX_Principal
                 );
@@ -177,9 +177,9 @@ namespace SVAuth.OIDC10
                 (context.http.Request.Form, typeof(AuthenticationResponse_with_id_token));;
             var idp = CreateModelOIDCAuthenticationServer();
             var dummyAuthorizationRequest = new AuthorizationRequest();
-            idp.FakeImplicitFlowIDTokenEndpoint(dummyAuthorizationRequest, authenticationResponse_with_id_token);
 
-            GetMessageStructures().authenticationResponse_with_id_token.Import(authenticationResponse_with_id_token,
+            GetMessageStructures().authenticationResponse_with_id_token.ImportWithModel(authenticationResponse_with_id_token,
+                () => { idp.FakeImplicitFlowIDTokenEndpoint(dummyAuthorizationRequest, authenticationResponse_with_id_token); },
                 SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
                 context.client);
             Trace.Write("Got Valid AuthenticationResponse");
