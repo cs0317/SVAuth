@@ -49,6 +49,11 @@ platform would be much more work, and we may or may not ever do it.)
 9. Run the SVAuth project with Visual Studio. The example ASP.NET relying party
    application will open in your default web browser.
 
+Note: `SVAuth.sln` contains dependency edges from `SVX` to the relevant BCT and
+Corral tools to ensure they are up to date before SVAuth runs. These cannot be
+added directly to `SVX` as references because `SVX` targets .NET Core and the
+BCT and Corral projects target .NET Framework.
+
 ## Earlier repositories (discontinued)
 
 * [AuthPlatelet](https://github.com/AuthPlatelet/AuthPlatelet)
