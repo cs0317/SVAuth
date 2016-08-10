@@ -40,7 +40,9 @@ namespace SVAuth.OpenID20
         [JsonProperty("openid.realm")]
         public string openid__realm;
 
-        //OpenID 2.0 doesn't have a field for a CSRF protection. It is up to the derived class to decide what value to fill in. 
+        // OpenID 2.0 doesn't have a dedicated field for a CSRF protection. This
+        // field is added to return_to during marshaling, since SVX normally
+        // doesn't allow string concatenation on secrets.
         public SVX.Secret CSRF_state; 
     }
 
@@ -59,7 +61,9 @@ namespace SVAuth.OpenID20
         [JsonProperty("openid.signed")]
         public string openid__signed;
 
-        //OpenID 2.0 doesn't have a field for a CSRF protection. It is up to the derived class to decide what value to fill in. 
+        // This automatically gets set when the IdP generates a redirection to
+        // the return_to URL we specified, which contains a CSRF_state
+        // parameter.
         public SVX.Secret CSRF_state;
     }
 
@@ -116,7 +120,7 @@ namespace SVAuth.OpenID20
                     // Comment this to get an internal error during secret generation.
                     Signer,
                     // Comment either of these to see the secret export check fail.
-                    OpenID20Standards.OpenID20ClientIDPrincipal(IdPPrincipal, new Uri(FieldsExpectedToBeSigned.openid__return_to).Host),
+                    GenericAuth.GenericAuthStandards.GetUrlTargetPrincipal(FieldsExpectedToBeSigned.openid__return_to),
                     GenericAuth.GenericAuthStandards.GetIdPUserPrincipal(IdPPrincipal, FieldsExpectedToBeSigned.openid__identity),
                     // Uncomment to see the verification fail.
                     //Principal.Of("other")
@@ -128,13 +132,31 @@ namespace SVAuth.OpenID20
             JObject jObj = Utils.JObjectFromQueryString(secretValue);
             JObject jObj2 = new JObject();
             string signedFields = jObj.Value<string>("openid.signed");
-            var list = signedFields.Split(',');
-            foreach (var element in list)
+            string[] list = signedFields.Split(',');
+            foreach (string element in list)
             {
-                jObj2[element] = jObj[element];
+                string longElement = "openid." + element;
+                jObj2[longElement] = jObj[longElement];
             }
 
-            jObj2["CSRF_state"]=Utils.
+            /* The vProgram needs to be able to reason that the reader
+             * corresponding to the return_to URL is trusted, but here the
+             * return_to URL contains the CSRF_state.  Remove the query here so
+             * that (in the non-attack case) the return_to URL matches the
+             * originally configured one, which the RelyingParty constructor
+             * assumes to act for the RP.  (The URL with the path should be
+             * enough to ensure the secret doesn't get leaked; the hostname
+             * wouldn't be if the RP has an open redirector.)  This is a little
+             * contrived, but the alternatives are worse: if we remove the query
+             * in GetReaders, BCT won't be able to analyze it, and if we assume
+             * the full return_to URL to act for the RP after some checks,
+             * that's probably more prone to security bugs.  A side benefit of
+             * this approach: we remove the secret data from the non-SVX.Secret
+             * field.
+             */
+            jObj2["openid.return_to"] = new JValue(
+                new UriBuilder(jObj2.Value<string>("openid.return_to")) { Query = null }.Uri.ToString());
+
             return UnReflectFieldsExpectedToBeSigned(jObj2);
         }
         protected override string RawGenerate(FieldsExpectedToBeSigned theParams)
@@ -190,6 +212,11 @@ namespace SVAuth.OpenID20
                 messageStructures.authenticationRequest.Export(_AuthenticationRequest, context.client, idpParticipantId.principal);
             }
             _AuthenticationRequest.SVX_serializeSymT = false;
+
+            // Move CSRF_state into return_to.
+            _AuthenticationRequest.openid__return_to += "?CSRF_state=" + Uri.EscapeDataString(_AuthenticationRequest.CSRF_state.Export());
+            _AuthenticationRequest.CSRF_state = null;
+
             var rawReq = marshalAuthenticationRequest(_AuthenticationRequest);
             context.http.Response.Redirect(rawReq);
 
