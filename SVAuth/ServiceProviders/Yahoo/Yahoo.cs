@@ -35,9 +35,10 @@ namespace SVAuth.ServiceProviders.Yahoo
         public string openid__ax__type__fullname;
         [JsonProperty("openid.ax.required")]
         public string openid__ax__required;
+
     }
 
-    public class AuthenticationResponse : OpenID20.AuthenticationResponse
+    public class FieldsExpectedToBeSigned : OpenID20.FieldsExpectedToBeSigned
     {
         [JsonProperty("openid.oauth.request_token")]
         public string openid__oauth__request_token;
@@ -51,11 +52,67 @@ namespace SVAuth.ServiceProviders.Yahoo
         public string openid__ax__type__fullname;
     }
 
+    public class AuthenticationResponse : OpenID20.AuthenticationResponse
+    {
+        public FieldsExpectedToBeSigned FieldsExpectedToBeSigned;
+    }
+
     public class UserProfile : GenericAuth.UserProfile
     {
         public string Email;
         public string FullName;
         public string Identity;
+    }
+
+    public class YahooSignedFieldsVerifier : OpenID20.OpenID20SignedFieldsVerifier
+    {
+        public string SignatureValidationUrl;
+
+        public override OpenID20.FieldsExpectedToBeSigned UnReflectFieldsExpectedToBeSigned(JObject obj)
+        {
+            return Utils.UnreflectObject<FieldsExpectedToBeSigned>(obj);
+        }
+
+        protected override OpenID20.FieldsExpectedToBeSigned RawVerifyAndExtract(string secretValue)
+        {
+            //secretValue should be context.Request.QueryString.Value
+            var RawRequestUrl = SignatureValidationUrl + secretValue.Replace("openid.mode=id_res", "openid.mode=check_authentication");
+            var rawReq = new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
+            var RawResponse = Utils.PerformHttpRequestAsync(rawReq).Result;
+            if (RawResponse.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new Exception();
+                      
+            return RawExtractUnverified(secretValue);
+        }
+
+        public YahooSignedFieldsVerifier()
+        {
+            IdPPrincipal = Yahoo_IdP.YahooPrincipal;
+        }
+
+    }
+
+    [BCTOmit]
+    abstract public class MessageStructures
+    {
+        public readonly SVX.MessageStructure<AuthenticationRequest> authenticationRequest;
+        public readonly SVX.MessageStructure<AuthenticationResponse> authenticationResponse;
+        internal YahooSignedFieldsVerifier YahooSignedFieldsVerifier = new YahooSignedFieldsVerifier();
+        //protected abstract OpenID20SignedFieldsVerifier getTokenVerifier();
+        public MessageStructures(SVX.Principal idpPrincipal)
+        {
+            authenticationRequest = new SVX.MessageStructure<AuthenticationRequest> { BrowserOnly = true };
+            authenticationRequest.AddSecret(nameof(AuthenticationRequest.CSRF_state),
+               (msg) => new SVX.PrincipalHandle[] { });
+
+            authenticationResponse = new SVX.MessageStructure<AuthenticationResponse> { BrowserOnly = true };
+            authenticationResponse.AddMessagePayloadSecret(nameof(AuthenticationResponse.FieldsExpectedToBeSigned),
+                (msg) => new SVX.PrincipalHandle[] { },
+                YahooSignedFieldsVerifier,
+                true);
+            authenticationResponse.AddSecret(nameof(FieldsExpectedToBeSigned.CSRF_state),
+                (msg) => new SVX.PrincipalHandle[] { });          
+        }
     }
     public class Yahoo_RP: OpenID20.RelyingParty
     {
@@ -103,7 +160,7 @@ namespace SVAuth.ServiceProviders.Yahoo
         {
             return IdP_OpenID20_Uri + "?" + Utils.ObjectToUrlEncodedString(AuthenticationRequest);
         }
-
+#if false
         public override OpenID20.AuthenticationResponse verify_and_parse_AuthenticationResponse (HttpContext context)
         {
             //Signature validation
@@ -115,7 +172,7 @@ namespace SVAuth.ServiceProviders.Yahoo
             //Parsing
             return (OpenID20.AuthenticationResponse)Utils.ObjectFromQuery(context.Request.Query, typeof(AuthenticationResponse));
         }
-
+#endif
         public override GenericAuth.AuthenticationConclusion createConclusion(OpenID20.AuthenticationResponse inputMSG)
         {
             var AuthenticationResponse = (AuthenticationResponse)inputMSG;
@@ -123,7 +180,7 @@ namespace SVAuth.ServiceProviders.Yahoo
             AuthConclusion.authenticatedClient = inputMSG.SVX_sender;
             var userProfile = new UserProfile();
 
-            userProfile.UserID = inputMSG.openid__identity;
+            userProfile.UserID = inputMSG. openid__identity;
             userProfile.Identity = inputMSG.openid__identity;
             
             if (AuthenticationResponse.openid__signed.Contains("ax.type.email") && AuthenticationResponse.openid__signed.Contains("ax.value.email") &&
@@ -138,6 +195,24 @@ namespace SVAuth.ServiceProviders.Yahoo
             return AuthConclusion;
         }
     }
-}
+    public class Yahoo_IdP : ModelOpenID20AuthenticationServer
+    {
+        public static Principal YahooPrincipal = SVX.Principal.Of("open.login.yahooapis.com");
+        public Yahoo_IdP(Principal idpPrincipal) : base(idpPrincipal)
+        {
+        }
+/*
+        protected override OIDC10.MessageStructures getMessageStrctures()
+        {
+            return new MessageStructures(SVX_Principal);
+        }
+
+        protected override OIDCTokenVerifier getTokenGenerator()
+        {
+            return new GoogleTokenVerifier();
+        }
+        */
+        }
+    }
 
 

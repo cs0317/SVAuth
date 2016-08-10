@@ -76,6 +76,10 @@ namespace SVAuth
             // http://stackoverflow.com/a/29993210
             return UnreflectObject(new JObject(QueryHelpers.ParseQuery(queryString).Select(KvpToJProperty)), type);
         }
+        public static JObject JObjectFromQueryString(string queryString)
+        {
+            return new JObject(QueryHelpers.ParseQuery(queryString).Select(KvpToJProperty));
+        }
         public static object ObjectFromFormPost(IFormCollection form, Type type)
         {
             return UnreflectObject(new JObject(form.Select(KvpToJProperty)), type);
