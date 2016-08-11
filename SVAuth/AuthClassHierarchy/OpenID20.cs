@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using JwtCore;
 using SVX;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace SVAuth.OpenID20
 {
@@ -110,9 +111,7 @@ namespace SVAuth.OpenID20
         [JsonProperty("openid.signed")]
         public string openid__signed;
 
-        // This automatically gets set when the IdP generates a redirection to
-        // the return_to URL we specified, which contains a CSRF_state
-        // parameter.
+        // Split off from return_to in secret verifier.
         public SVX.Secret CSRF_state;
     }
 
@@ -200,10 +199,15 @@ namespace SVAuth.OpenID20
              * this approach: we remove the secret data from the non-SVX.Secret
              * field.
              */
-            jObj2["openid.return_to"] = new JValue(
-                new UriBuilder(jObj2.Value<string>("openid.return_to")) { Query = null }.Uri.ToString());
+            var returnToUriBuilder = new UriBuilder(jObj2.Value<string>("openid.return_to"));
+            var rawCsrfState = QueryHelpers.ParseQuery(returnToUriBuilder.Query)["CSRF_state"];
+            returnToUriBuilder.Query = null;
+            jObj2["openid.return_to"] = new JValue(returnToUriBuilder.Uri.ToString());
 
-            return UnReflectFieldsExpectedToBeSigned(jObj2);
+            var signedObj = UnReflectFieldsExpectedToBeSigned(jObj2);
+            signedObj.CSRF_state = Secret.Import(rawCsrfState);
+
+            return signedObj;
         }
         protected override string RawGenerate(FieldsExpectedToBeSigned theParams)
         {
