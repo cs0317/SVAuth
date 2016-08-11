@@ -205,6 +205,10 @@ namespace SVAuth.OAuth20
             if (redierct_uri1 == null)
                 redierct_uri1 = $"https://{rpPrincipal.name}/dummy";
 
+            // Ditto for client_id.
+            if (client_id1 == null)
+                client_id1 = "dummy:" + rpPrincipal.name;
+
             client_id = client_id1;
             redirect_uri = redierct_uri1;
             client_secret = client_secret1;
