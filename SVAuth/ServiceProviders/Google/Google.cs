@@ -154,7 +154,7 @@ namespace SVAuth.ServiceProviders.Google
             AuthConclusion.authenticatedClient = authenticationResponse.SVX_sender;
             OIDC10.JwtTokenBody jwtTokenBody = authenticationResponse.id_token.theParams;
             if (jwtTokenBody.aud != this.client_id)
-                return null;
+                throw new Exception("client_id in the jwtToken is not of this relying party.");
             var userProfile = new GGUserProfile();
             userProfile.UserID = ((GGJwtToken)jwtTokenBody).sub;
             userProfile.Email = ((GGJwtToken)jwtTokenBody).email;
