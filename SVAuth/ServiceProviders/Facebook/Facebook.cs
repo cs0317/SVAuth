@@ -43,7 +43,6 @@ namespace SVAuth.ServiceProviders.Facebook
             string stateKey = null)
         : base(rpPrincipal, client_id1, redierct_uri1, client_secret1, AuthorizationEndpointUrl1, TokenEndpointUrl1, stateKey)
         {
-            BypassCertification = false;
             UserProfileUrl = UserProfileUrl1;
         }
 

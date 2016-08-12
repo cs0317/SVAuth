@@ -160,6 +160,15 @@ namespace SVAuth.ServiceProviders.Google
             userProfile.Email = ((GGJwtToken)jwtTokenBody).email;
             userProfile.GG_ID = ((GGJwtToken)jwtTokenBody).sub;
             userProfile.FullName = getFullName(authenticationResponse.access_token);
+
+            //checking CSRF_state
+            var stateParams = new OAuth20.StateParams
+            {
+                client = authenticationResponse.SVX_sender,
+                idpPrincipal = idpParticipantId.principal
+            };
+            stateGenerator.Verify(stateParams, authenticationResponse.state);
+
             AuthConclusion.userProfile = userProfile;
             return AuthConclusion;
         }
