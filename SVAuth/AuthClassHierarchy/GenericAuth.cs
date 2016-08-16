@@ -82,7 +82,7 @@ namespace SVAuth.GenericAuth
 
             if (!BypassCertification)
             {
-                SVX.SVX_Ops.Certify(conclusion, LoginSafety, idpParticipantId);
+                //SVX.SVX_Ops.Certify(conclusion, LoginSafety, idpParticipantId);
                 SVX.SVX_Ops.Certify(conclusion, LoginXSRFPrevention, idpParticipantId);
             }
             await Utils.AbandonAndCreateSessionAsync(conclusion, context);
@@ -95,8 +95,8 @@ namespace SVAuth.GenericAuth
             SVX.VProgram_API.AssumeTrustedServer(idp.SVX_Principal);
             SVX.VProgram_API.AssumeTrustedServer(SVX_Principal);
             SVX.VProgram_API.AssumeTrusted(idpUserPrincipal);
-            bool x = SVX.VProgram_API.ActsFor(conc.authenticatedClient, idp.SVX_Principal);
-            bool y = SVX.VProgram_API.ActsFor(conc.authenticatedClient, SVX_Principal);
+           // bool x = SVX.VProgram_API.ActsFor(conc.authenticatedClient, idp.SVX_Principal);
+           // bool y = SVX.VProgram_API.ActsFor(conc.authenticatedClient, SVX_Principal);
             return SVX.VProgram_API.ActsFor(conc.authenticatedClient, idpUserPrincipal);
         }
 

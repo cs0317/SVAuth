@@ -140,7 +140,7 @@ namespace SVAuth.OpenID20
         {
             authenticationRequest = new SVX.MessageStructure<AuthenticationRequest> { BrowserOnly = true };
             authenticationRequest.AddSecret(nameof(AuthenticationRequest.CSRF_state),
-               (msg) => new SVX.PrincipalHandle[] { });
+               (msg) => new SVX.PrincipalHandle[] { GenericAuth.GenericAuthStandards.GetUrlTargetPrincipal(msg.openid__return_to) });
 
             authenticationResponse = new SVX.MessageStructure<AuthenticationResponse> { BrowserOnly = true };
             authenticationResponse.AddMessagePayloadSecret(nameof(AuthenticationResponse.FieldsExpectedToBeSigned),
