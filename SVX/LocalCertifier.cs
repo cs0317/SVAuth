@@ -134,16 +134,18 @@ namespace SVX
             process.Start();
 
             // There should be a library for this...
-            var output = new StringBuilder();
+            var outputBuilder = new StringBuilder();
             string line;
             while ((line = process.StandardOutput.ReadLine()) != null)
             {
                 Console.WriteLine(line);
-                output.AppendLine(line);
+                outputBuilder.AppendLine(line);
             }
+            string output = outputBuilder.ToString();
             process.WaitForExit();
 
-            if (output.ToString().IndexOf("Program has no bugs") > 0)
+            // XXX Maybe Corral should have a flag to treat "reached recursion bound" as a failure.
+            if (output.Contains("Program has no bugs") && !output.Contains("Reached recursion bound"))
                 return true;
             else
                 return false;
