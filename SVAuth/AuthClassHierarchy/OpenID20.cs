@@ -343,7 +343,7 @@ namespace SVAuth.OpenID20
             SVX.SVX_Ops.FakeCall(SVX_ConcludeClientAuthentication, idpConc, idpConc);
 
             SVX.SVX_Ops.FakeCall(SVX_MakeAuthenticationResponse, req, idpConc, resp);
-
+            SVX.SVX_Ops.FakeCall(SVX_MakeSignedFields, req, idpConc, resp.FieldsExpectedToBeSigned.theParams);
             messageStructures.authenticationResponse.FakeExport(resp);
         }
         // Write lambda by hand because all compiler-generated classes are
