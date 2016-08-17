@@ -300,8 +300,6 @@ namespace SVX
             //VProgram_API.Assert(secret.theParams != null);
             //VProgram_API.Assert(secret.secretValue != null);
             //VProgram_API.AssumeValidSecret(secret.secretValue, GetReaders(secret.theParams));
-            // Verification succeeded, so we should be able to activate the SymT.
-            SVX_Ops.TransferNested(secret.theParams, Signer);
         }
     }
 

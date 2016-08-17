@@ -100,7 +100,12 @@ namespace SVX
                         fieldPath = accessor.name,
                         secretGeneratorTypeFullName = generator.GetType().FullName
                     });
+                    var secret = accessor.Get(message);
+                    SVX_Ops.TransferNested(secret.theParams, generator.Signer);
                 }
+                // If unverified, we leave the SymT inactive, which is weird.
+                // XXX: We should TransferNested.  We just need the current
+                // principal here in order to generate a facet for the producer.
             }
         }
 
@@ -140,6 +145,14 @@ namespace SVX
                 }
             }
             message.SVX_placeholderRequestProducer = requestProducer;
+
+            // This mainly matters when we use in-process models for remote
+            // participants and don't do a real serialize/deserialize pass
+            // (currently; maybe we should).  Try to wipe the active flags so we
+            // fail secure if the SVX_Ops.Transfer is somehow skipped.  Even
+            // when fake = false, we're mutating secrets, so it's reasonable to
+            // mutate the message this way as well.
+            SVX_Ops.WipeActiveFlags(message);
         }
 
         public void Export(TMessage message, PrincipalHandle receiver, PrincipalHandle target)

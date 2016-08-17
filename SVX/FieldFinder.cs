@@ -62,26 +62,30 @@ namespace SVX
             internal Action<object, TNeedle> setter;
         }
 
-        private static IEnumerable<Accessor> FindFieldsImpl(Type messageType)
+        private static IEnumerable<Accessor> FindFieldsImpl(Type messageType, bool recurseInMatches)
         {
             foreach (var fieldInfo in messageType.GetFields(BindingFlags.Instance | BindingFlags.Public))
             {
                 Type fieldType = fieldInfo.FieldType;
                 if (typeof(TNeedle).IsAssignableFrom(fieldType))
+                {
                     yield return new Accessor
                     {
                         path = fieldInfo.Name,
                         nullConditionalGetter = (msg) => (TNeedle)fieldInfo.GetValue(msg),
                         setter = (msg, value) => fieldInfo.SetValue(msg, value)
                     };
-                else if (fieldType.GetTypeInfo().IsPrimitive || fieldType.IsArray || leafTypes.Contains(fieldType))
+                    if (!recurseInMatches)
+                        continue;
+                }
+                if (fieldType.GetTypeInfo().IsPrimitive || fieldType.IsArray || leafTypes.Contains(fieldType))
                 {
                     // Don't look inside.
                 }
                 else
                 {
                     // For now, we look inside everything else.
-                    foreach (var nestedFieldAccessor in FindFields(fieldType))
+                    foreach (var nestedFieldAccessor in FindFields(fieldType, recurseInMatches))
                         yield return new Accessor
                         {
                             path = fieldInfo.Name + "." + nestedFieldAccessor.path,
@@ -96,15 +100,16 @@ namespace SVX
             }
         }
 
-        static Dictionary<Type, IList<Accessor>> cache = new Dictionary<Type, IList<Accessor>>();
+        static Dictionary<Tuple<Type, bool>, IList<Accessor>> cache = new Dictionary<Tuple<Type, bool>, IList<Accessor>>();
 
-        internal static IEnumerable<Accessor> FindFields(Type messageType)
+        internal static IEnumerable<Accessor> FindFields(Type messageType, bool recurseInMatches)
         {
+            var key = Tuple.Create(messageType, recurseInMatches);
             IList<Accessor> ret;
-            if (!cache.TryGetValue(messageType, out ret))
+            if (!cache.TryGetValue(key, out ret))
             {
-                ret = FindFieldsImpl(messageType).ToList().AsReadOnly();
-                cache.Add(messageType, ret);
+                ret = FindFieldsImpl(messageType, recurseInMatches).ToList().AsReadOnly();
+                cache.Add(key, ret);
             }
             return ret;
         }

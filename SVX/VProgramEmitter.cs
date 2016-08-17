@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -70,7 +71,7 @@ namespace SVX
 
         // This method is designed to meet our current needs, where messageVar
         // is assumed to always be nonnull.
-        static string MakeFieldPathNullConditional(string messageVar, string fieldPath)
+        string MakeFieldPathNullConditional(string messageVar, string fieldPath, string messageTypeFullName)
         {
             // The ?. operator seems to crash the CCI unstacker.
             //return messageVar + "." + fieldPath.Replace(".", "?.");
@@ -78,16 +79,39 @@ namespace SVX
             var pos = fieldPath.IndexOf('.');
             if (pos == -1)
                 return messageVar + "." + fieldPath;
-            var sb = new StringBuilder("((");
+            var condSB = new StringBuilder();
             bool first = true;
             do
             {
-                if (!first) sb.Append(" || ");
-                sb.AppendFormat("{0}.{1} == null", messageVar, fieldPath.Substring(0, pos));
+                if (!first) condSB.Append(" || ");
+                first = false;
+                condSB.AppendFormat("{0}.{1} == null", messageVar, fieldPath.Substring(0, pos));
             } while ((pos = fieldPath.IndexOf('.', pos + 1)) != -1);
 
-            sb.AppendFormat(") ? null : {0}.{1})", messageVar, fieldPath);
-            return sb.ToString();
+            //return string.Format("(({0}) ? null : {1}.{2})", condSB.ToString(), messageVar, fieldPath);
+
+            // Work around apparent bug in CCI unstacker where the "then" branch
+            // of a complicated ?: assigns to stack_N_<correct_static_type> but
+            // the result variable of the ?: is stack_N_System_Object.
+            string type = FormatTypeFullName(
+                GetTypeOfFieldPath(GetTypeByFullName(messageTypeFullName), fieldPath).FullName);
+
+            string varName = nextVar("nullConditional");
+            AppendFormattedLine("{0} {1};", type, varName);
+            AppendFormattedLine("if ({0}) {{", condSB.ToString());
+            {
+                IncreaseIndent();
+                AppendFormattedLine("{0} = null;", varName);
+                DecreaseIndent();
+            }
+            AppendFormattedLine("}} else {{");
+            {
+                IncreaseIndent();
+                AppendFormattedLine("{0} = {1}.{2};", varName, messageVar, fieldPath);
+                DecreaseIndent();
+            }
+            AppendFormattedLine("}}");
+            return varName;
         }
 
         // Nested types... Should we use a wrapper class in SymTs (that is
@@ -104,7 +128,20 @@ namespace SVX
          * the assembly and we'll need to copy messages one field at a
          * time between the differently defined types. */
         static Type GetTypeByFullName(string fullName) =>
-            Type.GetType(fullName + ", SVAuth");
+            Type.GetType(fullName + ", SVAuth", true);
+
+        static Type GetTypeOfFieldPath(Type type, string fieldPath)
+        {
+            string[] fieldNames = fieldPath.Split('.');
+            foreach (var fieldName in fieldNames)
+            {
+                FieldInfo field = type.GetField(fieldName,
+                    // NonPublic currently needed for Secret.secretValue.
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                type = field.FieldType;
+            }
+            return type;
+        }
 
         HashSet<SymTParticipantId> participantsSeen = new HashSet<SymTParticipantId>();
         void ScanParticipants(SymT symT)
@@ -201,7 +238,8 @@ namespace SVX
                         var lastDot = entry.fieldPath.LastIndexOf('.');
                         if (lastDot != -1)
                             AppendFormattedLine("System.Diagnostics.Contracts.Contract.Assume({0} != null);",
-                                MakeFieldPathNullConditional(outputVarName, entry.fieldPath.Substring(0, lastDot)));
+                                MakeFieldPathNullConditional(outputVarName, entry.fieldPath.Substring(0, lastDot),
+                                symTComposite.MessageTypeFullName));
                         AppendFormattedLine("{0}.{1} = {2};",
                             outputVarName, entry.fieldPath, nestedVarName);
                     }
@@ -256,10 +294,11 @@ namespace SVX
                     // and we'd need to skip them here.
                     foreach (var entry in symTTransfer.payloadSecretsVerifiedOnImport)
                     {
+                        string paramsPath = entry.fieldPath + ".theParams";
                         AppendFormattedLine("System.Diagnostics.Contracts.Contract.Assume({0} != null);",
-                            MakeFieldPathNullConditional(outputVarName, entry.fieldPath));
-                        AppendFormattedLine("SVX.SVX_Ops.TransferNested({0}, new {1}().Signer);",
-                            outputVarName, FormatTypeFullName(entry.secretGeneratorTypeFullName));
+                            MakeFieldPathNullConditional(outputVarName, paramsPath, symTTransfer.MessageTypeFullName));
+                        AppendFormattedLine("SVX.SVX_Ops.TransferNested({0}.{1}, new {2}().Signer);",
+                            outputVarName, paramsPath, FormatTypeFullName(entry.secretGeneratorTypeFullName));
                     }
                     DecreaseIndent();
                 }
@@ -279,7 +318,7 @@ namespace SVX
                 // following is not too bad.
                 if (symTTransfer.hasSender)
                 {
-                    // Note: Transfer does not use the realDirectClient arg in the vProgram.
+                    // Note: Transfer does not use the realRequestProducer arg in the vProgram.
                     AppendFormattedLine("SVX.SVX_Ops.Transfer({0}, {1}, {2}, null, {3});",
                         outputVarName, producerVarName, EmitPrincipalHandleOrNondet(symTTransfer.sender),
                         // http://stackoverflow.com/a/491367 :/
@@ -298,7 +337,7 @@ namespace SVX
                     // I'm unsure of BCT handling of null dereferences in
                     // general, but here we can definitely assume non-null.
                     AppendFormattedLine("System.Diagnostics.Contracts.Contract.Assume({0} != null);",
-                        MakeFieldPathNullConditional(outputVarName, entry.fieldPath));
+                        MakeFieldPathNullConditional(outputVarName, entry.fieldPath, symTTransfer.MessageTypeFullName));
                     // Follow the commented-out lines in
                     // MessagePayloadSecretGenerator.VerifyAndExtract.  I'd like
                     // to define a helper method for this, but until I merge
@@ -319,12 +358,14 @@ namespace SVX
                 if (symTTransfer.hasSender)
                 {
                     Type messageType = GetTypeByFullName(symTTransfer.MessageTypeFullName);
-                    foreach (var acc in FieldFinder<Secret>.FindFields(messageType))
+                    foreach (var acc in FieldFinder<Secret>.FindFields(messageType, true))
                     {
                         AppendFormattedLine("SVX.VProgram_API.AssumeBorne({0}.SVX_producer, {1});",
-                            outputVarName, MakeFieldPathNullConditional(outputVarName, acc.path + ".secretValue"));
+                            outputVarName, MakeFieldPathNullConditional(outputVarName, acc.path + ".secretValue",
+                            symTTransfer.MessageTypeFullName));
                         AppendFormattedLine("SVX.VProgram_API.AssumeBorne({0}.SVX_sender, {1});",
-                            outputVarName, MakeFieldPathNullConditional(outputVarName, acc.path + ".secretValue"));
+                            outputVarName, MakeFieldPathNullConditional(outputVarName, acc.path + ".secretValue",
+                            symTTransfer.MessageTypeFullName));
                     }
                 }
             }

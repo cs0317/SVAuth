@@ -49,7 +49,9 @@ namespace SVX
             var nestedSymTs = (
                 // NOTE: This will traverse into PayloadSecrets that contain
                 // messages, which is what we want.
-                from acc in FieldFinder<SVX_MSG>.FindFields(msg.GetType())
+                from acc in FieldFinder<SVX_MSG>.FindFields(msg.GetType(),
+                    // We do our own recursion in matches.
+                    false)
                 let nestedMsg = acc.nullConditionalGetter(msg)
                 where nestedMsg != null
                 let nestedSymT = GatherUsefulSymTs(nestedMsg)
@@ -334,6 +336,24 @@ namespace SVX
             msg.SVX_producer = producer;
             // Do not change sender.
             msg.SVX_placeholderRequestProducer = null;
+        }
+
+        internal static void WipeActiveFlags(SVX_MSG msg)
+        {
+            if (msg != null)
+            {
+                msg.active = false;
+                // FIXME: What if a field contains an object whose dynamic type
+                // contains more nested messages than the static type of the
+                // field?  We should fix this for all FieldFinder callers at
+                // once. ~ matt@mattmccutchen.net 2016-08-16
+                foreach (var acc in FieldFinder<SVX_MSG>.FindFields(msg.GetType(),
+                    // We do our own recursion in matches since it's cleaner.
+                    false))
+                {
+                    WipeActiveFlags(acc.nullConditionalGetter(msg));
+                }
+            }
         }
 
         // Run the action in the VProgram only.  Meant for actions that have no
