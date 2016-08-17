@@ -62,7 +62,7 @@ namespace SVAuth
         public class AppRegistration_
         {
             public ServiceProviders.Facebook.FBAppRegistration Facebook;
-           // public ServiceProviders.Microsoft.MSAppRegistration Microsoft;
+            public ServiceProviders.Microsoft.MSAppRegistration Microsoft;
             public ServiceProviders.Google.GGAppRegistration Google;
             public ServiceProviders.Yahoo.YahooAppRegistration Yahoo;
         }

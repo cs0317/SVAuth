@@ -166,7 +166,6 @@ namespace SVAuth.OIDC10
             var conclusion = SVX.SVX_Ops.Call(createConclusionOidc,authenticationResponse, tokenResponse);
             await AuthenticationDone(conclusion, context);
         }
-       // public virtual bool verify_and_decode_ID_Token(AuthenticationResponse_with_id_token AuthenticationResponse) { return false; }
         public virtual GenericAuth.AuthenticationConclusion createConclusionOidcImplicit(
             AuthenticationResponse_with_id_token authenticationResponse) { return null; }
         public async Task ImplicitFlow_Login_CallbackAsync(HttpContext httpContext)

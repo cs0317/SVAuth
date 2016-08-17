@@ -5,19 +5,17 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using BytecodeTranslator.Diagnostics;
 using Newtonsoft.Json.Linq;
+using SVAuth.OIDC10;
+using SVX;
 
 namespace SVAuth.ServiceProviders.Microsoft
 {
     public class MSAppRegistration
     {
-        public string appId;
+        public string appId; 
         public string appSecret;
     }
-    public class MSAuthenticationRequest : OIDC10.AuthenticationRequest
-    {
-        public string response_mode;
-    }
-    public class MSJwtToken: OIDC10.JwtTokenBody
+        public class MSJwtToken: OIDC10.JwtTokenBody
     {
         public string name, preferred_username;
     }
@@ -27,12 +25,50 @@ namespace SVAuth.ServiceProviders.Microsoft
         public string FullName;
         public string MS_ID;
     }
+
+    [BCTOmit]
+    public class MessageStructures : OIDC10.MessageStructures
+    {
+        internal MicrosoftJwTTokenGenerator MicrosoftJwTTokenGenerator = new MicrosoftJwTTokenGenerator();
+        protected override OIDC10.OIDCTokenVerifier getTokenVerifier()
+        { return MicrosoftJwTTokenGenerator; }
+        public MessageStructures(SVX.Principal idpPrincipal) : base(idpPrincipal) { }
+    }
+
+    public class MicrosoftJwTTokenGenerator : OIDC10.OIDCTokenVerifier
+    {
+        public string SignatureValidationUrl;
+        public override OIDC10.JwtTokenBody UnReflectJwtTokenBody(JObject obj)
+        {
+            return (OIDC10.JwtTokenBody)(Utils.UnreflectObject<MSJwtToken>(obj));
+        }
+
+        protected override JwtTokenBody RawVerifyAndExtract(string secretValue)
+        {
+            throw new NotImplementedException();
+        }
+
+        public MicrosoftJwTTokenGenerator()
+        {
+            IdPPrincipal = Microsoft_IdP.MicrosoftPrincipal;
+        }
+
+    }
+
     public class Microsoft_RP: OIDC10.RelyingParty
     {
-        public Microsoft_RP(SVX.Principal rpPrincipal, string client_id1, string redierct_uri1, string client_secret1, string AuthorizationEndpointUrl1, string TokenEndpointUrl1)
-        : base(rpPrincipal, client_id1, redierct_uri1, client_secret1, AuthorizationEndpointUrl1, TokenEndpointUrl1)
+        public Microsoft_RP(SVX.Principal rpPrincipal, string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null, string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string stateKey = null)
+        : base(rpPrincipal, client_id1, redierct_uri1, client_secret1, AuthorizationEndpointUrl1, TokenEndpointUrl1,stateKey)
         {
-            BypassCertification = true;
+        }
+
+        public override OIDC10.MessageStructures GetMessageStructures()
+        {
+            return new MessageStructures(Microsoft_IdP.MicrosoftPrincipal);
+        }
+        protected override ModelOIDCAuthenticationServer CreateModelOIDCAuthenticationServer()
+        {
+            return new Microsoft_IdP(Microsoft_IdP.MicrosoftPrincipal);
         }
         public static void Init(RouteBuilder routeBuilder)
         {
@@ -42,20 +78,28 @@ namespace SVAuth.ServiceProviders.Microsoft
                 Config.config.agentRootUrl + "callback/Microsoft",
                 Config.config.AppRegistration.Microsoft.appSecret,
                 "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-                "https://login.microsoftonline.com/common/oauth2/v2.0/token"
-                );
+                "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+                Config.config.stateSecretKey);
             routeBuilder.MapRoute("login/Microsoft", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/Microsoft", RP.AuthorizationCodeFlow_Login_CallbackAsync);
         }
         public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.PrincipalFacet client)
         {
-            MSAuthenticationRequest MSAuthenticationRequest = new MSAuthenticationRequest();
-            MSAuthenticationRequest.client_id = client_id;
-            MSAuthenticationRequest.response_type = "code";
-            MSAuthenticationRequest.scope = "openid profile";
-            MSAuthenticationRequest.redirect_uri = redirect_uri;
-            MSAuthenticationRequest.response_mode = "form_post";
-            return MSAuthenticationRequest;
+            AuthenticationRequest AuthenticationRequest = new AuthenticationRequest();
+            AuthenticationRequest.client_id = client_id;
+            AuthenticationRequest.response_type = "code";
+            AuthenticationRequest.scope = "openid profile";
+            AuthenticationRequest.redirect_uri = redirect_uri;
+            AuthenticationRequest.response_mode = "form_post";
+
+            var stateParams = new OAuth20.StateParams
+            {
+                client = client,
+                idpPrincipal = idpParticipantId.principal
+            };
+            AuthenticationRequest.state = stateGenerator.Generate(stateParams, SVX_Principal);
+
+            return AuthenticationRequest;
         }
         public override string marshalAuthorizationRequest(OAuth20.AuthorizationRequest MSAuthenticationRequest)
         {
@@ -71,6 +115,14 @@ namespace SVAuth.ServiceProviders.Microsoft
             _AccessTokenRequest.code = authorizationResponse.code;
             _AccessTokenRequest.redirect_uri = redirect_uri;
             _AccessTokenRequest.client_secret = client_secret;
+
+            var stateParams = new OAuth20.StateParams
+            {
+                client = authorizationResponse.SVX_sender,
+                idpPrincipal = idpParticipantId.principal
+            };
+            stateGenerator.Verify(stateParams, authorizationResponse.state);
+
             return _AccessTokenRequest;
         }
 
@@ -84,10 +136,6 @@ namespace SVAuth.ServiceProviders.Microsoft
 
         }
 
-        protected override void set_parse_id_token(SVX.SVX_MSG msg, JObject id_token)
-        {
-            ((OIDC10.TokenResponse)msg).parsed_id_token = Utils.UnreflectObject<MSJwtToken>(id_token);
-        }
         /*** implementing the methods for AuthenticationConclusion ***/
         public override GenericAuth.AuthenticationConclusion createConclusionOidc(
             OAuth20.AuthorizationResponse authorizationResponse,
@@ -96,13 +144,30 @@ namespace SVAuth.ServiceProviders.Microsoft
             var AuthConclusion = new GenericAuth.AuthenticationConclusion();
             AuthConclusion.authenticatedClient = authorizationResponse.SVX_sender;
             var userProfile = new MSUserProfile();
-            MSJwtToken jwtToken = (MSJwtToken)tokenResponse.parsed_id_token;
+            MSJwtToken jwtToken = (MSJwtToken)tokenResponse.id_token.theParams;
             userProfile.UserID = jwtToken.preferred_username;
             userProfile.Email = jwtToken.preferred_username;
             userProfile.MS_ID = jwtToken.sub;
             userProfile.FullName = jwtToken.name;
             AuthConclusion.userProfile = userProfile;
             return AuthConclusion;
+        }
+    }
+    public class Microsoft_IdP : ModelOIDCAuthenticationServer
+    {
+        public static Principal MicrosoftPrincipal = SVX.Principal.Of("login.microsoftonline.com");
+        public Microsoft_IdP(Principal idpPrincipal) : base(idpPrincipal)
+        {
+        }
+
+        protected override OIDC10.MessageStructures getMessageStrctures()
+        {
+            return new MessageStructures(SVX_Principal);
+        }
+
+        protected override OIDCTokenVerifier getTokenGenerator()
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -121,24 +121,6 @@ namespace SVAuth.ServiceProviders.Google
         {
             return AuthorizationEndpointUrl + "?" + Utils.ObjectToUrlEncodedString(MSAuthenticationRequest);
         }
-
-#if false
-        protected override void set_parse_id_token(SVX.SVX_MSG msg, JObject id_token)
-        {
-           ((OIDC10.AuthenticationResponse_with_id_token)msg).parsed_id_token = Utils.UnreflectObject<GGJwtToken>(id_token);
-        }
-
-        public override bool verify_and_decode_ID_Token(OIDC10.AuthenticationResponse_with_id_token AuthenticationResponse)
-        {
-            var RawRequestUrl = SignatureValidationUrl + "?id_token=" + AuthenticationResponse.id_token.ToString();
-            var rawReq = new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
-            var RawResponse = Utils.PerformHttpRequestAsync(rawReq).Result;
-            if (RawResponse.StatusCode != System.Net.HttpStatusCode.OK)
-                return false;
-            set_parse_id_token(AuthenticationResponse, JObject.Parse(RawResponse.Content.ReadAsStringAsync().Result));
-            return true;
-        }
-#endif
         protected string getFullName(string access_token)
         {
             var RawRequestUrl = UserProfileUrl + "?access_token=" + access_token;
