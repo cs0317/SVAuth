@@ -314,6 +314,11 @@ namespace SVAuth.OIDC10
         }
         public JwtTokenBody SVX_MakeJwtTokenBody(AuthorizationRequest req, IdPAuthenticationEntry idpConc)
         {
+            // In the real ImplicitFlowIDTokenEndpoint, we would request an
+            // IdPAuthenticationEntry for req.SVX_sender, but SVX doesn't know
+            // that, so we have to do a concrete check.
+            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.authenticatedClient);
+
             return MakeJwtTokenBody(req.client_id, idpConc.userID);
         }
         public JwtTokenBody MakeJwtTokenBody(string client_id, string userID)
@@ -328,11 +333,6 @@ namespace SVAuth.OIDC10
         }
         public AuthenticationResponse_with_id_token SVX_MakeAuthorizationResponse_with_id_token(AuthorizationRequest req, IdPAuthenticationEntry idpConc)
         {
-            // In the real CodeEndpoint, we would request an
-            // IdPAuthenticationEntry for req.SVX_sender, but SVX doesn't know
-            // that, so we have to do a concrete check.
-            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.authenticatedClient);
-
             var JwtTokenBody = SVX_Ops.Call(SVX_MakeJwtTokenBody, req, idpConc); 
 
             SVX.PayloadSecret<JwtTokenBody> id_token1 = getTokenGenerator().Generate(JwtTokenBody, SVX_Principal);

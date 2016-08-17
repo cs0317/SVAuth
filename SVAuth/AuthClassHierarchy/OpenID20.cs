@@ -369,6 +369,11 @@ namespace SVAuth.OpenID20
         }
         public FieldsExpectedToBeSigned SVX_MakeSignedFields(AuthenticationRequest req, IdPAuthenticationEntry idpConc)
         {
+            // In the real AuthenticationEndpoint, we would request an
+            // IdPAuthenticationEntry for req.SVX_sender, but SVX doesn't know
+            // that, so we have to do a concrete check.
+            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.authenticatedClient);
+
             return MakeSignedFields(req.openid__realm, idpConc.userID, req.openid__return_to, req.CSRF_state);
         }
         public FieldsExpectedToBeSigned MakeSignedFields(string realm, string userID, string return_to, SVX.Secret state)
@@ -386,11 +391,6 @@ namespace SVAuth.OpenID20
         }
         public AuthenticationResponse SVX_MakeAuthenticationResponse(AuthenticationRequest req, IdPAuthenticationEntry idpConc)
         {
-            // In the real CodeEndpoint, we would request an
-            // IdPAuthenticationEntry for req.SVX_sender, but SVX doesn't know
-            // that, so we have to do a concrete check.
-            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.authenticatedClient);
-
             var SignedFieldsParams = SVX_Ops.Call(SVX_MakeSignedFields, req, idpConc);
             SVX.PayloadSecret<FieldsExpectedToBeSigned> SignedFields = getSignedFieldsGenerator().Generate(SignedFieldsParams, SVX_Principal);
             return new AuthenticationResponse
