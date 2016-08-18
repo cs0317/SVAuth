@@ -140,14 +140,21 @@ namespace SVAuth.OIDC10
             Trace.Write("AuthorizationCodeFlow_Login_CallbackAsync");
             var context = new SVAuthRequestContext(SVX_Principal, httpContext);
 
-            var authenticationResponse = (OAuth20.AuthorizationResponse)Utils.ObjectFromFormPost(
+            var dummyAuthorizationRequest = new AuthorizationRequest();
+
+            var authorizationResponse = (OAuth20.AuthorizationResponse)Utils.ObjectFromFormPost(
                 context.http.Request.Form,typeof(OAuth20.AuthorizationResponse));
 
-            GetMessageStructures().authorizationResponse.Import(authenticationResponse,
+            GetMessageStructures().authorizationResponse.ImportWithModel(authorizationResponse,
+               () => { idp.FakeCodeEndpoint(dummyAuthorizationRequest, authorizationResponse); },
                 SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
                 context.client);
+            /*GetMessageStructures().authorizationResponse.Import(authenticationResponse,
+                SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
+                context.client);*/
 
-            var _AccessTokenRequest = SVX.SVX_Ops.Call(createAccessTokenRequest,authenticationResponse);
+            var _AccessTokenRequest = SVX.SVX_Ops.Call(createAccessTokenRequest, authorizationResponse);
+
             GetMessageStructures().accessTokenRequest.Export(_AccessTokenRequest, idpParticipantId.principal, null);
             _AccessTokenRequest.SVX_serializeSymT = false;
             var rawReq = marshalAccessTokenRequest(_AccessTokenRequest);
@@ -163,7 +170,7 @@ namespace SVAuth.OIDC10
                     SVX_Principal
                 );
             
-            var conclusion = SVX.SVX_Ops.Call(createConclusionOidc,authenticationResponse, tokenResponse);
+            var conclusion = SVX.SVX_Ops.Call(createConclusionOidc, authorizationResponse, tokenResponse);
             await AuthenticationDone(conclusion, context);
         }
         public virtual GenericAuth.AuthenticationConclusion createConclusionOidcImplicit(

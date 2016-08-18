@@ -307,7 +307,9 @@ namespace SVAuth.OAuth20
             accessTokenRequest.SVX_serializeSymT = false;
             var rawAccessTokenRequest = marshalAccessTokenRequest(accessTokenRequest);
             var rawAccessTokenResponse = await Utils.PerformHttpRequestAsync(rawAccessTokenRequest);
+
             Trace.Write("Got AccessTokenResponse");
+
             var accessTokenResponse = (AccessTokenResponse)JsonConvert.DeserializeObject(
                 Utils.ReadContent(rawAccessTokenResponse.Content), AccessTokenResponseType);
             messageStructures.accessTokenResponse.ImportDirectResponseWithModel(accessTokenResponse,
