@@ -367,8 +367,9 @@ namespace SVAuth.OIDC10
         {
             // We should only get here with req.grant_type ==
             // "authorization_code", so we don't have to worry about modeling
-            // what IdP does in any other case.  Let us know if this isn't true.
-            System.Diagnostics.Contracts.Contract.Assert(req.grant_type == "authorization_code");
+            // what IdP does in any other case.
+            if (req.grant_type != "authorization_code")
+                return VProgram_API.Nondet<TokenResponse>();
 
             authorizationCodeGenerator.Verify(codeParamsHint, req.code);
 

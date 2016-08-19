@@ -514,8 +514,9 @@ namespace SVAuth.OAuth20
         {
             // We should only get here with req.grant_type ==
             // "authorization_code", so we don't have to worry about modeling
-            // what IdP does in any other case.  Let us know if this isn't true.
-            Contract.Assert(req.grant_type == "authorization_code");
+            // what IdP does in any other case.
+            if (req.grant_type != "authorization_code")
+                return SVX.VProgram_API.Nondet<AccessTokenResponse>();
 
             authorizationCodeGenerator.Verify(codeParamsHint, req.code);
 
