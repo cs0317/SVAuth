@@ -82,8 +82,8 @@ namespace SVAuth.GenericAuth
 
             if (!BypassCertification)
             {
-                SVX.SVX_Ops.Certify(conclusion, LoginSafety, idpParticipantId);
-                SVX.SVX_Ops.Certify(conclusion, LoginXSRFPrevention, idpParticipantId);
+               SVX.SVX_Ops.Certify(conclusion, LoginSafety, idpParticipantId);
+               SVX.SVX_Ops.Certify(conclusion, LoginXSRFPrevention, idpParticipantId);
             }
             await Utils.AbandonAndCreateSessionAsync(conclusion, context);
         }

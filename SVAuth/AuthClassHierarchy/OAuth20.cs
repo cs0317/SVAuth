@@ -273,6 +273,22 @@ namespace SVAuth.OAuth20
             }
             _AuthorizationRequest.SVX_serializeSymT = false;
             var rawReq = marshalAuthorizationRequest(_AuthorizationRequest);
+
+            //set the referrer in the CurrentUrl cookie
+            try
+            {
+                Microsoft.Extensions.Primitives.StringValues referer;
+                if (context.http.Request.Headers.TryGetValue("referer", out referer))
+                {
+                    context.http.Response.Headers.Add("Set-Cookie",
+                            "LoginPageUrl=" + System.Net.WebUtility.UrlDecode(referer) + ";path=/");
+                }
+            }
+            catch (Exception ex)
+            {
+                //there is already a set-cookie for LoginPageUrl
+            };
+
             context.http.Response.Redirect(rawReq);
 
             return Task.CompletedTask;

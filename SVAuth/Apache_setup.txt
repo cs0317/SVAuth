@@ -1,0 +1,18 @@
+Open the httpd.conf, then searh the <IfModule alias_module> tag and insert the two lines.
+"/....../" is the parent directory of your SVAuth installtion.
+
+<IfModule alias_module>
+#For SVAuth
+    Alias /SVAuth/ "/......../SVAuth/SVAuth/"
+</IfModule>
+<Directory "/......../SVAuth/SVAuth/">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Require all granted
+</Directory>
+
+
+Depending on the OS, the way to restart apache can be:
+sudo /opt/bitnami/ctlscript.sh restart apache
+or
+sudo service apache2 restart

@@ -13,7 +13,7 @@ if (!(strlen($_SESSION['UserID'])>0)) { ?>
 
 		  document.cookie="LoginPageUrl=; expires=Thu, 01-Jan-70 00:00:01 GMT;";
 		  document.cookie="LoginPageUrl="+location+";path=/";
-          window.location=("http://"+location.host+":"+ReturnPort+"/login/Yahoo");	
+          window.location=("https://"+location.host+":"+ReturnPort+"/login/Yahoo");	
 	}
     </script>
 
