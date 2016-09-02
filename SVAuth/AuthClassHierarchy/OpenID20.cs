@@ -263,7 +263,6 @@ namespace SVAuth.OpenID20
                 // that far yet.
                 GetMessageStructures().authenticationRequest.Export(_AuthenticationRequest, context.client, idpParticipantId.principal);
             }
-            _AuthenticationRequest.SVX_serializeSymT = false;
 
             // Move CSRF_state into return_to.
             _AuthenticationRequest.openid__return_to += "?CSRF_state=" + Uri.EscapeDataString(_AuthenticationRequest.CSRF_state.Export());

@@ -156,7 +156,6 @@ namespace SVAuth.OIDC10
             var _AccessTokenRequest = SVX.SVX_Ops.Call(createAccessTokenRequest, authorizationResponse);
 
             GetMessageStructures().accessTokenRequest.Export(_AccessTokenRequest, idpParticipantId.principal, null);
-            _AccessTokenRequest.SVX_serializeSymT = false;
             var rawReq = marshalAccessTokenRequest(_AccessTokenRequest);
             var RawAccessTokenResponse = await Utils.PerformHttpRequestAsync(rawReq);
            

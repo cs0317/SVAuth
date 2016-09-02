@@ -6,6 +6,15 @@ using System.Threading.Tasks;
 
 namespace SVX
 {
+    // NOTICE: Both the SymT deserialization code and the subsequent SymT
+    // processing code (e.g., VProgramEmitter) have known weaknesses in dealing
+    // with untrusted input.  So don't deserialize untrusted SymTs.  For now, we
+    // don't need to because we're only using model remote parties, and
+    // SVX_MSG.SVX_symT is excluded from serialization.
+    //
+    // XXX: Is there a way to ensure that SymT fields never get implicitly
+    // deserialized without an annotation saying "no untrusted input"?
+
     // Non-public fields don't get serialized by default.  I don't feel like
     // making them all public just for this.  For now,
     // MemberSerialization.Fields does what we want.
@@ -31,6 +40,9 @@ namespace SVX
         }
     }
 
+    // Note: For now, SymTs should be deserialized with TypeNameHandling.All.
+    // There doesn't seem to be an easy way to specify this here rather than on
+    // every reference to the SymT class.
     [BCTOmit]
     abstract class SymT
     {

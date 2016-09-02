@@ -271,7 +271,6 @@ namespace SVAuth.OAuth20
                 // that far yet.
                 messageStructures.authorizationRequest.Export(_AuthorizationRequest, context.client, idpParticipantId.principal);
             }
-            _AuthorizationRequest.SVX_serializeSymT = false;
             var rawReq = marshalAuthorizationRequest(_AuthorizationRequest);
 
             //set the referrer in the CurrentUrl cookie
@@ -320,7 +319,6 @@ namespace SVAuth.OAuth20
             var accessTokenRequest = SVX.SVX_Ops.Call(createAccessTokenRequest, authorizationResponse);
 
             messageStructures.accessTokenRequest.Export(accessTokenRequest, idp.SVX_Principal, null);
-            accessTokenRequest.SVX_serializeSymT = false;
             var rawAccessTokenRequest = marshalAccessTokenRequest(accessTokenRequest);
             var rawAccessTokenResponse = await Utils.PerformHttpRequestAsync(rawAccessTokenRequest);
 
@@ -335,7 +333,6 @@ namespace SVAuth.OAuth20
             var userProfileRequest = SVX.SVX_Ops.Call(createUserProfileRequest, accessTokenResponse);
 
             messageStructures.userProfileRequest.Export(userProfileRequest, idp.SVX_Principal, null);
-            userProfileRequest.SVX_serializeSymT = false;
             var rawUserProfileRequest = marshalUserProfileRequest(userProfileRequest);
             var rawUserProfileResponse = await Utils.PerformHttpRequestAsync(rawUserProfileRequest);
             Trace.Write("Got UserProfileResponse");

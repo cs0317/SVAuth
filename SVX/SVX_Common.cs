@@ -18,23 +18,14 @@ namespace SVX
     // Doing the completely naive thing for now: mutable fields.
     public class SVX_MSG
     {
-        // This is still "object" because of C# accessibility constraints.
-        //
-        // WARNING: This has to be public for serialization, but it is null in
-        // the vProgram and if you touch it there, you may make the verification
-        // unsound.  (Better ideas?  A property that raises an assertion failure
-        // (NOT an exception, which is an assume) if accessed in the vProgram?)
-        //
-        // FIXME: Restrict the possible types of SymTs before exposing this to
-        // untrusted input.  I can't justify the time to implement the
-        // restriction yet. ~ t-mattmc@microsoft.com 2016-07-14
-        [JsonProperty(TypeNameHandling = TypeNameHandling.All)]
-        public object /*SymT*/ SVX_symT;
+        // Currently not serialized.  See comment at the top of SymT.cs.
+        //[JsonProperty(ItemTypeNameHandling = TypeNameHandling.All)]
+        internal SymT SVX_symT;
 
         // Better ideas? ~ t-mattmc@microsoft.com 2016-07-27
-        [JsonIgnore]
-        public bool SVX_serializeSymT = true;
-        public bool ShouldSerializeSVX_symT() => SVX_serializeSymT;
+        //[JsonIgnore]
+        //public bool SVX_serializeSymT = true;
+        //public bool ShouldSerializeSVX_symT() => SVX_serializeSymT;
 
         // Fields that are set on import so they can be used from SVX methods.
         // These will usually be null in messages being exported; if so, they
