@@ -202,8 +202,6 @@ namespace SVX
             };
     }
 
-    // We don't actually serialize this yet, but we will once we have the
-    // certification server.
     [BCTOmit]
     [JsonObject(MemberSerialization.Fields)]
     class CertificationRequest
@@ -215,6 +213,20 @@ namespace SVX
         internal string methodName;
         internal string methodArgTypeFullName;
         internal SymTParticipantId[] predicateParticipants;
+
+        // Implement Equals and HashCode so we can cache the result of a
+        // CertificationRequest.
+
+        public override bool Equals(object obj)
+        {
+            var that = obj as CertificationRequest;
+            return (that != null && JsonConvert.SerializeObject(this) == JsonConvert.SerializeObject(that));
+        }
+
+        public override int GetHashCode()
+        {
+            return JsonConvert.SerializeObject(this).GetHashCode();
+        }
     }
 
 }

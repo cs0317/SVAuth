@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.Contracts;
 using System.Threading;
+using System.Collections.Concurrent;
 
 [assembly: InternalsVisibleTo("VProgram")]
 
@@ -193,6 +194,8 @@ namespace SVX
             }
         }
 
+        private static ConcurrentDictionary<CertificationRequest, bool> certificationCache = new ConcurrentDictionary<CertificationRequest, bool>();
+
         // Will be called from translated assemblies.  Only once we have
         // as-needed translation will we be able to omit the declaration.
         [BCTOmitImplementation]
@@ -225,8 +228,9 @@ namespace SVX
                     (t) => new SymTParticipantId { principal = t.principal, typeFullName = t.type.FullName }).ToArray(),
             };
 
-            // TODO: Cache based on c.  Means we need to implement Equals/GetHashCode.
-            if (!LocalCertifier.Certify(c))
+            // Basic implementation of certification caching.  In the future, we
+            // may want fancier things, e.g., expiration, persistence, etc.
+            if (!certificationCache.GetOrAdd(c, LocalCertifier.Certify))
                 // TODO: Custom exception type
                 throw new Exception("SVX certification failed.");
         }
