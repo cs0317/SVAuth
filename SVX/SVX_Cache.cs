@@ -93,10 +93,18 @@ namespace SVX
         // load certified requests
         public void ProcessFile(string path)
         {
-            JObject jObj = JObject.Parse(File.ReadAllText(path));
-            CertificationRequest certRequest = SerializationUtils.UnreflectObject<CertificationRequest>(jObj);
-            // since we only store certified requests, we don't need to re-verify here
-            certificationCache.TryAdd(certRequest, true);
+            // Workaround for Newtonsoft deserialization problem
+            // If we can't deserialize a cached cert request, we just skip it and verify it at runtime.
+            try
+            {
+                JObject jObj = JObject.Parse(File.ReadAllText(path));
+                CertificationRequest certRequest = SerializationUtils.UnreflectObject<CertificationRequest>(jObj);
+                // since we only store certified requests, we don't need to re-verify here
+                certificationCache.TryAdd(certRequest, true);
+            } catch (Exception e)
+            {
+                Console.WriteLine("Exception {0}", e);
+            }
         }
 
     }

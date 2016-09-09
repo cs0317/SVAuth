@@ -4,6 +4,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.IO;
+using System.Xml.Serialization;
 
 namespace SVX
 {
@@ -73,6 +75,7 @@ namespace SVX
             new JsonSerializer().Serialize(writer, o);
             return (JObject)writer.Token;
         }
+
         public static T UnreflectObject<T>(JObject jo)
         {
             return new JsonSerializer().Deserialize<T>(new JTokenReader(jo));

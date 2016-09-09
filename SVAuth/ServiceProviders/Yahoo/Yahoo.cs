@@ -77,17 +77,29 @@ namespace SVAuth.ServiceProviders.Yahoo
 
         protected override OpenID20.FieldsExpectedToBeSigned RawVerifyAndExtract(string secretValue)
         {
-            //secretValue should be context.Request.QueryString.Value
-            //  This would be an exploitable bug!!!       
-            //   Bug!: 
-            var RawRequestUrl = SignatureValidationUrl + secretValue.Replace("openid.mode=id_res", "openid.mode=check_authentication");
-           // Regex rgx = new Regex("openid.mode=.*$");   
-           // string replacedStr = rgx.Replace(secretValue, "");
-           // var RawRequestUrl = SignatureValidationUrl + replacedStr;
+            // A possible bug could be exploited
+            // we sanitize the secretValue to avoid such bug
+            // 
+            // secretValue should be context.Request.QueryString.Value
+            // sanitize secretValue
+            // 1. Remove all openid.mode fields in the secretValue
+            // 2. Put openid.mode=check_authentication to the beginning of the secretValue
+            // 3. Append the sanitized secretValue to the SignatureValidationUrl
+            string patternOpenIdMode = @"openid\.mode=.*?\&";
+            string patternFirstQuestionMark = @"^\?";
+
+            string sanitizedSecretValue = Regex.Replace(secretValue, patternOpenIdMode, "");
+            sanitizedSecretValue = Regex.Replace(sanitizedSecretValue, patternFirstQuestionMark, "");
+
+            // build request
+            var RawRequestUrl = SignatureValidationUrl + "?openid.mode=check_authentication&" + sanitizedSecretValue;
+
             var rawReq = new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
             var RawResponse = Utils.PerformHttpRequestAsync(rawReq).Result;
             if (RawResponse.StatusCode != System.Net.HttpStatusCode.OK)
-                throw new Exception();
+                throw new Exception(); // TODO: Somewhere in the svAuth app we should catch this exception
+            // When Phuong tried to pass a malicious secretValue input, this exception was raised and not being caught
+            // and the svAuth server just hang
 
             return RawExtractUnverified(secretValue);
         }
