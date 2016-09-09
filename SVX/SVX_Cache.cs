@@ -96,10 +96,7 @@ namespace SVX
             JObject jObj = JObject.Parse(File.ReadAllText(path));
             CertificationRequest certRequest = SerializationUtils.UnreflectObject<CertificationRequest>(jObj);
             // since we only store certified requests, we don't need to re-verify here
-            if (!certificationCache.TryAdd(certRequest, true))
-            {
-                throw new Exception("Cache loading failed!");
-            }
+            certificationCache.TryAdd(certRequest, true);
         }
 
     }
