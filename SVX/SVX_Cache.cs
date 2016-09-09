@@ -15,7 +15,7 @@ namespace SVX
     interface ICache
     {
         bool GetOrAdd(CertificationRequest key, Func<CertificationRequest, bool> valueFactory);
-        object InitCache();
+        void InitCache();
     }
 
     // a file-based certification request caching class
@@ -55,7 +55,7 @@ namespace SVX
             return certificationCache.GetOrAdd(certRequest, verifyFunction);
         }
 
-        public InitCache()
+        public void InitCache()
         {
             // loads previous certification requests from a directory to the certificationCache
             this.ProcessDirectory(cacheLocation);
