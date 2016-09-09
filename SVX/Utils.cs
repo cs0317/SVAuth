@@ -1,7 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace SVX
 {
@@ -58,5 +60,40 @@ namespace SVX
 
         [BCTOmitImplementation]
         static Hasher() { }
+    }
+
+    public static class SerializationUtils
+    {
+        // TODO(pmc): clean up duplicate code
+        // Minor duplicate code (only two funcions) from svAuth Utils, which I think is ok.
+        // Perhaps we can move some of svAuth Utils code to svX Utils code, then use the svX Utils code from svAuth
+        public static JObject ReflectObject(object o)
+        {
+            var writer = new JTokenWriter();
+            new JsonSerializer().Serialize(writer, o);
+            return (JObject)writer.Token;
+        }
+        public static T UnreflectObject<T>(JObject jo)
+        {
+            return new JsonSerializer().Deserialize<T>(new JTokenReader(jo));
+        }
+
+        // Compute SHA256 hash of a string
+        // https://msdn.microsoft.com/en-us/library/s02tk69a(v=vs.110).aspx
+        public static String Hash(String value)
+        {
+            StringBuilder Sb = new StringBuilder();
+
+            using (SHA256 hash = SHA256.Create())
+            {
+                Encoding enc = Encoding.UTF8;
+                Byte[] result = hash.ComputeHash(enc.GetBytes(value));
+
+                foreach (Byte b in result)
+                    Sb.Append(b.ToString("x2"));
+            }
+
+            return Sb.ToString();
+        }
     }
 }

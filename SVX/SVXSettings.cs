@@ -28,6 +28,9 @@ namespace SVX
         // any benefit to allowing this to be customized? ~ t-mattmc@microsoft.com 2016-06-10
         public string VProgramPath => Path.Combine(SVXFolderPath, "vProgram");
 
+        // cache folder to store existing certification requests
+        public string SVXCacheFolderPath => Path.Combine(SVXFolderPath, "cache");
+
         // If true, keep temporary VPrograms after verification for debugging
         // purposes.
         public bool KeepVPrograms = true;
