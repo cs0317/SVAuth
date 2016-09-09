@@ -196,7 +196,7 @@ namespace SVX
         }
 
         // by default, use a local certifier
-        private static FileCache svxCache = new FileCache(LocalCertifier.Certify);
+        private static FileCache svxCache = new FileCache();
 
         // Will be called from translated assemblies.  Only once we have
         // as-needed translation will we be able to omit the declaration.
@@ -232,7 +232,7 @@ namespace SVX
 
             // Basic implementation of certification caching.  In the future, we
             // may want fancier things, e.g., expiration, persistence, etc.
-             if (!svxCache.GetOrAdd(c, LocalCertifier.Certify))
+             if (!svxCache.TryAdd(c, LocalCertifier.Certify))
             {
                 // TODO: Custom exception type
                 throw new Exception("SVX certification failed.");

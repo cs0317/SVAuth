@@ -14,55 +14,74 @@ namespace SVX
     // cache interface
     interface ICache
     {
-        bool GetOrAdd(CertificationRequest key, Func<CertificationRequest, bool> valueFactory);
+        bool TryAdd(CertificationRequest key, Func<CertificationRequest, bool> valueFactory);
         void InitCache();
     }
 
     // a file-based certification request caching class
     // when SVX starts, the file cache do the followings
     // 1. loads existing certification requests from the cache directory
-    // 2. verifies each certification request
-    // 3. adds each certification request to the memory cache (implemented by ConcurrentDictionary)
+    // 2. adds each certification request to the memory cache (implemented by ConcurrentDictionary)
     class FileCache: ICache
     {
-        public FileCache(Func<CertificationRequest, bool> verifyFunctionFactory) {
-            // initially, all certification requests are verified by a verifyFunctionFactory,
-            // e.g., a LocalCertifier.Certify
-            verifyFunction = verifyFunctionFactory;
-        }
-
         // use ConcurrentDictionary as memory cache in addition to file-based cache
         private static ConcurrentDictionary<CertificationRequest, bool> certificationCache = new ConcurrentDictionary<CertificationRequest, bool>();
+        
         // past certification requests are stored in this folder
         private static string cacheLocation = SVXSettings.settings.SVXCacheFolderPath;
-        // certification verification function
-        private Func<CertificationRequest, bool> verifyFunction;
 
+        // returns the certification result for a certificationRequest
+        //  
         // when a certification request needs to be verified
         // 1. check whether the cert request has been verified before using memory cache
         // if the request has not been verified, write the cert request to the cache folder
         // 2. verify the cert request and add to memory cache 
-        public bool GetOrAdd(CertificationRequest certRequest, Func<CertificationRequest, bool> verifyFunction)
+        public bool TryAdd(CertificationRequest certRequest, Func<CertificationRequest, bool> verifyFunction)
         {
-            // TODO(pmc): catch I/O exceptions
-            if (! certificationCache.ContainsKey(certRequest)){
-                // write to file
-                var jsonStr = SerializationUtils.ReflectObject(certRequest).ToString();
-                var hash = SerializationUtils.Hash(jsonStr);
-                string fileName = String.Format(@"{0}\{1}.json", cacheLocation, hash);
-                File.WriteAllText(fileName, SerializationUtils.ReflectObject(certRequest).ToString());
+            // If we have the certRequest in certificationCache, return true immediately
+            // because we only cache verified certRequests
+            if (certificationCache.ContainsKey(certRequest)) {
+                return true;
             }
-            return certificationCache.GetOrAdd(certRequest, verifyFunction);
+
+            // When we don't have the certRequest in certificationCache, perform verification
+            bool certResult = verifyFunction(certRequest);
+            // If the certRequest is verified, add it to the memory cache and the disk cache
+            if (certResult == true)
+            {
+                try
+                {
+                    // add to memory cache
+                    certificationCache.TryAdd(certRequest, certResult);
+                    // add to cache directory
+                    // file format: {SHA256 hash of certRequest}.json
+                    var jsonStr = SerializationUtils.ReflectObject(certRequest).ToString();
+                    var hash = SerializationUtils.Hash(jsonStr);
+                    string fileName = String.Format(@"{0}\{1}.json", cacheLocation, hash);
+                    File.WriteAllText(fileName, SerializationUtils.ReflectObject(certRequest).ToString());
+                } catch (Exception e)
+                {
+                    Console.WriteLine("Caching failed! {0}", e);
+                }
+            }
+
+            // Finally return the certResult
+            return certResult;
+
         }
 
         public void InitCache()
         {
+            // create the cache directory if not exists
+            // CreateDirectory will NOT overwrite an existing cache folder (see its document)
+            // https://msdn.microsoft.com/en-us/library/07wt70x2(v=vs.110).aspx
+            Directory.CreateDirectory(cacheLocation);
             // loads previous certification requests from a directory to the certificationCache
             this.ProcessDirectory(cacheLocation);
         }
 
-        // https://msdn.microsoft.com/en-us/library/07wt70x2(v=vs.110).aspx
         // process all files in the directory passed in (non-recursive)
+        // https://msdn.microsoft.com/en-us/library/07wt70x2(v=vs.110).aspx
         public void ProcessDirectory(string targetDirectory)
         {
             // Process the list of files found in the directory.
@@ -71,12 +90,16 @@ namespace SVX
                 ProcessFile(fileName);
         }
 
-        // certify each certification request file
+        // load certified requests
         public void ProcessFile(string path)
         {
             JObject jObj = JObject.Parse(File.ReadAllText(path));
             CertificationRequest certRequest = SerializationUtils.UnreflectObject<CertificationRequest>(jObj);
-            certificationCache.GetOrAdd(certRequest, verifyFunction(certRequest));
+            // since we only store certified requests, we don't need to re-verify here
+            if (!certificationCache.TryAdd(certRequest, true))
+            {
+                throw new Exception("Cache loading failed!");
+            }
         }
 
     }
