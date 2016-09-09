@@ -103,7 +103,7 @@ namespace SVX
                 certificationCache.TryAdd(certRequest, true);
             } catch (Exception e)
             {
-                Console.WriteLine("Exception {0}", e);
+                // Console.WriteLine("Cannot deserialize {0}, skipping..", path);
             }
         }
 
