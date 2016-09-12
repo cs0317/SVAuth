@@ -25,11 +25,12 @@ namespace SVX
     class FileCache: ICache
     {
         // use ConcurrentDictionary as memory cache in addition to file-based cache
-        private static ConcurrentDictionary<CertificationRequest, bool> certificationCache = new ConcurrentDictionary<CertificationRequest, bool>();
-        
+        // we store sha256 hash of a verified cert request in the memory
+        private static ConcurrentDictionary<string, bool> certificationCache = new ConcurrentDictionary<string, bool>();
+
         // past certification requests are stored in this folder
         private static string cacheLocation = SVXSettings.settings.SVXCacheFolderPath;
-
+        
         // returns the certification result for a certificationRequest
         //  
         // when a certification request needs to be verified
@@ -40,7 +41,10 @@ namespace SVX
         {
             // If we have the certRequest in certificationCache, return true immediately
             // because we only cache verified certRequests
-            if (certificationCache.ContainsKey(certRequest)) {
+            string certStr = SerializationUtils.ReflectObject(certRequest).ToString();
+            string certHash = SerializationUtils.Hash(certStr);
+
+            if (certificationCache.ContainsKey(certHash)) {
                 return true;
             }
 
@@ -52,13 +56,11 @@ namespace SVX
                 try
                 {
                     // add to memory cache
-                    certificationCache.TryAdd(certRequest, certResult);
+                    certificationCache.TryAdd(certHash, certResult);
                     // add to cache directory
                     // file format: {SHA256 hash of certRequest}.json
-                    var jsonStr = SerializationUtils.ReflectObject(certRequest).ToString();
-                    var hash = SerializationUtils.Hash(jsonStr);
-                    string fileName = String.Format(@"{0}\{1}.json", cacheLocation, hash);
-                    File.WriteAllText(fileName, SerializationUtils.ReflectObject(certRequest).ToString());
+                    string fileName = String.Format(@"{0}\{1}.json", cacheLocation, certHash);
+                    File.WriteAllText(fileName, certStr);
                 } catch (Exception e)
                 {
                     Console.WriteLine("Caching failed! {0}", e);
@@ -86,25 +88,33 @@ namespace SVX
         {
             // Process the list of files found in the directory.
             string[] fileEntries = Directory.GetFiles(targetDirectory);
+            Console.WriteLine("Loading cached certificate requests from {0}...", targetDirectory);
+            int numLoadedCerts = 0;
             foreach (string fileName in fileEntries)
-                ProcessFile(fileName);
+            {
+                if (ProcessFile(fileName))
+                {
+                    numLoadedCerts += 1;
+                }
+            }
+            Console.WriteLine("Loaded {0} certificate requests", numLoadedCerts);
         }
 
         // load certified requests
-        public void ProcessFile(string path)
+        public bool ProcessFile(string path)
         {
-            // Workaround for Newtonsoft deserialization problem
-            // If we can't deserialize a cached cert request, we just skip it and verify it at runtime.
+            // Load cached cert requests
             try
             {
-                JObject jObj = JObject.Parse(File.ReadAllText(path));
-                CertificationRequest certRequest = SerializationUtils.UnreflectObject<CertificationRequest>(jObj);
+                string certStr = File.ReadAllText(path);
+                string certHash = SerializationUtils.Hash(certStr);
                 // since we only store certified requests, we don't need to re-verify here
-                certificationCache.TryAdd(certRequest, true);
+                return certificationCache.TryAdd(certHash, true);
             } catch (Exception e)
             {
-                // Console.WriteLine("Cannot deserialize {0}, skipping..", path);
+                Console.WriteLine("Cannot deserialize {0}, skipping.. {1}", path, e);
             }
+            return false;
         }
 
     }
