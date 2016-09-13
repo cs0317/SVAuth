@@ -105,7 +105,7 @@ namespace SVAuth.ServiceProviders.Yahoo
                 aLine = strReader.ReadLine();
                 if (aLine != null)
                 {
-                    if (aLine.IndexOf("is_valid:true") == 0)
+                    if (aLine=="is_valid:true")
                         break;
                 }
             }
