@@ -11,7 +11,7 @@
   },
 
   "AgentSettings": {
-    "scheme": "http",
+    "scheme": "https",
     "port": "3000"
   },
 

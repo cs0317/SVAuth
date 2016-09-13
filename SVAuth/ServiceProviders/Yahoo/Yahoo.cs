@@ -96,7 +96,20 @@ namespace SVAuth.ServiceProviders.Yahoo
 
             var rawReq = new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
             var RawResponse = Utils.PerformHttpRequestAsync(rawReq).Result;
-            if (RawResponse.StatusCode != System.Net.HttpStatusCode.OK)
+
+            string response_string = RawResponse.Content.ReadAsStringAsync().Result;
+            string aLine = null;
+            System.IO.StringReader strReader = new System.IO.StringReader(response_string);
+            while (true)
+            {
+                aLine = strReader.ReadLine();
+                if (aLine != null)
+                {
+                    if (aLine.IndexOf("is_valid:true") == 0)
+                        break;
+                }
+            }
+            if (RawResponse.StatusCode != System.Net.HttpStatusCode.OK || aLine==null)
                 throw new Exception(); // TODO: Somewhere in the svAuth app we should catch this exception
             // When Phuong tried to pass a malicious secretValue input, this exception was raised and not being caught
             // and the svAuth server just hang
