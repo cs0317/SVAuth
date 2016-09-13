@@ -63,6 +63,7 @@ namespace SVAuth
         {
             public ServiceProviders.Facebook.FBAppRegistration Facebook;
             public ServiceProviders.Microsoft.MSAppRegistration Microsoft;
+            public ServiceProviders.Microsoft.MicrosoftAzureADAppRegistration MicrosoftAzureAD;
             public ServiceProviders.Google.GGAppRegistration Google;
             public ServiceProviders.Yahoo.YahooAppRegistration Yahoo;
         }

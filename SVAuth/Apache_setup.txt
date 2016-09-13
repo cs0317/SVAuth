@@ -1,5 +1,9 @@
-Open the httpd.conf, then searh the <IfModule alias_module> tag and insert the two lines.
-"/....../" is the parent directory of your SVAuth installtion.
+
+* Setting a virtual path:
+Suppose "/....../" is the parent directory of your SVAuth installtion.
+Go to the apache root folder /var/www/html and then ran the following:
+
+Or, open the httpd.conf, then searh the <IfModule alias_module> tag and insert the two lines.
 
 <IfModule alias_module>
 #For SVAuth
@@ -11,7 +15,7 @@ Open the httpd.conf, then searh the <IfModule alias_module> tag and insert the t
     Require all granted
 </Directory>
 
-
+* restarting apache: 
 Depending on the OS, the way to restart apache can be:
 sudo /opt/bitnami/ctlscript.sh restart apache
 or

@@ -28,7 +28,10 @@
 <!-- #include virtual = "/SVAuth/platforms/aspx\buttons\sign_out_button.inc" -->
 <!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Facebook_login_button.inc" -->
 <!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Microsoft_login_button.inc" -->
+<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\MicrosoftAzureAD_login_button.inc" -->
 <!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Google_login_button.inc" -->
+<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Yahoo_login_button.inc" -->
+
 </div>
 
 <h3>First, test this page:<br /></h3>

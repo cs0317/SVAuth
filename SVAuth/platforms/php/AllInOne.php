@@ -22,11 +22,15 @@
     window.prompt("This is the code of the button.\nCopy to clipboard: Ctrl+C, Enter.\n", str1);
   }
 </script>
-
+<?php
+// Start the session
+session_start();
+?>
 <div id="grad1">
 <?php include dirname($_SERVER['PATH_TRANSLATED'])."\buttons\sign_out_button.inc" ?>
 <?php include dirname($_SERVER["PATH_TRANSLATED"])."\buttons\Facebook_login_button.inc" ?>
 <?php include dirname($_SERVER['PATH_TRANSLATED'])."\buttons\Microsoft_login_button.inc" ?>
+<?php include dirname($_SERVER['PATH_TRANSLATED'])."\buttons\MicrosoftAzureAD_login_button.inc" ?>
 <?php include dirname($_SERVER['PATH_TRANSLATED'])."\buttons\Google_login_button.inc" ?>
 <?php include dirname($_SERVER['PATH_TRANSLATED'])."\buttons\Yahoo_login_button.inc" ?>
 </div>

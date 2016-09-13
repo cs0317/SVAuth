@@ -17,7 +17,7 @@ namespace SVAuth.ServiceProviders.Microsoft
     }
         public class MSJwtToken: OIDC10.JwtTokenBody
     {
-        public string name, preferred_username;
+        public string name, preferred_username,unique_name,upn;
     }
     public class MSUserProfile : GenericAuth.UserProfile
     {
@@ -145,10 +145,17 @@ namespace SVAuth.ServiceProviders.Microsoft
             AuthConclusion.authenticatedClient = authorizationResponse.SVX_sender;
             var userProfile = new MSUserProfile();
             MSJwtToken jwtToken = (MSJwtToken)tokenResponse.id_token.theParams;
-            userProfile.UserID = jwtToken.preferred_username;
+            
             userProfile.Email = jwtToken.preferred_username;
+            if (userProfile.Email == null)
+                userProfile.Email = jwtToken.unique_name;
+            if (userProfile.Email == null)
+                userProfile.Email = jwtToken.upn;
             userProfile.MS_ID = jwtToken.sub;
             userProfile.FullName = jwtToken.name;
+
+            userProfile.UserID = userProfile.Email;
+
             AuthConclusion.userProfile = userProfile;
             return AuthConclusion;
         }

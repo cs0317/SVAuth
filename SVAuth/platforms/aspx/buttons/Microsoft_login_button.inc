@@ -11,9 +11,16 @@
           if (  ReturnPort==null || ReturnPort=="" || ReturnPort=="null" )
                ReturnPort="3000";
 
+          var reg1 = new RegExp( '[?&]' + 'scheme' + '=([^&#]*)', 'i' );
+		  var scheme=reg1.exec(window.location.href);
+		  scheme = scheme? scheme[1]:null
+
+          if (  scheme==null || scheme=="" || scheme=="null" )
+               scheme="https";
+
 		  document.cookie="LoginPageUrl=; expires=Thu, 01-Jan-70 00:00:01 GMT;";
 		  document.cookie="LoginPageUrl="+location+";path=/";
-          window.location=("https://"+location.host+":"+ReturnPort+"/login/Microsoft");	
+          window.location=(scheme+"://"+location.host+":"+ReturnPort+"/login/Microsoft");	
 	  }
     </script>
 

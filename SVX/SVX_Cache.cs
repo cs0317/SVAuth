@@ -44,6 +44,8 @@ namespace SVX
             string certStr = SerializationUtils.ReflectObject(certRequest).ToString();
             string certHash = SerializationUtils.Hash(certStr);
 
+            Console.WriteLine("Hash of the theorem to verify {0}", certHash); 
+
             if (certificationCache.ContainsKey(certHash)) {
                 return true;
             }
@@ -107,7 +109,16 @@ namespace SVX
             try
             {
                 string certStr = File.ReadAllText(path);
-                string certHash = SerializationUtils.Hash(certStr);
+                string certHash;
+
+                /* This is a good sanity check, but before we implement the remote certification server, we need to manually add hash value, and cannot do this check
+                                certHash = SerializationUtils.Hash(certStr);
+                */
+                /* Instead, we do the following */
+                int pos = path.IndexOf(".json");
+                certHash = path.Substring(pos - 64, 64);
+                Console.WriteLine("Cached hash value {0}", certHash);
+
                 // since we only store certified requests, we don't need to re-verify here
                 return certificationCache.TryAdd(certHash, true);
             } catch (Exception e)
