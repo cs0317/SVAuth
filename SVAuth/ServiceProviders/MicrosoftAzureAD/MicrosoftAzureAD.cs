@@ -1,12 +1,4 @@
 ﻿using Microsoft.AspNetCore.Routing;
-using System;
-using System.Net.Http;
-using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using BytecodeTranslator.Diagnostics;
-using Newtonsoft.Json.Linq;
-using SVAuth.OIDC10;
-using SVX;
 
 namespace SVAuth.ServiceProviders.Microsoft
 {
@@ -16,7 +8,6 @@ namespace SVAuth.ServiceProviders.Microsoft
         public string appSecret;
     }
    
-
     public class MicrosoftAzureAD_RP : Microsoft_RP
     {
         public MicrosoftAzureAD_RP(SVX.Principal rpPrincipal, string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null, string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string stateKey = null)
@@ -37,7 +28,6 @@ namespace SVAuth.ServiceProviders.Microsoft
             routeBuilder.MapRoute("login/MicrosoftAzureAD", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/MicrosoftAzureAD", RP.AuthorizationCodeFlow_Login_CallbackAsync);
         }
-      
     }
 }
 

@@ -148,7 +148,17 @@ namespace SVAuth
             // (e.g., for the SVAuthSessionID, which shouldn't normally be set
             // in the same response).
             context.http.Response.Headers.Add("Set-Cookie", setcookie.ToArray());
-            context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
+
+            string redir_url = context.http.Request.Cookies["LoginPageUrl"];
+            Console.WriteLine("LoginPageUrl="+ redir_url);
+            if (redir_url == null || redir_url == "")
+            {
+                Microsoft.Extensions.Primitives.StringValues referer;
+                context.http.Request.Headers.TryGetValue("referer", out referer);
+                redir_url = System.Net.WebUtility.UrlDecode(referer);
+                Console.WriteLine("referer=" + redir_url);
+            }
+            context.http.Response.Redirect(redir_url);
         }
     }
 

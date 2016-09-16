@@ -279,8 +279,8 @@ namespace SVAuth.OAuth20
                 Microsoft.Extensions.Primitives.StringValues referer;
                 if (context.http.Request.Headers.TryGetValue("referer", out referer))
                 {
-                    context.http.Response.Headers.Add("Set-Cookie",
-                            "LoginPageUrl=" + System.Net.WebUtility.UrlDecode(referer) + ";path=/");
+                    context.http.Response.Headers["set-cookie"] = Microsoft.Extensions.Primitives.StringValues.Concat
+                            (context.http.Response.Headers["set-cookie"], "LoginPageUrl=" + System.Net.WebUtility.UrlDecode(referer) + ";path=/");
                 }
             }
             catch (Exception ex)

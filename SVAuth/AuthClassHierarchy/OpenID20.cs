@@ -269,6 +269,22 @@ namespace SVAuth.OpenID20
             _AuthenticationRequest.CSRF_state = null;
 
             var rawReq = marshalAuthenticationRequest(_AuthenticationRequest);
+
+            //set the referrer in the CurrentUrl cookie
+            try
+            {
+                Microsoft.Extensions.Primitives.StringValues referer;
+                if (context.http.Request.Headers.TryGetValue("referer", out referer))
+                {
+                    context.http.Response.Headers["set-cookie"] = Microsoft.Extensions.Primitives.StringValues.Concat
+                            (context.http.Response.Headers["set-cookie"], "LoginPageUrl=" + System.Net.WebUtility.UrlDecode(referer) + ";path=/");
+                }
+            }
+            catch (Exception ex)
+            {
+                //there is already a set-cookie for LoginPageUrl
+            };
+
             context.http.Response.Redirect(rawReq);
 
             return Task.CompletedTask;
