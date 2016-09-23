@@ -68,7 +68,11 @@ namespace SVAuth
             switch (Config.config.AgentSettings.scheme)
             {
                 case "https":
-                    kestrelOptions.UseHttps(new X509Certificate2("ssl-cert/certkey.p12"));
+                    X509Certificate2 cer;
+                    //If the pfx is protected by a password, using the following line
+                    //cer = new X509Certificate2("ssl-cert/password-protected-pfx-file.pfx", "password"); 
+                    cer = new X509Certificate2("ssl-cert/certkey.p12"); 
+                    kestrelOptions.UseHttps(cer);
                     break;
                 case "http":
                     break;
