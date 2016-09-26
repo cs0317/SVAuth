@@ -255,14 +255,11 @@ namespace SVAuth.OpenID20
             var context = new SVAuthRequestContext(SVX_Principal, httpContext);
 
             var _AuthenticationRequest = SVX.SVX_Ops.Call(createAuthenticationRequest, context.client);
-            if (!BypassCertification)
-            {
-                // NOTE: We are assuming that the target URL used by
-                // marshalAuthorizationRequest belongs to the principal
-                // idpParticipantId.principal.  We haven't extended SVX enforcement
-                // that far yet.
-                GetMessageStructures().authenticationRequest.Export(_AuthenticationRequest, context.client, idpParticipantId.principal);
-            }
+            // NOTE: We are assuming that the target URL used by
+            // marshalAuthorizationRequest belongs to the principal
+            // idpParticipantId.principal.  We haven't extended SVX enforcement
+            // that far yet.
+            GetMessageStructures().authenticationRequest.Export(_AuthenticationRequest, context.client, idpParticipantId.principal);
 
             // Move CSRF_state into return_to.
             _AuthenticationRequest.openid__return_to += "?CSRF_state=" + Uri.EscapeDataString(_AuthenticationRequest.CSRF_state.Export());

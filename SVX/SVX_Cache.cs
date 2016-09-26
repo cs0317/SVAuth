@@ -22,15 +22,12 @@ namespace SVX
     // when SVX starts, the file cache do the followings
     // 1. loads existing certification requests from the cache directory
     // 2. adds each certification request to the memory cache (implemented by ConcurrentDictionary)
-    class FileCache: ICache
+    class FileCache : ICache
     {
         // use ConcurrentDictionary as memory cache in addition to file-based cache
         // we store sha256 hash of a verified cert request in the memory
         private static ConcurrentDictionary<string, bool> certificationCache = new ConcurrentDictionary<string, bool>();
 
-        // past certification requests are stored in this folder
-        private static string cacheLocation = SVXSettings.settings.SVXCacheFolderPath;
-        
         // returns the certification result for a certificationRequest
         //  
         // when a certification request needs to be verified
@@ -44,29 +41,33 @@ namespace SVX
             string certStr = SerializationUtils.ReflectObject(certRequest).ToString();
             string certHash = SerializationUtils.Hash(certStr);
 
-            Console.WriteLine("Hash of the theorem to verify {0}", certHash); 
+            Console.WriteLine("Hash of the theorem to verify {0}", certHash);
 
-            if (certificationCache.ContainsKey(certHash)) {
+            if (certificationCache.ContainsKey(certHash))
+            {
                 return true;
             }
 
             // When we don't have the certRequest in certificationCache, perform verification
             bool certResult = verifyFunction(certRequest);
-            // If the certRequest is verified, add it to the memory cache and the disk cache
-            if (certResult == true)
+            // store the serialized cert request to this directory, 
+            // either a "cache" folder if the cert request is verified,
+            // or a "failed-certs" folder if the cert request is not verified
+            string certResultStoreFolderPath = certResult ? SVXSettings.settings.SVXCacheFolderPath : SVXSettings.settings.SVXCacheFailedCertsFolderPath;
+            try
             {
-                try
-                {
-                    // add to memory cache
+                if (certResult == true)
+                {  // If the certRequest is verified, add it to the memory cache 
                     certificationCache.TryAdd(certHash, certResult);
-                    // add to cache directory
-                    // file format: {SHA256 hash of certRequest}.json
-                    string fileName = String.Format(@"{0}\{1}.json", cacheLocation, certHash);
-                    File.WriteAllText(fileName, certStr);
-                } catch (Exception e)
-                {
-                    Console.WriteLine("Caching failed! {0}", e);
                 }
+                // store serialized cert request to directory
+                // file format: {SHA256 hash of certRequest}.json
+                string fileName = String.Format(@"{0}\{1}.json", certResultStoreFolderPath, certHash);
+                File.WriteAllText(fileName, certStr);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Caching failed! {0}", e);
             }
 
             // Finally return the certResult
@@ -76,12 +77,13 @@ namespace SVX
 
         public void InitCache()
         {
-            // create the cache directory if not exists
+            // create the cache directory and the directory to store failed cert requests if not exists
             // CreateDirectory will NOT overwrite an existing cache folder (see its document)
             // https://msdn.microsoft.com/en-us/library/07wt70x2(v=vs.110).aspx
-            Directory.CreateDirectory(cacheLocation);
+            Directory.CreateDirectory(SVXSettings.settings.SVXCacheFolderPath);
+            Directory.CreateDirectory(SVXSettings.settings.SVXCacheFailedCertsFolderPath);
             // loads previous certification requests from a directory to the certificationCache
-            this.ProcessDirectory(cacheLocation);
+            this.ProcessDirectory(SVXSettings.settings.SVXCacheFolderPath);
         }
 
         // process all files in the directory passed in (non-recursive)
@@ -121,7 +123,8 @@ namespace SVX
 
                 // since we only store certified requests, we don't need to re-verify here
                 return certificationCache.TryAdd(certHash, true);
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 Console.WriteLine("Cannot deserialize {0}, skipping.. {1}", path, e);
             }

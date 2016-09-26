@@ -263,14 +263,11 @@ namespace SVAuth.OAuth20
             // The SymT doesn't actually get used, but why not.
             var _AuthorizationRequest = SVX.SVX_Ops.Call(createAuthorizationRequest, context.client);
 
-            if (!BypassCertification)
-            {
-                // NOTE: We are assuming that the target URL used by
-                // marshalAuthorizationRequest belongs to the principal
-                // idpParticipantId.principal.  We haven't extended SVX enforcement
-                // that far yet.
-                messageStructures.authorizationRequest.Export(_AuthorizationRequest, context.client, idpParticipantId.principal);
-            }
+            // NOTE: We are assuming that the target URL used by
+            // marshalAuthorizationRequest belongs to the principal
+            // idpParticipantId.principal.  We haven't extended SVX enforcement
+            // that far yet.
+            messageStructures.authorizationRequest.Export(_AuthorizationRequest, context.client, idpParticipantId.principal);
             var rawReq = marshalAuthorizationRequest(_AuthorizationRequest);
 
             //set the referrer in the CurrentUrl cookie
