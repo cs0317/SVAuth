@@ -77,14 +77,10 @@ namespace SVAuth.ServiceProviders.Yahoo
 
         protected override OpenID20.FieldsExpectedToBeSigned RawVerifyAndExtract(string secretValue)
         {
-            // A possible bug could be exploited
-            // we sanitize the secretValue to avoid such bug
-            // 
-            // secretValue should be context.Request.QueryString.Value
-            // sanitize secretValue
-            // 1. Remove all openid.mode fields in the secretValue
-            // 2. Put openid.mode=check_authentication to the beginning of the secretValue
-            // 3. Append the sanitized secretValue to the SignatureValidationUrl
+            //To be more confident, we require a precondition when calling this method:  openid.ns == "http://specs.openid.net/auth/2.0"
+            //Currently, this condition is checked in a method inside OpenID20.cs, which is not natural, and might be dangerous if other developers add 
+            //another method to call this Yahoo signature validation method.
+            //ToDo: check openid.ns == "http://specs.openid.net/auth/2.0"  in this method.
             string patternOpenIdMode = @"openid\.mode=.*?\&";
             string patternFirstQuestionMark = @"^\?";
 
@@ -105,9 +101,10 @@ namespace SVAuth.ServiceProviders.Yahoo
                 aLine = strReader.ReadLine();
                 if (aLine != null)
                 {
-                    if (aLine=="is_valid:true")
+                    if (aLine == "is_valid:true")
                         break;
                 }
+                else break;
             }
             if (RawResponse.StatusCode != System.Net.HttpStatusCode.OK || aLine==null)
                 throw new Exception(); // TODO: Somewhere in the svAuth app we should catch this exception

@@ -298,7 +298,8 @@ namespace SVAuth.OpenID20
             Trace.Write("Login_CallbackAsync");
             var context = new SVAuthRequestContext(SVX_Principal, httpContext);
             AuthenticationResponse inputMSG = parse_AuthenticationResponse(context.http);
-
+            if (inputMSG.openid__ns != "http://specs.openid.net/auth/2.0")
+                throw new Exception("Openid.ns does not contain the expected value.");
             GetMessageStructures().authenticationResponse.ImportWithModel(inputMSG,
                  () => { idp.FakeAuthenticationEndpoint(dummyAuthenticationRequest, inputMSG); },
                 SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
