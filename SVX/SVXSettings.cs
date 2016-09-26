@@ -30,6 +30,8 @@ namespace SVX
 
         // cache folder to store existing certification requests
         public string SVXCacheFolderPath => Path.Combine(SVXFolderPath, "cache");
+        // a folder to store failed certification requests
+        public string SVXCacheFailedCertsFolderPath => Path.Combine(SVXFolderPath, "failed-certs");
 
         // If true, keep temporary VPrograms after verification for debugging
         // purposes.
