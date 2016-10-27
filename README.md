@@ -10,7 +10,7 @@ execution" (SVX). An earlier version of SVX, called "Certification of Symbolic
 Transactions", was described in
 [this paper](http://research.microsoft.com/apps/pubs/default.aspx?id=241150).
 
-[These slides](doc/presentation-20160811.pptx) provide a good overview of the
+[These slides](doc/EndOfInternshipTalk.pptx) provide a good overview of the
 motivation and design of SVAuth.
 
 ## Status notes
