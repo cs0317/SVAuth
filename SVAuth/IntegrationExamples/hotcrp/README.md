@@ -3,11 +3,6 @@
 Assuming a working installation of HotCRP is running at `http://localhost:8080`.
 The source tree directory is at `hotcrp` folder.
 
-## Demo video
-
-[Demo video](https://www.dropbox.com/s/3j325w6wytxgvie/hotcrp-fb-login.mov?dl=0)
-
-
 ## HotCRP configuration
 
 hotcrp/lib/login.php
