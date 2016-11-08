@@ -1,0 +1,29 @@
+# Prevent access to SCM directory, logs, test, README, regardless of case.
+RedirectMatch 403 ^.*/(\.[Gg][Ii][Tt].*|\.[Mm][Yy].*|[Rr][Ee][Aa][Dd][Mm][Ee].*|[Ff][Ii][Ll][Ee][Ss][Tt][Oo][Rr][Ee]|[Dd][Oo][Cc][Ss]|[Cc][Oo][Nn][Ff]|[Cc][Oo][Dd][Ee]|[Ll][Oo][Gg][Ss])($|/.*$)
+
+
+# Add .php to suffixless URLs.
+<IfModule mod_rewrite.c>
+RewriteEngine on
+RewriteBase /
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteCond %{REQUEST_URI} ^(.*)$
+RewriteRule ^[^/]*$ %1.php [L,NE]
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteCond %{REQUEST_URI},,$1,, ^(.*)(.*,,)\2$
+RewriteRule ^[^/]*(/.*)$ %1.php$1 [L,NE]
+</IfModule>
+
+# Uncomment this line to ONLY grant access via https.  Requires mod_ssl.
+#
+# SSLRequireSSL
+
+# HTTP Authentication: To ask the server to authenticate users,
+# uncomment these lines and set $Opt["httpAuthLogin"] in
+# conf/options.php. The $Opt["httpAuthLogin"] value should correspond
+# to your AuthType and AuthName (AuthName is the "realm").
+#
+# AuthType Basic
+# AuthName "HotCRP"
+# AuthUserFile FILENAME
+# Require valid-user

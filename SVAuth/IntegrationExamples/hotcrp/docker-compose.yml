@@ -1,0 +1,10 @@
+version: '2'
+services:
+  hotcrp:
+    build: hotcrp
+    ports:
+      - 8080:80
+    environment:
+      - MYSQL_PASS="admin"
+    volumes:
+      - /tmp/app:/app

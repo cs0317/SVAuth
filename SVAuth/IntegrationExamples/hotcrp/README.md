@@ -3,6 +3,17 @@
 Assuming a working installation of HotCRP is running at `http://localhost:8080`.
 The source tree directory is at `hotcrp` folder.
 
+## HotCRP docker image
+HotCRP docker file is included. To build and run the image:
+
+```
+docker-compose build
+docker-compose up -d
+docker-compose ps
+```
+
+The HotCRP should be running and listen on port `8080`
+
 ## HotCRP configuration
 
 hotcrp/lib/login.php
