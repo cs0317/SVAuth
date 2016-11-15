@@ -13,14 +13,6 @@ Transactions", was described in
 [These slides](doc/EndOfInternshipTalk.pptx) provide a good overview of the
 motivation and design of SVAuth.
 
-## Status notes
-
-* The relying party (RP) implementations for Facebook, Google, Microsoft, and
-  Yahoo all work and pass verification, but there's a known vulnerability in the
-  Yahoo RP (outside the scope of the verification), and we do not recommend
-  using any of the RP implementations for anything important until they have
-  received a more thorough security review.
-
 ## Building and running
 
 Currently we only test SVAuth on Windows. (Since the SVAuth agent is based on
