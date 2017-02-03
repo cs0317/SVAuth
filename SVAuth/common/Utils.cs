@@ -158,6 +158,7 @@ namespace SVAuth
                 redir_url = System.Net.WebUtility.UrlDecode(referer);
                 Console.WriteLine("referer=" + redir_url);
             }
+            context.http.Response.StatusCode = 303;
             context.http.Response.Redirect(redir_url);
         }
     }

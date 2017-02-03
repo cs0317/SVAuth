@@ -281,7 +281,7 @@ namespace SVAuth.OpenID20
             {
                 //there is already a set-cookie for LoginPageUrl
             };
-
+            context.http.Response.StatusCode = 303;
             context.http.Response.Redirect(rawReq);
 
             return Task.CompletedTask;
@@ -306,6 +306,7 @@ namespace SVAuth.OpenID20
             GenericAuth.AuthenticationConclusion conclusion = SVX_Ops.Call(createConclusion,inputMSG);
             if (conclusion == null)
             {
+                context.http.Response.StatusCode = 303;
                 context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
                 return;
             }

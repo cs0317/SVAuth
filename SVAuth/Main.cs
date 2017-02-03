@@ -115,6 +115,7 @@ namespace SVAuth
         // BCT WORKAROUND: lambdas ~ t-mattmc@microsoft.com 2016-06-15
         private static Task MainPageHandler(HttpContext context)
         {
+            context.Response.StatusCode = 303;
             context.Response.Redirect(Config.config.MainPageUrl + "?ReturnPort=" + Config.config.AgentSettings.port + "&scheme=" + Config.config.AgentSettings.scheme);
             return Task.CompletedTask;
         }

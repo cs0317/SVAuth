@@ -284,7 +284,7 @@ namespace SVAuth.OAuth20
             {
                 //there is already a set-cookie for LoginPageUrl
             };
-
+            context.http.Response.StatusCode = 303;
             context.http.Response.Redirect(rawReq);
 
             return Task.CompletedTask;

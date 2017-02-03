@@ -192,6 +192,7 @@ namespace SVAuth.OIDC10
             GenericAuth.AuthenticationConclusion conclusion = SVX_Ops.Call(createConclusionOidcImplicit,authenticationResponse_with_id_token);
             if (conclusion == null)
             {
+                context.http.Response.StatusCode = 303;
                 context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
                 return;
             }
