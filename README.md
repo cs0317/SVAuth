@@ -40,7 +40,8 @@ platform would be much more work, and we may or may not ever do it.)
    and ensure that this PHP version is enabled on the `SVAuth` virtual
    directory. One convenient way to do this is using
    [PHP Manager](https://phpmanager.codeplex.com/).
-9. Run the SVAuth project with Visual Studio. The example ASP.NET relying party
+9. In the project root directory, create a folder "svx-runtime-data" which contains a subfolder "vProgram"
+10. Run the SVAuth project with Visual Studio. The example ASP.NET relying party
    application will open in your default web browser.
 
 Note: `SVAuth.sln` contains dependency edges from `SVX` to the relevant BCT and
