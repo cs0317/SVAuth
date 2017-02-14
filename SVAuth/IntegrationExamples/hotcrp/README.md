@@ -15,7 +15,7 @@ docker-compose up -d
 docker-compose ps
 ```
 
-The HotCRP should be running and listen on port `8080`
+The HotCRP should be running and listen on port `8000`
 
 ## HotCRP configuration
 
