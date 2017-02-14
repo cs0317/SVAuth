@@ -1,7 +1,10 @@
 # HotCRP integration
 
-Assuming a working installation of HotCRP is running at `http://localhost:8080`.
-The source tree directory is at `hotcrp` folder.
+# Requirements
+A working installation of HotCRP is running at `http://localhost:8000`.
+The source tree directory is at `/opt/hotcrp` folder.
+SVAuth is running on at `https://localhost:4000`.
+Docker and docker-compose are installed.
 
 ## HotCRP docker image
 HotCRP docker file is included. To build and run the image:
@@ -16,6 +19,8 @@ The HotCRP should be running and listen on port `8080`
 
 ## HotCRP configuration
 
+### Clone hotcrp source tree and make following modifications
+
 hotcrp/lib/login.php
 
 ```php
@@ -29,17 +34,23 @@ hotcrp/lib/login.php
     }
 
     static function authjs_login_helper($email){
+        global $Conf;
         $user = Contact::find_by_email($email);
-        if (!$user){
+        if ($user){
+            return $user;
+        } else {
             $reg = Contact::safe_registration(array(
                 "email" => $email
             ));
             $reg->no_validate_email = true;
             if (($user = Contact::create($reg))){
+                if ($Conf->setting("setupPhase", false)){
+                    $user->save_roles(Contact::ROLE_ADMIN, null);
+                    $Conf->save_setting("setupPhase", null);
+                }
                 return $user;
             }
         }
-        return $user;
     }
 ```
 
@@ -61,12 +72,33 @@ else {
 ?>
 ```
 
+### Copy hotcrp source tree to /opt
 
-## svAuth configuration
+```
+cp -r hotcrp /opt
+```
+
+## Configure svAuth
 
 svAuth/config.json
 ```
-webappsetting.port = 8080
+  "__SECTION_1__": "This section configures the web server.",
+  "WebAppSettings": {
+    "hostname": "TODO: place your fqdn hostname here",
+    "scheme": "http",
+    "port": "8000",
+    "platform": {
+      "name": "php",
+      "fileExtension": "php"
+    }
+  },
+
+  "AgentSettings": {
+    "scheme": "https",
+    "port": "4000"
+  },
+
+
 ```
 
 svAuth/common/util.cs
@@ -79,4 +111,11 @@ abandonSessionRequest.Headers.Add("Cookie",
                         + ";" +
     "hotcrp=" + context.http.Request.Cookies["hotcrp"]
     );
+```
+
+## Run
+
+```
+cd svAuth/SVAuth
+dotnet run
 ```

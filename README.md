@@ -1,14 +1,16 @@
 # SVAuth: Self-verifying single-sign-on solutions
 
-This is an effort by
-[Matt McCutchen](mailto:%22Matt%20McCutchen%22%20%3Cmatt@mattmccutchen.net%3E)
+This is an effort
+by
+[Matt McCutchen](mailto:%22Matt%20McCutchen%22%20%3Cmatt@mattmccutchen.net%3E),
+[Phuong Cao](https://www.linkedin.com/in/pmcao),
 and [Shuo Chen](http://research.microsoft.com/en-us/people/shuochen/) to build a
 relying party framework that aims to accommodate all major web-based single
 sign-on (SSO) solutions. SVAuth is designed to be platform independent -- it
 works with PHP, ASP.NET, Python, etc. The framework enables "self-verifying
 execution" (SVX). An earlier version of SVX, called "Certification of Symbolic
-Transactions", was described in
-[this paper](http://research.microsoft.com/apps/pubs/default.aspx?id=241150).
+Transactions", was described
+in [this paper](http://research.microsoft.com/apps/pubs/default.aspx?id=241150).
 
 [These slides](doc/EndOfInternshipTalk.pptx) provide a good overview of the
 motivation and design of SVAuth.
