@@ -148,7 +148,7 @@ namespace SVAuth.OIDC10
             GetMessageStructures().authorizationResponse.ImportWithModel(authorizationResponse,
                () => { idp.FakeCodeEndpoint(dummyAuthorizationRequest, authorizationResponse); },
                 SVX.Channel.GenerateNew(SVX_Principal),  // unknown producer
-                context.client);
+                context.channel);
             /*GetMessageStructures().authorizationResponse.Import(authenticationResponse,
                 SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
                 context.client);*/
@@ -186,7 +186,7 @@ namespace SVAuth.OIDC10
             GetMessageStructures().authenticationResponse_with_id_token.ImportWithModel(authenticationResponse_with_id_token,
                 () => { idp.FakeImplicitFlowIDTokenEndpoint(dummyAuthorizationRequest, authenticationResponse_with_id_token); },
                 SVX.Channel.GenerateNew(SVX_Principal),  // unknown producer
-                context.client);
+                context.channel);
             Trace.Write("Got Valid AuthenticationResponse");
 
             GenericAuth.AuthenticationConclusion conclusion = SVX_Ops.Call(createConclusionOidcImplicit,authenticationResponse_with_id_token);
@@ -234,7 +234,7 @@ namespace SVAuth.OIDC10
 
         public class IdPAuthenticationEntry : SVX.SVX_MSG
         {
-            public SVX.Principal authenticatedClient;
+            public SVX.Principal channel;
             public string userID;
         }
 
@@ -283,7 +283,7 @@ namespace SVAuth.OIDC10
             internal IdPAuthenticationEntry entry;
             internal void Declare()
             {
-                outer.SignedInPredicate.Declare(SVX.VProgram_API.UnderlyingPrincipal(entry.authenticatedClient), entry.userID);
+                outer.BrowserOwnedBy.Declare(SVX.VProgram_API.Owner(entry.channel), entry.userID);
             }
         }
 
@@ -291,7 +291,7 @@ namespace SVAuth.OIDC10
         {
             var d = new SignedInDeclarer { outer = this, entry = entry };
             SVX.SVX_Ops.Ghost(d.Declare);
-            SVX.VProgram_API.AssumeActsFor(entry.authenticatedClient,
+            SVX.VProgram_API.AssumeActsFor(entry.channel,
                 GenericAuth.GenericAuthStandards.GetIdPUserPrincipal(SVX_Principal, entry.userID));
             // Reuse the message... Should be able to get away with it.
             return entry;
@@ -302,7 +302,7 @@ namespace SVAuth.OIDC10
             // In the real CodeEndpoint, we would request an
             // IdPAuthenticationEntry for req.SVX_sender, but SVX doesn't know
             // that, so we have to do a concrete check.
-            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.authenticatedClient);
+            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.channel);
 
             // Copy/paste: [With this expression inlined below, BCT silently mistranslated the code.]
             var theParams = new AuthorizationCodeParams
@@ -323,7 +323,7 @@ namespace SVAuth.OIDC10
             // In the real ImplicitFlowIDTokenEndpoint, we would request an
             // IdPAuthenticationEntry for req.SVX_sender, but SVX doesn't know
             // that, so we have to do a concrete check.
-            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.authenticatedClient);
+            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.channel);
 
             return MakeJwtTokenBody(req.client_id, idpConc.userID);
         }

@@ -346,7 +346,7 @@ namespace SVX
         }
 
         [BCTOmitImplementation]
-        public static Entity UnderlyingPrincipal(Principal ph)
+        public static Entity Owner(Principal ph)
         {
             throw new NotImplementedException();
         }

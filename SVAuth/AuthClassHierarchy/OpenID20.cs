@@ -254,12 +254,12 @@ namespace SVAuth.OpenID20
         {
             var context = new SVAuthRequestContext(SVX_Principal, httpContext);
 
-            var _AuthenticationRequest = SVX.SVX_Ops.Call(createAuthenticationRequest, context.client);
+            var _AuthenticationRequest = SVX.SVX_Ops.Call(createAuthenticationRequest, context.channel);
             // NOTE: We are assuming that the target URL used by
             // marshalAuthorizationRequest belongs to the principal
             // idpParticipantId.principal.  We haven't extended SVX enforcement
             // that far yet.
-            GetMessageStructures().authenticationRequest.Export(_AuthenticationRequest, context.client, idpParticipantId.principal);
+            GetMessageStructures().authenticationRequest.Export(_AuthenticationRequest, context.channel, idpParticipantId.principal);
 
             // Move CSRF_state into return_to.
             _AuthenticationRequest.openid__return_to += "?CSRF_state=" + Uri.EscapeDataString(_AuthenticationRequest.CSRF_state.Export());
@@ -300,7 +300,7 @@ namespace SVAuth.OpenID20
             GetMessageStructures().authenticationResponse.ImportWithModel(inputMSG,
                  () => { idp.FakeAuthenticationEndpoint(dummyAuthenticationRequest, inputMSG); },
                 SVX.Channel.GenerateNew(SVX_Principal),  // unknown producer
-                 context.client);
+                 context.channel);
             Trace.Write("Got Valid AuthenticationResponse");
 
             GenericAuth.AuthenticationConclusion conclusion = SVX_Ops.Call(createConclusion,inputMSG);
@@ -335,7 +335,7 @@ namespace SVAuth.OpenID20
         }
         public class IdPAuthenticationEntry : SVX.SVX_MSG
         {
-            public SVX.Principal authenticatedClient;
+            public SVX.Principal channel;
             public string userID;
         }
 
@@ -368,7 +368,7 @@ namespace SVAuth.OpenID20
             internal IdPAuthenticationEntry entry;
             internal void Declare()
             {
-                outer.SignedInPredicate.Declare(SVX.VProgram_API.UnderlyingPrincipal(entry.authenticatedClient), entry.userID);
+                outer.BrowserOwnedBy.Declare(SVX.VProgram_API.Owner(entry.channel), entry.userID);
             }
         }
 
@@ -376,7 +376,7 @@ namespace SVAuth.OpenID20
         {
             var d = new SignedInDeclarer { outer = this, entry = entry };
             SVX.SVX_Ops.Ghost(d.Declare);
-            SVX.VProgram_API.AssumeActsFor(entry.authenticatedClient,
+            SVX.VProgram_API.AssumeActsFor(entry.channel,
                 GenericAuth.GenericAuthStandards.GetIdPUserPrincipal(SVX_Principal, entry.userID));
             // Reuse the message... Should be able to get away with it.
             return entry;
@@ -386,7 +386,7 @@ namespace SVAuth.OpenID20
             // In the real AuthenticationEndpoint, we would request an
             // IdPAuthenticationEntry for req.SVX_sender, but SVX doesn't know
             // that, so we have to do a concrete check.
-            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.authenticatedClient);
+            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.channel);
 
             return MakeSignedFields(req.openid__realm, idpConc.userID, req.openid__return_to, req.CSRF_state);
         }

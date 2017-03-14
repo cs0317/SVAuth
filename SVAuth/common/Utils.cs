@@ -173,7 +173,7 @@ namespace SVAuth
         // implementation of the server side of a server-to-server call, we'll
         // need an option to disable cookies and just generate a random facet
         // every time.
-        public readonly SVX.Channel client;
+        public readonly SVX.Channel channel;
 
         const string cookieName = "SVAuthSessionID";
 
@@ -193,7 +193,7 @@ namespace SVAuth
             // session ID and compute the session cookie as an HMAC, but
             // this is a little easier.
             string publicSessionId = Utils.Digest(sessionId);
-            client = SVX.Channel.Of(serverPrincipal, publicSessionId);
+            channel = SVX.Channel.Of(serverPrincipal, publicSessionId);
         }
     }
 }

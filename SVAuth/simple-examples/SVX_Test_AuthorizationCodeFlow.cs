@@ -159,7 +159,7 @@ namespace SVAuth
                 internal IdPAuthenticationEntry entry;
                 internal void Declare()
                 {
-                    outer.SignedInPredicate.Declare(VProgram_API.UnderlyingPrincipal(entry.authenticatedClient), entry.googleUsername);
+                    outer.SignedInPredicate.Declare(VProgram_API.Owner(entry.authenticatedClient), entry.googleUsername);
                 }
             }
 
@@ -363,7 +363,7 @@ namespace SVAuth
                 VProgram_API.AssumeTrustedBrowser(conc.authenticatedClient);
 
                 var idp = VProgram_API.GetParticipant<Google_IdP>(googlePrincipal);
-                return idp.Ghost_CheckSignedIn(VProgram_API.UnderlyingPrincipal(conc.authenticatedClient), conc.googleUsername);
+                return idp.Ghost_CheckSignedIn(VProgram_API.Owner(conc.authenticatedClient), conc.googleUsername);
             }
         }
 

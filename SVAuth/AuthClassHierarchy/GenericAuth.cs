@@ -39,11 +39,11 @@ namespace SVAuth.GenericAuth
         // A few definitions that are needed by the RP.  Wait and see if we need
         // to make them virtual.
 
-        protected SVX.DeclarablePredicate<SVX.Entity /*underlying client*/, string /*username*/> SignedInPredicate
+        protected SVX.DeclarablePredicate<SVX.Entity /*underlying client*/, string /*username*/> BrowserOwnedBy
             = new SVX.DeclarablePredicate<SVX.Entity, string>();
 
-        public bool Ghost_CheckSignedIn(SVX.Entity underlyingPrincipal, string userID) =>
-            SignedInPredicate.Check(underlyingPrincipal, userID);
+        public bool Ghost_CheckSignedIn(SVX.Entity browser, string userID) =>
+            BrowserOwnedBy.Check(browser, userID);
 
     }
 
@@ -77,8 +77,8 @@ namespace SVAuth.GenericAuth
 
         public async Task AuthenticationDone(AuthenticationConclusion conclusion, SVAuthRequestContext context)
         {
-            if (context.client != conclusion.channel)
-                throw new Exception("Attempt to apply an AuthenticationConclusion to the wrong session.");
+            if (context.channel != conclusion.channel)
+                throw new Exception("Attempt to apply an AuthenticationConclusion to the wrong channel.");
 
             if (!BypassCertification)
             {
@@ -107,7 +107,7 @@ namespace SVAuth.GenericAuth
             SVX.VProgram_API.AssumeTrustedServer(SVX_Principal);
             SVX.VProgram_API.AssumeTrustedBrowser(conc.channel);
 
-            return idp.Ghost_CheckSignedIn(SVX.VProgram_API.UnderlyingPrincipal(conc.channel), conc.userProfile.UserID);
+            return idp.Ghost_CheckSignedIn(SVX.VProgram_API.Owner(conc.channel), conc.userProfile.UserID);
         }
     }
 

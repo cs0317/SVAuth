@@ -261,13 +261,13 @@ namespace SVAuth.OAuth20
             var context = new SVAuthRequestContext(SVX_Principal, httpContext);
 
             // The SymT doesn't actually get used, but why not.
-            var _AuthorizationRequest = SVX.SVX_Ops.Call(createAuthorizationRequest, context.client);
+            var _AuthorizationRequest = SVX.SVX_Ops.Call(createAuthorizationRequest, context.channel);
 
             // NOTE: We are assuming that the target URL used by
             // marshalAuthorizationRequest belongs to the principal
             // idpParticipantId.principal.  We haven't extended SVX enforcement
             // that far yet.
-            messageStructures.authorizationRequest.Export(_AuthorizationRequest, context.client, idpParticipantId.principal);
+            messageStructures.authorizationRequest.Export(_AuthorizationRequest, context.channel, idpParticipantId.principal);
             var rawReq = marshalAuthorizationRequest(_AuthorizationRequest);
 
             //set the referrer in the CurrentUrl cookie
@@ -311,7 +311,7 @@ namespace SVAuth.OAuth20
             messageStructures.authorizationResponse.ImportWithModel(authorizationResponse,
                 () => { idp.FakeCodeEndpoint(dummyAuthorizationRequest, authorizationResponse); },
                 SVX.Channel.GenerateNew(SVX_Principal),  // unknown producer
-                context.client);
+                context.channel);
 
             var accessTokenRequest = SVX.SVX_Ops.Call(createAccessTokenRequest, authorizationResponse);
 
@@ -439,7 +439,7 @@ namespace SVAuth.OAuth20
 
         public class IdPAuthenticationEntry : SVX.SVX_MSG
         {
-            public SVX.Principal authenticatedClient;
+            public SVX.Principal channel;
             public string userID;
         }
 
@@ -473,7 +473,7 @@ namespace SVAuth.OAuth20
             internal IdPAuthenticationEntry entry;
             internal void Declare()
             {
-                outer.SignedInPredicate.Declare(SVX.VProgram_API.UnderlyingPrincipal(entry.authenticatedClient), entry.userID);
+                outer.BrowserOwnedBy.Declare(SVX.VProgram_API.Owner(entry.channel), entry.userID);
             }
         }
 
@@ -481,7 +481,7 @@ namespace SVAuth.OAuth20
         {
             var d = new SignedInDeclarer { outer = this, entry = entry };
             SVX.SVX_Ops.Ghost(d.Declare);
-            SVX.VProgram_API.AssumeActsFor(entry.authenticatedClient,
+            SVX.VProgram_API.AssumeActsFor(entry.channel,
                 GenericAuth.GenericAuthStandards.GetIdPUserPrincipal(SVX_Principal, entry.userID));
             // Reuse the message... Should be able to get away with it.
             return entry;
@@ -492,7 +492,7 @@ namespace SVAuth.OAuth20
             // In the real CodeEndpoint, we would request an
             // IdPAuthenticationEntry for req.SVX_sender, but SVX doesn't know
             // that, so we have to do a concrete check.
-            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.authenticatedClient);
+            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.channel);
 
             // Copy/paste: [With this expression inlined below, BCT silently mistranslated the code.]
             var theParams = new AuthorizationCodeParams

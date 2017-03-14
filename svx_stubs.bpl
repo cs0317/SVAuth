@@ -66,9 +66,9 @@ implementation {:inline 1} SVX.Principal.op_Inequality$SVX.Principal$SVX.Princip
 // var F$SVX.VProgram_API.trustedPrincipal : Ref;
 
 // We don't care what this returns for Refs that aren't Principals.
-function UnderlyingPrincipal(principalHandle: Ref) : Ref;
-axiom (forall p: Ref :: $DynamicType(UnderlyingPrincipal(p)) == T$SVX.Entity());
-axiom (forall p: Ref :: $DynamicType(p) == T$SVX.Entity() ==> UnderlyingPrincipal(p) == p);
+function Owner(principalHandle: Ref) : Ref;
+axiom (forall p: Ref :: $DynamicType(Owner(p)) == T$SVX.Entity());
+axiom (forall p: Ref :: $DynamicType(p) == T$SVX.Entity() ==> Owner(p) == p);
 
 // Meaningful for principals only.  Note, we do not assume antisymmetry.
 //
@@ -82,12 +82,12 @@ axiom (forall x, y, z: Ref :: {PrincipalActsFor(x, y), PrincipalActsFor(y, z)}
   PrincipalActsFor(x, y) && PrincipalActsFor(y, z) ==> PrincipalActsFor(x, z));
 
 function ActsFor(actorHandle: Ref, targetHandle: Ref) : bool {
-  PrincipalActsFor(UnderlyingPrincipal(actorHandle), UnderlyingPrincipal(targetHandle))
+  PrincipalActsFor(Owner(actorHandle), Owner(targetHandle))
 }
 
-implementation SVX.VProgram_API.UnderlyingPrincipal$SVX.Principal(ph$in: Ref) returns ($result: Ref)
+implementation SVX.VProgram_API.Owner$SVX.Principal(ph$in: Ref) returns ($result: Ref)
 {
-  $result := UnderlyingPrincipal(ph$in);
+  $result := Owner(ph$in);
 }
 
 implementation SVX.VProgram_API.ActsFor$SVX.Principal$SVX.Principal(actor$in: Ref, target$in: Ref) returns ($result: bool)
@@ -97,7 +97,7 @@ implementation SVX.VProgram_API.ActsFor$SVX.Principal$SVX.Principal(actor$in: Re
 
 implementation SVX.VProgram_API.AssumeNoOneElseActsFor$SVX.Principal(ph$in: Ref)
 {
-  assume (forall actor: Ref :: ActsFor(actor, ph$in) ==> UnderlyingPrincipal(actor) == UnderlyingPrincipal(ph$in));
+  assume (forall actor: Ref :: ActsFor(actor, ph$in) ==> Owner(actor) == Owner(ph$in));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
