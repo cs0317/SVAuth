@@ -10,7 +10,7 @@ namespace SVAuth.ServiceProviders.Microsoft
    
     public class MicrosoftAzureAD_RP : Microsoft_RP
     {
-        public MicrosoftAzureAD_RP(SVX.Principal rpPrincipal, string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null, string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string stateKey = null)
+        public MicrosoftAzureAD_RP(SVX.Entity rpPrincipal, string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null, string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string stateKey = null)
         : base(rpPrincipal, client_id1, redierct_uri1, client_secret1, AuthorizationEndpointUrl1, TokenEndpointUrl1,stateKey)
         {
         }

@@ -32,7 +32,7 @@ namespace SVAuth.ServiceProviders.Microsoft
         internal MicrosoftJwTTokenGenerator MicrosoftJwTTokenGenerator = new MicrosoftJwTTokenGenerator();
         protected override OIDC10.OIDCTokenVerifier getTokenVerifier()
         { return MicrosoftJwTTokenGenerator; }
-        public MessageStructures(SVX.Principal idpPrincipal) : base(idpPrincipal) { }
+        public MessageStructures(SVX.Entity idpPrincipal) : base(idpPrincipal) { }
     }
 
     public class MicrosoftJwTTokenGenerator : OIDC10.OIDCTokenVerifier
@@ -57,7 +57,7 @@ namespace SVAuth.ServiceProviders.Microsoft
 
     public class Microsoft_RP: OIDC10.RelyingParty
     {
-        public Microsoft_RP(SVX.Principal rpPrincipal, string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null, string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string stateKey = null)
+        public Microsoft_RP(SVX.Entity rpPrincipal, string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null, string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string stateKey = null)
         : base(rpPrincipal, client_id1, redierct_uri1, client_secret1, AuthorizationEndpointUrl1, TokenEndpointUrl1,stateKey)
         {
         }
@@ -83,7 +83,7 @@ namespace SVAuth.ServiceProviders.Microsoft
             routeBuilder.MapRoute("login/Microsoft", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/Microsoft", RP.AuthorizationCodeFlow_Login_CallbackAsync);
         }
-        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.PrincipalFacet client)
+        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.Channel client)
         {
             AuthenticationRequest AuthenticationRequest = new AuthenticationRequest();
             AuthenticationRequest.client_id = client_id;
@@ -142,7 +142,7 @@ namespace SVAuth.ServiceProviders.Microsoft
             OIDC10.TokenResponse tokenResponse)
         {
             var AuthConclusion = new GenericAuth.AuthenticationConclusion();
-            AuthConclusion.authenticatedClient = authorizationResponse.SVX_sender;
+            AuthConclusion.channel = authorizationResponse.SVX_sender;
             var userProfile = new MSUserProfile();
             MSJwtToken jwtToken = (MSJwtToken)tokenResponse.id_token.theParams;
             
@@ -162,8 +162,8 @@ namespace SVAuth.ServiceProviders.Microsoft
     }
     public class Microsoft_IdP : ModelOIDCAuthenticationServer
     {
-        public static Principal MicrosoftPrincipal = SVX.Principal.Of("login.microsoftonline.com");
-        public Microsoft_IdP(Principal idpPrincipal) : base(idpPrincipal)
+        public static Entity MicrosoftPrincipal = SVX.Entity.Of("login.microsoftonline.com");
+        public Microsoft_IdP(Entity idpPrincipal) : base(idpPrincipal)
         {
         }
 

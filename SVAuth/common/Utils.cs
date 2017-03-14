@@ -173,14 +173,14 @@ namespace SVAuth
         // implementation of the server side of a server-to-server call, we'll
         // need an option to disable cookies and just generate a random facet
         // every time.
-        public readonly SVX.PrincipalFacet client;
+        public readonly SVX.Channel client;
 
         const string cookieName = "SVAuthSessionID";
 
         // This will automatically set an agent cookie if the client did not
         // pass one.  Call it only once on a given HttpContext, because it
         // isn't smart enough to check if there's already a Set-Cookie.
-        public SVAuthRequestContext(SVX.Principal serverPrincipal, HttpContext httpContext)
+        public SVAuthRequestContext(SVX.Entity serverPrincipal, HttpContext httpContext)
         {
             http = httpContext;
             string sessionId;
@@ -193,7 +193,7 @@ namespace SVAuth
             // session ID and compute the session cookie as an HMAC, but
             // this is a little easier.
             string publicSessionId = Utils.Digest(sessionId);
-            client = SVX.PrincipalFacet.Of(serverPrincipal, publicSessionId);
+            client = SVX.Channel.Of(serverPrincipal, publicSessionId);
         }
     }
 }

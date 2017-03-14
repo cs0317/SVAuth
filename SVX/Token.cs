@@ -73,7 +73,7 @@ namespace SVX
 
         internal string secretValue;
         // Null means we are importing and haven't determined it yet.
-        internal PrincipalHandle[] knownReaders;
+        internal Principal[] knownReaders;
 
         internal bool exportApproved;
 
@@ -178,7 +178,7 @@ namespace SVX
         //
         // Workaround for BCT/CCI not understanding that "GetReaders(SSOSecretParams)"
         // overrides "GetReaders(TParams)". ~ t-mattmc@microsoft.com 2016-07-11
-        protected abstract PrincipalHandle[] GetReaders(object/*TParams*/ theParams);
+        protected abstract Principal[] GetReaders(object/*TParams*/ theParams);
 
         [BCTOmitImplementation]
         string RawGenerateWrapper(TParams theParams)
@@ -189,7 +189,7 @@ namespace SVX
         // TODO: In the real SVX API, currentPrincipal should be an ambient
         // variable of some kind (maybe not global if we want to run tests that
         // simulate multiple principals in the same process).
-        public Secret Generate(TParams theParams, Principal currentPrincipal)
+        public Secret Generate(TParams theParams, Entity currentPrincipal)
         {
             var readers = GetReaders(theParams);
             if (!VProgram_API.InVProgram)
@@ -224,7 +224,7 @@ namespace SVX
 
     public abstract class MessagePayloadSecretGenerator<TMessage> where TMessage : SVX_MSG
     {
-        protected internal abstract PrincipalHandle Signer { get; }
+        protected internal abstract Principal Signer { get; }
 
         protected abstract string RawGenerate(TMessage message);
         protected abstract TMessage RawExtractUnverified(string secretValue);
@@ -233,7 +233,7 @@ namespace SVX
         protected abstract TMessage RawVerifyAndExtract(string secretValue);
 
         // Should return a new array each time.
-        protected internal abstract PrincipalHandle[] GetReaders(object/*TMessage*/ message);
+        protected internal abstract Principal[] GetReaders(object/*TMessage*/ message);
 
         [BCTOmitImplementation]
         string RawGenerateWrapper(TMessage message)
@@ -253,7 +253,7 @@ namespace SVX
             return RawVerifyAndExtract(secretValue);
         }
 
-        public PayloadSecret<TMessage> Generate(TMessage message, Principal currentPrincipal)
+        public PayloadSecret<TMessage> Generate(TMessage message, Entity currentPrincipal)
         {
             var readers = GetReaders(message);
             // None of these checks are really the business of the vProgram, and

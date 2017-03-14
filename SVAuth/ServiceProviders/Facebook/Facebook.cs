@@ -37,7 +37,7 @@ namespace SVAuth.ServiceProviders.Facebook
     public class Facebook_RP : OAuth20.Client
     {
         public string UserProfileUrl;
-        public Facebook_RP(SVX.Principal rpPrincipal,
+        public Facebook_RP(SVX.Entity rpPrincipal,
             string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null,
             string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string UserProfileUrl1 = null,
             string stateKey = null)
@@ -55,7 +55,7 @@ namespace SVAuth.ServiceProviders.Facebook
         // Facebook with only a hook remaining in OAuth20.)
 
         /*** implementing the methods for AuthorizationRequest ***/
-        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.PrincipalFacet client)
+        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.Channel client)
         {
             var authorizationRequest = new FBAuthorizationRequest();
             authorizationRequest.client_id = client_id;      
@@ -125,7 +125,7 @@ namespace SVAuth.ServiceProviders.Facebook
         {
             var fbUserProfileResponse = (FBUserProfileResponse)userProfileResponse;
             var conclusion = new GenericAuth.AuthenticationConclusion();
-            conclusion.authenticatedClient = authorizationResponse.SVX_sender;
+            conclusion.channel = authorizationResponse.SVX_sender;
             var fbUserProfile = new FBUserProfile();
             fbUserProfile.UserID = fbUserProfileResponse.email;
             fbUserProfile.Email = fbUserProfileResponse.email;
@@ -154,14 +154,14 @@ namespace SVAuth.ServiceProviders.Facebook
     public class Facebook_IdP : OAuth20.ModelAuthorizationServer
     {
 
-        public Facebook_IdP(SVX.Principal idpPrincipal)
+        public Facebook_IdP(SVX.Entity idpPrincipal)
             : base(idpPrincipal)
         {
             // We only support facebookPrincipal.
             Contract.Assert(idpPrincipal == facebookPrincipal);
         }
 
-        public static SVX.Principal facebookPrincipal = SVX.Principal.Of("facebook.com");
+        public static SVX.Entity facebookPrincipal = SVX.Entity.Of("facebook.com");
 
         public override OAuth20.UserProfileResponse CreateUserProfileResponse(string userID)
         {

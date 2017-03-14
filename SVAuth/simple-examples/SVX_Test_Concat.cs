@@ -27,7 +27,7 @@ namespace SVAuth
             public string first, second, third, output;
         }
 
-        public SVX_Test_Concat(Principal principal) : base(principal) { }
+        public SVX_Test_Concat(Entity principal) : base(principal) { }
 
         // This is going to be an SVX method.
         public Concat2Response Concat2(Concat2Request req)
@@ -52,12 +52,12 @@ namespace SVAuth
         public Concat3Response AssumeProducerActsForAlice(Concat3Response x)
         {
             // For testing.  Wanted: a cleaner way to get this into the SymT!
-            VProgram_API.AssumeActsFor(x.SVX_producer, Principal.Of("Carol"));
-            VProgram_API.AssumeActsFor(Principal.Of("Carol"), Principal.Of("Alice"));
+            VProgram_API.AssumeActsFor(x.SVX_producer, Entity.Of("Carol"));
+            VProgram_API.AssumeActsFor(Entity.Of("Carol"), Entity.Of("Alice"));
             return x;
         }
         public bool Predicate(Concat3Response resp) {
-            VProgram_API.AssumeTrusted(Principal.Of("Alice"));
+            VProgram_API.AssumeTrusted(Entity.Of("Alice"));
             var tmp = resp.first + resp.second;
             var expected = tmp + resp.third;
             return expected == resp.output;
@@ -65,8 +65,8 @@ namespace SVAuth
         [BCTOmitImplementation]
         public static void Test()
         {
-            var alice = Principal.Of("Alice");
-            var bob = Principal.Of("Bob");
+            var alice = Entity.Of("Alice");
+            var bob = Entity.Of("Bob");
             var p = new SVX_Test_Concat(alice);
 
             var req1 = new Concat2Request("A", "B");
@@ -75,8 +75,8 @@ namespace SVAuth
             var resp2 = SVX_Ops.Call(p.Concat2, req2);
             var chainResp = SVX_Ops.Call(p.Chain, resp1, resp2);
 
-            var producer = PrincipalFacet.GenerateNew(bob);
-            var sender = PrincipalFacet.GenerateNew(bob);
+            var producer = Channel.GenerateNew(bob);
+            var sender = Channel.GenerateNew(bob);
             SVX_Ops.TransferForTesting(chainResp, producer, sender);
 
             // Demonstrate that we can assume acts-for relationships and that

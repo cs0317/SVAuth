@@ -25,7 +25,7 @@ namespace SVX
     [JsonObject(MemberSerialization.Fields)]
     class SymTParticipantId
     {
-        internal Principal principal;
+        internal Entity principal;
         internal string typeFullName;
 
         public override bool Equals(object other)
@@ -132,7 +132,7 @@ namespace SVX
         // in case it is a direct client that we're going to replace.  Let's do
         // the same for the sender to maintain consistency.  Facets get erased
         // when we actually prepare a CertificationRequest.
-        internal PrincipalHandle producer, sender;
+        internal Principal producer, sender;
 
         internal bool browserOnly;
 

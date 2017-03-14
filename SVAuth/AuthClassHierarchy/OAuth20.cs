@@ -16,8 +16,8 @@ namespace SVAuth.OAuth20
 {
     static class OAuth20Standards
     {
-        public static SVX.Principal OAuthClientIDPrincipal(SVX.Principal idpPrincipal, string clientID) =>
-          SVX.Principal.Of(idpPrincipal.name + ":" + clientID);
+        public static SVX.Entity OAuthClientIDPrincipal(SVX.Entity idpPrincipal, string clientID) =>
+          SVX.Entity.Of(idpPrincipal.name + ":" + clientID);
     }
 
     /***********************************************************/
@@ -93,21 +93,21 @@ namespace SVAuth.OAuth20
         public readonly SVX.MessageStructure<UserProfileRequest> userProfileRequest;
         public readonly SVX.MessageStructure<UserProfileResponse> userProfileResponse;
 
-        public MessageStructures(SVX.Principal idpPrincipal)
+        public MessageStructures(SVX.Entity idpPrincipal)
         {
             authorizationRequest = new SVX.MessageStructure<AuthorizationRequest> { BrowserOnly = true };
             authorizationRequest.AddSecret(nameof(AuthorizationRequest.state),
-                (msg) => new SVX.PrincipalHandle[] { GenericAuth.GenericAuthStandards.GetUrlTargetPrincipal(msg.redirect_uri) });
+                (msg) => new SVX.Principal[] { GenericAuth.GenericAuthStandards.GetUrlTargetPrincipal(msg.redirect_uri) });
 
             authorizationResponse = new SVX.MessageStructure<AuthorizationResponse> { BrowserOnly = true };
             authorizationResponse.AddSecret(nameof(AuthorizationResponse.state),
-                (msg) => new SVX.PrincipalHandle[] { });
+                (msg) => new SVX.Principal[] { });
             authorizationResponse.AddSecret(nameof(AuthorizationResponse.code),
-                (msg) => new SVX.PrincipalHandle[] { idpPrincipal });
+                (msg) => new SVX.Principal[] { idpPrincipal });
 
             accessTokenRequest = new SVX.MessageStructure<AccessTokenRequest>();
             accessTokenRequest.AddSecret(nameof(AccessTokenRequest.code),
-                (msg) => new SVX.PrincipalHandle[] { });
+                (msg) => new SVX.Principal[] { });
 
             accessTokenResponse = new SVX.MessageStructure<AccessTokenResponse>();
 
@@ -130,10 +130,10 @@ namespace SVAuth.OAuth20
 
         // We expect this to be a facet issued by the RP.
         [JsonProperty(Order = 0)]
-        public SVX.PrincipalHandle client;
+        public SVX.Principal client;
 
         [JsonProperty(Order = 1)]
-        public SVX.Principal idpPrincipal;
+        public SVX.Entity idpPrincipal;
     }
 
     // This class demonstrates how to use an HMAC, which is the easiest,
@@ -142,20 +142,20 @@ namespace SVAuth.OAuth20
     // once and enforce an expiration time, etc.
     class StateGenerator : SVX.SecretGenerator<StateParams>
     {
-        readonly SVX.Principal rpPrincipal;
+        readonly SVX.Entity rpPrincipal;
         readonly string key;
 
         // TODO: Get the key lazily once SVX supports the "prod context".
-        internal StateGenerator(SVX.Principal rpPrincipal, string key)
+        internal StateGenerator(SVX.Entity rpPrincipal, string key)
         {
             this.rpPrincipal = rpPrincipal;
             this.key = key;
         }
 
-        protected override SVX.PrincipalHandle[] GetReaders(object theParams)
+        protected override SVX.Principal[] GetReaders(object theParams)
         {
             var params2 = (StateParams)theParams;
-            return new SVX.PrincipalHandle[] { params2.idpPrincipal, rpPrincipal, params2.client };
+            return new SVX.Principal[] { params2.idpPrincipal, rpPrincipal, params2.client };
         }
 
         protected override string RawGenerate(StateParams theParams)
@@ -192,7 +192,7 @@ namespace SVAuth.OAuth20
         internal StateGenerator stateGenerator;
 
         // Why are the parameters optional?  I don't see how this class can work without them. ~ t-mattmc@microsoft.com 2016-05-31
-        public Client(SVX.Principal rpPrincipal,
+        public Client(SVX.Entity rpPrincipal,
             string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null,
             string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null,
             string stateKey = null)
@@ -234,7 +234,7 @@ namespace SVAuth.OAuth20
             SVX.ParticipantId.Of(CreateModelAuthorizationServer());
 
         /*** Methods about AuthorizationRequest ***/
-        public abstract AuthorizationRequest createAuthorizationRequest(SVX.PrincipalFacet client);
+        public abstract AuthorizationRequest createAuthorizationRequest(SVX.Channel client);
         public abstract string /*Uri*/ marshalAuthorizationRequest(AuthorizationRequest authorizationRequest);
 
         /*** Methods about AccessTokenRequest ***/
@@ -310,7 +310,7 @@ namespace SVAuth.OAuth20
 
             messageStructures.authorizationResponse.ImportWithModel(authorizationResponse,
                 () => { idp.FakeCodeEndpoint(dummyAuthorizationRequest, authorizationResponse); },
-                SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
+                SVX.Channel.GenerateNew(SVX_Principal),  // unknown producer
                 context.client);
 
             var accessTokenRequest = SVX.SVX_Ops.Call(createAccessTokenRequest, authorizationResponse);
@@ -353,22 +353,22 @@ namespace SVAuth.OAuth20
 
     public class AuthorizationCodeGenerator : SVX.SecretGenerator<AuthorizationCodeParams>
     {
-        readonly SVX.Principal idpPrincipal;
+        readonly SVX.Entity idpPrincipal;
 
         // Since this isn't a MessagePayloadSecretGenerator used with "verify on
         // import", we don't have to worry about it having a default constructor
         // for the time being, so we can do this, which leaves a little less
         // boilerplate in concrete model IdPs than subclassing
         // AuthorizationCodeGenerator and overriding a propertly.
-        public AuthorizationCodeGenerator(SVX.Principal idpPrincipal)
+        public AuthorizationCodeGenerator(SVX.Entity idpPrincipal)
         {
             this.idpPrincipal = idpPrincipal;
         }
 
-        protected override SVX.PrincipalHandle[] GetReaders(object theParams)
+        protected override SVX.Principal[] GetReaders(object theParams)
         {
             var params2 = (AuthorizationCodeParams)theParams;
-            return new SVX.Principal[] {
+            return new SVX.Entity[] {
                 idpPrincipal,
                 GenericAuth.GenericAuthStandards.GetUrlTargetPrincipal(params2.redirect_uri),
                 GenericAuth.GenericAuthStandards.GetIdPUserPrincipal(idpPrincipal, params2.userID),
@@ -430,7 +430,7 @@ namespace SVAuth.OAuth20
         readonly AuthorizationCodeGenerator authorizationCodeGenerator;
         readonly AccessTokenGenerator accessTokenGenerator = new AccessTokenGenerator();
 
-        public ModelAuthorizationServer(SVX.Principal idpPrincipal)
+        public ModelAuthorizationServer(SVX.Entity idpPrincipal)
             : base(idpPrincipal)
         {
             // Initialization order restriction
@@ -439,7 +439,7 @@ namespace SVAuth.OAuth20
 
         public class IdPAuthenticationEntry : SVX.SVX_MSG
         {
-            public SVX.PrincipalHandle authenticatedClient;
+            public SVX.Principal authenticatedClient;
             public string userID;
         }
 
@@ -452,8 +452,8 @@ namespace SVAuth.OAuth20
             // request a code.  We don't care about the value of
             // req.response_type in its own right.
 
-            var producer = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
-            var client = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
+            var producer = SVX.Channel.GenerateNew(SVX_Principal);
+            var client = SVX.Channel.GenerateNew(SVX_Principal);
 
             messageStructures.authorizationRequest.FakeImport(req, producer, client);
 
@@ -512,8 +512,8 @@ namespace SVAuth.OAuth20
         public void FakeTokenEndpoint(AccessTokenRequest req, AccessTokenResponse resp)
         {
             // XXX: Anything we can do about this boilerplate?
-            var producer = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
-            var client = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
+            var producer = SVX.Channel.GenerateNew(SVX_Principal);
+            var client = SVX.Channel.GenerateNew(SVX_Principal);
 
             messageStructures.accessTokenRequest.FakeImport(req, producer, client);
             SVX.SVX_Ops.FakeCall(SVX_MakeAccessTokenResponse, req, (AuthorizationCodeParams)null, resp);
@@ -546,8 +546,8 @@ namespace SVAuth.OAuth20
 
         public void FakeUserProfileEndpoint(UserProfileRequest req, UserProfileResponse resp)
         {
-            var producer = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
-            var client = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
+            var producer = SVX.Channel.GenerateNew(SVX_Principal);
+            var client = SVX.Channel.GenerateNew(SVX_Principal);
 
             messageStructures.userProfileRequest.FakeImport(req, producer, client);
             SVX.SVX_Ops.FakeCall(SVX_MakeUserProfileResponse, req, (AccessTokenParams)null, resp);

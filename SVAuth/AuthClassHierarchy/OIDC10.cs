@@ -46,15 +46,15 @@ namespace SVAuth.OIDC10
     public abstract class OIDCTokenVerifier : MessagePayloadSecretGenerator<JwtTokenBody>
     {
 
-        public Principal IdPPrincipal;
+        public Entity IdPPrincipal;
 
-        protected override PrincipalHandle Signer => IdPPrincipal;
+        protected override Principal Signer => IdPPrincipal;
 
         // XXX Eventually this needs to be a parameter.
-        protected override PrincipalHandle[] GetReaders(object theParams)
+        protected override Principal[] GetReaders(object theParams)
         {
             var body = (JwtTokenBody)theParams;
-            return new PrincipalHandle[] {
+            return new Principal[] {
                     // Comment this to get an internal error during secret generation.
                     Signer,
                     // Comment either of these to see the secret export check fail.
@@ -86,19 +86,19 @@ namespace SVAuth.OIDC10
         public readonly SVX.MessageStructure<AuthenticationResponse_with_id_token> authenticationResponse_with_id_token;
         public readonly SVX.MessageStructure<TokenResponse> tokenResponse;
         protected abstract OIDCTokenVerifier getTokenVerifier();
-        public MessageStructures(SVX.Principal idpPrincipal) : base(idpPrincipal)
+        public MessageStructures(SVX.Entity idpPrincipal) : base(idpPrincipal)
         {
             authenticationResponse_with_id_token = new SVX.MessageStructure<AuthenticationResponse_with_id_token> { BrowserOnly = true };
             authenticationResponse_with_id_token.AddMessagePayloadSecret(nameof(AuthenticationResponse_with_id_token.id_token),
-                (msg) => new SVX.PrincipalHandle[] { },
+                (msg) => new SVX.Principal[] { },
                 getTokenVerifier(),
                 true);
             authenticationResponse_with_id_token.AddSecret(nameof(AuthenticationResponse_with_id_token.state),
-               (msg) => new SVX.PrincipalHandle[] { });
+               (msg) => new SVX.Principal[] { });
 
             tokenResponse = new SVX.MessageStructure<TokenResponse>();
             tokenResponse.AddMessagePayloadSecret(nameof(TokenResponse.id_token),
-                (msg) => new SVX.PrincipalHandle[] { },
+                (msg) => new SVX.Principal[] { },
                 getTokenVerifier(),
                 false);
         }
@@ -111,7 +111,7 @@ namespace SVAuth.OIDC10
 
     public abstract class RelyingParty : OAuth20.Client
     {
-        public RelyingParty(SVX.Principal rpPrincipal, string client_id1, string redierct_uri1, string client_secret1, 
+        public RelyingParty(SVX.Entity rpPrincipal, string client_id1, string redierct_uri1, string client_secret1, 
             string AuthorizationEndpointUrl1, string TokenEndpointUrl1, string stateKey = null)
             : base(rpPrincipal, client_id1, redierct_uri1, client_secret1, AuthorizationEndpointUrl1, TokenEndpointUrl1, stateKey)
         {
@@ -147,7 +147,7 @@ namespace SVAuth.OIDC10
 
             GetMessageStructures().authorizationResponse.ImportWithModel(authorizationResponse,
                () => { idp.FakeCodeEndpoint(dummyAuthorizationRequest, authorizationResponse); },
-                SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
+                SVX.Channel.GenerateNew(SVX_Principal),  // unknown producer
                 context.client);
             /*GetMessageStructures().authorizationResponse.Import(authenticationResponse,
                 SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
@@ -185,7 +185,7 @@ namespace SVAuth.OIDC10
 
             GetMessageStructures().authenticationResponse_with_id_token.ImportWithModel(authenticationResponse_with_id_token,
                 () => { idp.FakeImplicitFlowIDTokenEndpoint(dummyAuthorizationRequest, authenticationResponse_with_id_token); },
-                SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
+                SVX.Channel.GenerateNew(SVX_Principal),  // unknown producer
                 context.client);
             Trace.Write("Got Valid AuthenticationResponse");
 
@@ -225,7 +225,7 @@ namespace SVAuth.OIDC10
         readonly AuthorizationCodeGenerator authorizationCodeGenerator;
         readonly AccessTokenGenerator accessTokenGenerator = new AccessTokenGenerator();
 
-        public ModelOIDCAuthenticationServer(SVX.Principal idpPrincipal)
+        public ModelOIDCAuthenticationServer(SVX.Entity idpPrincipal)
             : base(idpPrincipal)
         {
             // Initialization order restriction
@@ -234,7 +234,7 @@ namespace SVAuth.OIDC10
 
         public class IdPAuthenticationEntry : SVX.SVX_MSG
         {
-            public SVX.PrincipalHandle authenticatedClient;
+            public SVX.Principal authenticatedClient;
             public string userID;
         }
 
@@ -247,8 +247,8 @@ namespace SVAuth.OIDC10
             // request a code.  We don't care about the value of
             // req.response_type in its own right.
 
-            var producer = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
-            var client = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
+            var producer = SVX.Channel.GenerateNew(SVX_Principal);
+            var client = SVX.Channel.GenerateNew(SVX_Principal);
 
             messageStructures.authorizationRequest.FakeImport(req, producer, client);
 
@@ -262,8 +262,8 @@ namespace SVAuth.OIDC10
 
         public void FakeImplicitFlowIDTokenEndpoint(AuthorizationRequest req, AuthenticationResponse_with_id_token resp)
         {
-            var producer = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
-            var client = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
+            var producer = SVX.Channel.GenerateNew(SVX_Principal);
+            var client = SVX.Channel.GenerateNew(SVX_Principal);
 
             messageStructures.authorizationRequest.FakeImport(req, producer, client);
 
@@ -355,8 +355,8 @@ namespace SVAuth.OIDC10
         public void FakeTokenEndpoint(AccessTokenRequest req, TokenResponse resp)
         {
             // XXX: Anything we can do about this boilerplate?
-            var producer = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
-            var client = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
+            var producer = SVX.Channel.GenerateNew(SVX_Principal);
+            var client = SVX.Channel.GenerateNew(SVX_Principal);
 
             messageStructures.accessTokenRequest.FakeImport(req, producer, client);
             SVX.SVX_Ops.FakeCall(SVX_MakeTokenResponse, req, (AuthorizationCodeParams)null, resp);

@@ -79,7 +79,7 @@ namespace SVAuth
             $"SVAuth/platforms/{WebAppSettings.platform.name}/";
         public string MainPageUrl =>
             WebAppSettings.platformRootUrl + "AllInOne." + WebAppSettings.platform.fileExtension;
-        public SVX.Principal rpPrincipal => SVX.Principal.Of(WebAppSettings.hostname);
+        public SVX.Entity rpPrincipal => SVX.Entity.Of(WebAppSettings.hostname);
 
         // Configuration loader:
 

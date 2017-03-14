@@ -62,13 +62,13 @@ namespace SVAuth.ServiceProviders.Google
             { SignatureValidationUrl = "https://www.googleapis.com/oauth2/v3/tokeninfo"};
         protected override OIDC10.OIDCTokenVerifier getTokenVerifier()
         { return GoogleTokenVerifier; }
-        public MessageStructures(SVX.Principal idpPrincipal) : base(idpPrincipal) { }
+        public MessageStructures(SVX.Entity idpPrincipal) : base(idpPrincipal) { }
     }
     public class Google_RP : OIDC10.RelyingParty
     {
         public string UserProfileUrl, SignatureValidationUrl;
 
-        public Google_RP(SVX.Principal rpPrincipal, string client_id1=null, string return_uri1 = null, string client_secret1 = null,
+        public Google_RP(SVX.Entity rpPrincipal, string client_id1=null, string return_uri1 = null, string client_secret1 = null,
                          string AuthorizationEndpointUrl1 = null, string UserProfileUrl1 = null, string SignatureValidationUrl1 = null, string stateKey = null)
         : base(rpPrincipal, client_id1, return_uri1, client_secret1, AuthorizationEndpointUrl1, null, stateKey)
         {
@@ -101,7 +101,7 @@ namespace SVAuth.ServiceProviders.Google
         {
             return new MessageStructures(Google_IdP.GooglePrincipal);
         }
-        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.PrincipalFacet client)
+        public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.Channel client)
         {
             GGAuthenticationRequest GGAuthenticationRequest = new GGAuthenticationRequest();
             GGAuthenticationRequest.client_id = client_id;
@@ -133,7 +133,7 @@ namespace SVAuth.ServiceProviders.Google
             OIDC10.AuthenticationResponse_with_id_token authenticationResponse)
         {
             var AuthConclusion = new GenericAuth.AuthenticationConclusion();
-            AuthConclusion.authenticatedClient = authenticationResponse.SVX_sender;
+            AuthConclusion.channel = authenticationResponse.SVX_sender;
             OIDC10.JwtTokenBody jwtTokenBody = authenticationResponse.id_token.theParams;
             if (jwtTokenBody.aud != this.client_id)
                 throw new Exception("client_id in the jwtToken is not of this relying party.");
@@ -158,8 +158,8 @@ namespace SVAuth.ServiceProviders.Google
 
     public class Google_IdP : ModelOIDCAuthenticationServer
     {
-        public static Principal GooglePrincipal = SVX.Principal.Of("accounts.google.com");
-        public Google_IdP(Principal idpPrincipal) : base(idpPrincipal)
+        public static Entity GooglePrincipal = SVX.Entity.Of("accounts.google.com");
+        public Google_IdP(Entity idpPrincipal) : base(idpPrincipal)
         {
         }
 

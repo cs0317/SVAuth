@@ -11,29 +11,29 @@ namespace SVAuth
 {
     public static class SVX_Test_ImplicitFlow
     {
-        static readonly Principal googlePrincipal = Principal.Of("Google");
+        static readonly Entity googlePrincipal = Entity.Of("Google");
 
-        static Principal GoogleUserPrincipal(string username)
+        static Entity GoogleUserPrincipal(string username)
         {
-            return Principal.Of("Google:" + username);
+            return Entity.Of("Google:" + username);
         }
 
         public class IdTokenBody : SVX_MSG
         {
             // Corresponds to GoogleUserPrincipal(username)
             public string username;
-            public Principal rpPrincipal;
+            public Entity rpPrincipal;
         }
 
         public class GoogleIdTokenVerifier : MessagePayloadSecretGenerator<IdTokenBody>
         {
             // XXX Eventually this needs to be a parameter.
-            protected override PrincipalHandle Signer => googlePrincipal;
+            protected override Principal Signer => googlePrincipal;
 
-            protected override PrincipalHandle[] GetReaders(object theParams)
+            protected override Principal[] GetReaders(object theParams)
             {
                 var body = (IdTokenBody)theParams;
-                return new Principal[] {
+                return new Entity[] {
                     // Comment this to get an internal error during secret generation.
                     googlePrincipal,
                     // Comment either of these to see the secret export check fail.
@@ -75,7 +75,7 @@ namespace SVAuth
 
         public class IdTokenRequest : SVX_MSG
         {
-            public Principal rpPrincipal;
+            public Entity rpPrincipal;
             public Secret state;
         }
         public class IdTokenResponse : SVX_MSG
@@ -86,18 +86,18 @@ namespace SVAuth
 
         public class IdPAuthenticationEntry : SVX_MSG
         {
-            public PrincipalHandle authenticatedClient;
+            public Principal authenticatedClient;
             public string googleUsername;
         }
         public class RPAuthenticationConclusion : SVX_MSG
         {
-            public PrincipalHandle authenticatedClient;
+            public Principal authenticatedClient;
             public string googleUsername;
         }
 
         public class Google_IdP : Participant
         {
-            public Google_IdP(Principal principal) : base(principal)
+            public Google_IdP(Entity principal) : base(principal)
             {
                 // Currently, SVX needs to instantiate GoogleIdTokenVerifier and
                 // doesn't support passing configuration, so we have to
@@ -108,15 +108,15 @@ namespace SVAuth
 
             private GoogleIdTokenGenerator idTokenGenerator = new GoogleIdTokenGenerator();
 
-            private DeclarablePredicate<Principal /*underlying client*/, string /*username*/> SignedInPredicate
-                = new DeclarablePredicate<Principal, string>();
+            private DeclarablePredicate<Entity /*underlying client*/, string /*username*/> SignedInPredicate
+                = new DeclarablePredicate<Entity, string>();
 
-            public string TokenEndpoint(PrincipalHandle client, string idTokenRequestStr)
+            public string TokenEndpoint(Principal client, string idTokenRequestStr)
             {
                 var req = JsonConvert.DeserializeObject<IdTokenRequest>(idTokenRequestStr);
                 idTokenRequestStructure.Import(req,
                     // We don't know who produced the request.
-                    PrincipalFacet.GenerateNew(SVX_Principal),
+                    Channel.GenerateNew(SVX_Principal),
                     client);
 
                 // In reality, AuthenticateClient couldn't be done
@@ -130,7 +130,7 @@ namespace SVAuth
                 return JsonConvert.SerializeObject(resp);
             }
             
-            IdPAuthenticationEntry AuthenticateClient(PrincipalHandle client)
+            IdPAuthenticationEntry AuthenticateClient(Principal client)
             {
                 // In reality, once the user logs in, we would store the
                 // IdPAuthenticationEntry in the session data structure of the
@@ -188,7 +188,7 @@ namespace SVAuth
                 };
             }
 
-            public bool Ghost_CheckSignedIn(Principal underlyingPrincipal, string username)
+            public bool Ghost_CheckSignedIn(Entity underlyingPrincipal, string username)
             {
                 return SignedInPredicate.Check(underlyingPrincipal, username);
             }
@@ -197,21 +197,21 @@ namespace SVAuth
         class StateParams
         {
             // We expect this to be a facet issued by the RP.
-            public PrincipalHandle client;
-            public Principal idpPrincipal;
+            public Principal client;
+            public Entity idpPrincipal;
         }
         class StateGenerator : SecretGenerator<StateParams>
         {
-            readonly Principal rpPrincipal;
-            internal StateGenerator(Principal rpPrincipal)
+            readonly Entity rpPrincipal;
+            internal StateGenerator(Entity rpPrincipal)
             {
                 this.rpPrincipal = rpPrincipal;
             }
 
-            protected override PrincipalHandle[] GetReaders(object theParams)
+            protected override Principal[] GetReaders(object theParams)
             {
                 var params2 = (StateParams)theParams;
-                return new PrincipalHandle[] { params2.idpPrincipal, rpPrincipal, params2.client };
+                return new Principal[] { params2.idpPrincipal, rpPrincipal, params2.client };
             }
 
             protected override string RawGenerate(StateParams theParams)
@@ -229,7 +229,7 @@ namespace SVAuth
 
         public class MattMerchant_RP : Participant
         {
-            public MattMerchant_RP(Principal principal) : base(principal)
+            public MattMerchant_RP(Entity principal) : base(principal)
             {
                 stateGenerator = new StateGenerator(principal);
             }
@@ -239,7 +239,7 @@ namespace SVAuth
             // Something here is tripping up BCT.  Just exclude it until we have
             // fully as-needed translation.
             [BCTOmitImplementation]
-            public string LoginStart(PrincipalHandle client)
+            public string LoginStart(Principal client)
             {
                 var req = new IdTokenRequest
                 {
@@ -252,12 +252,12 @@ namespace SVAuth
                 return JsonConvert.SerializeObject(req);
             }
 
-            public void LoginCallback(PrincipalHandle client, string idTokenResponseStr)
+            public void LoginCallback(Principal client, string idTokenResponseStr)
             {
                 var idTokenResponse = JsonConvert.DeserializeObject<IdTokenResponse>(idTokenResponseStr);
                 idTokenResponseStructure.Import(idTokenResponse,
                     // We don't know who produced the redirection.
-                    PrincipalFacet.GenerateNew(SVX_Principal),
+                    Channel.GenerateNew(SVX_Principal),
                     client);
 
                 var conc = SVX_Ops.Call(SVX_SignInRP, idTokenResponse);
@@ -308,14 +308,14 @@ namespace SVAuth
             idTokenRequestStructure.AddSecret(nameof(IdTokenRequest.state),
                 // The sender (the client) gets implicitly added.
                 // It doesn't matter whether we add the IdP here.  Convention?
-                (msg) => new PrincipalHandle[] { msg.rpPrincipal });
+                (msg) => new Principal[] { msg.rpPrincipal });
 
             idTokenResponseStructure = new MessageStructure<IdTokenResponse>() { BrowserOnly = true };
             idTokenResponseStructure.AddSecret(nameof(IdTokenRequest.state),
                 // We're not passing the state along further, so we don't have to declare any readers.
-                (msg) => new PrincipalHandle[] { });
+                (msg) => new Principal[] { });
             idTokenResponseStructure.AddMessagePayloadSecret(nameof(IdTokenResponse.idToken),
-                (msg) => new PrincipalHandle[] { },
+                (msg) => new Principal[] { },
                 new GoogleIdTokenVerifier(),
                 true);
         }
@@ -330,10 +330,10 @@ namespace SVAuth
         public static void Test()
         {
             var idp = new Google_IdP(googlePrincipal);
-            var rp = new MattMerchant_RP(Principal.Of("MattMerchant"));
+            var rp = new MattMerchant_RP(Entity.Of("MattMerchant"));
 
-            var aliceIdP = PrincipalFacet.GenerateNew(googlePrincipal);
-            var aliceRP = PrincipalFacet.GenerateNew(rp.SVX_Principal);
+            var aliceIdP = Channel.GenerateNew(googlePrincipal);
+            var aliceRP = Channel.GenerateNew(rp.SVX_Principal);
 
             var idTokenRequestStr = rp.LoginStart(aliceRP);
             var idTokenResponseStr = idp.TokenEndpoint(aliceIdP, idTokenRequestStr);
