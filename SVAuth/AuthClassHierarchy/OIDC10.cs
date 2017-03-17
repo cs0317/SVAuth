@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Security.Cryptography;
 using System;
 using System.Linq;
 using System.Net.Http;
@@ -22,7 +23,7 @@ namespace SVAuth.OIDC10
     public class AuthenticationRequest : OAuth20.AuthorizationRequest
     {
         public string response_mode = null;
-        public string nonce = null;
+        public string nonce = "123";
         public string display = null;
         public string prompt = null;
         public string max_age = null;
@@ -40,7 +41,7 @@ namespace SVAuth.OIDC10
 
     public class JwtTokenBody : SVX_MSG
     {
-        public string aud, iss, exp, sub;
+        public string aud, iss, exp, sub, nonce;
     }
 
     public abstract class OIDCTokenVerifier : MessagePayloadSecretGenerator<JwtTokenBody>
@@ -169,6 +170,13 @@ namespace SVAuth.OIDC10
                     SVX_Principal
                 );
             
+            if (!String.IsNullOrEmpty(tokenResponse.id_token.theParams.nonce))
+            {
+                HashAlgorithm hashAlgo = SHA1.Create();
+                string expected_nonce = BitConverter.ToString(hashAlgo.ComputeHash(System.Text.Encoding.UTF8.GetBytes(context.channel.id)));
+                if (expected_nonce!= tokenResponse.id_token.theParams.nonce)
+                    throw new Exception("invalid nonce");
+            }
             var conclusion = SVX.SVX_Ops.Call(createConclusionOidc, authorizationResponse, tokenResponse);
             await AuthenticationDone(conclusion, context);
         }
@@ -188,6 +196,14 @@ namespace SVAuth.OIDC10
                 SVX.Channel.GenerateNew(SVX_Principal),  // unknown producer
                 context.channel);
             Trace.Write("Got Valid AuthenticationResponse");
+
+            if (!String.IsNullOrEmpty(authenticationResponse_with_id_token.id_token.theParams.nonce))
+            {
+                HashAlgorithm hashAlgo = SHA1.Create();
+                string expected_nonce = BitConverter.ToString(hashAlgo.ComputeHash(System.Text.Encoding.UTF8.GetBytes(context.channel.id)));
+                if (expected_nonce != authenticationResponse_with_id_token.id_token.theParams.nonce)
+                    throw new Exception("invalid nonce");
+            }
 
             GenericAuth.AuthenticationConclusion conclusion = SVX_Ops.Call(createConclusionOidcImplicit,authenticationResponse_with_id_token);
             if (conclusion == null)

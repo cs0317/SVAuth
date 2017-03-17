@@ -24,6 +24,8 @@ namespace SVAuth.ServiceProviders.Microsoft
                 Config.config.AppRegistration.MicrosoftAzureAD.appSecret,
                 "https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/oauth2/authorize",
                 "https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/oauth2/token",
+           //"https://testingsts.azurewebsites.net/oauth2/authorize",
+           //"https://testingsts.azurewebsites.net/oauth2/token",
                 Config.config.stateSecretKey);
             routeBuilder.MapRoute("login/MicrosoftAzureAD", RP.Login_StartAsync);
             routeBuilder.MapRoute("callback/MicrosoftAzureAD", RP.AuthorizationCodeFlow_Login_CallbackAsync);

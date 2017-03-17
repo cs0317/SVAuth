@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using BytecodeTranslator.Diagnostics;
+using System.Security.Cryptography;
 using Newtonsoft.Json.Linq;
 using SVAuth.OIDC10;
 using SVX;
@@ -98,6 +99,9 @@ namespace SVAuth.ServiceProviders.Microsoft
                 idpPrincipal = idpParticipantId.principal
             };
             AuthenticationRequest.state = stateGenerator.Generate(stateParams, SVX_Principal);
+
+            HashAlgorithm  hashAlgo = SHA1.Create();
+            AuthenticationRequest.nonce= BitConverter.ToString (hashAlgo.ComputeHash(System.Text.Encoding.UTF8.GetBytes(client.id)));
 
             return AuthenticationRequest;
         }

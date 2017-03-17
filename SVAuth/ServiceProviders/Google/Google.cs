@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using BytecodeTranslator.Diagnostics;
 using Newtonsoft.Json.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using SVAuth.OIDC10;
 using SVX;
@@ -115,6 +116,8 @@ namespace SVAuth.ServiceProviders.Google
                 idpPrincipal = idpParticipantId.principal
             };
             GGAuthenticationRequest.state = stateGenerator.Generate(stateParams, SVX_Principal);
+            HashAlgorithm hashAlgo = SHA1.Create();
+            GGAuthenticationRequest.nonce = BitConverter.ToString(hashAlgo.ComputeHash(System.Text.Encoding.UTF8.GetBytes(client.id)));
             return GGAuthenticationRequest;
         }
         public override string marshalAuthorizationRequest(OAuth20.AuthorizationRequest MSAuthenticationRequest)
