@@ -89,7 +89,7 @@ namespace SVAuth
             // original Auth.JS had the same limitation.)  We could consider
             // finding the project root via Environment.GetCommandLineArgs()[0].
             // ~ t-mattmc@microsoft.com 2016-06-01
-            config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("config.json"));
+            config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("platforms/resources/config.json"));
 
             SVX.SVXSettings.settings = config.SVXSettings;
         }

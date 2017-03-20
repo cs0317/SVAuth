@@ -13,12 +13,17 @@ namespace SVAuth.ServiceProviders.Microsoft
 {
     public class MSAppRegistration
     {
-        public string appId; 
+        public string appId;
         public string appSecret;
     }
-        public class MSJwtToken: OIDC10.JwtTokenBody
+    public class MSJwtToken : OIDC10.JwtTokenBody
     {
-        public string name, preferred_username,unique_name,upn;
+        public string name, preferred_username, unique_name, upn;
+    }
+
+    public class MSAuthenticationRequest: OIDC10.AuthenticationRequest
+    {
+        public string tParam = "e2lkX3Rva2VuX2ludmFsaWRfbm9uY2UgOiB0cnVlfQ";    //used by the Azure testing IdP only
     }
     public class MSUserProfile : GenericAuth.UserProfile
     {
@@ -86,7 +91,7 @@ namespace SVAuth.ServiceProviders.Microsoft
         }
         public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.Channel client)
         {
-            AuthenticationRequest AuthenticationRequest = new AuthenticationRequest();
+            MSAuthenticationRequest AuthenticationRequest = new MSAuthenticationRequest();
             AuthenticationRequest.client_id = client_id;
             AuthenticationRequest.response_type = "code";
             AuthenticationRequest.scope = "openid profile";
@@ -105,9 +110,9 @@ namespace SVAuth.ServiceProviders.Microsoft
 
             return AuthenticationRequest;
         }
-        public override string marshalAuthorizationRequest(OAuth20.AuthorizationRequest MSAuthenticationRequest)
+        public override string marshalAuthorizationRequest(OAuth20.AuthorizationRequest AuthenticationRequest)
         {
-            return AuthorizationEndpointUrl + "?" + Utils.ObjectToUrlEncodedString(MSAuthenticationRequest);
+            return AuthorizationEndpointUrl + "?" + Utils.ObjectToUrlEncodedString((MSAuthenticationRequest)AuthenticationRequest);
         }
 
         /*** implementing the methods for AccessTokenRequest ***/

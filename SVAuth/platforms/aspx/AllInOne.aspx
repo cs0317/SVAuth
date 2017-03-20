@@ -15,30 +15,53 @@
 
 
 <body>
+ <script>
+      function login_start(provider) {
 
+		  var reg = new RegExp( '[?&]' + 'ReturnPort' + '=([^&#]*)', 'i' );
+		  var ReturnPort=reg.exec(window.location.href);
+		  ReturnPort = ReturnPort? ReturnPort[1]:null
+
+          if (  ReturnPort==null || ReturnPort=="" || ReturnPort=="null" )
+               ReturnPort="3000";
+
+          var reg1 = new RegExp( '[?&]' + 'scheme' + '=([^&#]*)', 'i' );
+		  var scheme=reg1.exec(window.location.href);
+		  scheme = scheme? scheme[1]:null
+
+          if (  scheme==null || scheme=="" || scheme=="null" )
+               scheme="https";
+
+		  document.cookie="LoginPageUrl=; expires=Thu, 01-Jan-70 00:00:01 GMT;";
+		  document.cookie="LoginPageUrl="+location+";path=/";
+          window.location=(scheme+"://"+location.host+":"+ReturnPort+"/login/"+provider);	
+	  }
+      function clearSession() {
+	        var xhttp = new XMLHttpRequest();
+	        xhttp.onreadystatechange = function() {
+                if (xhttp.readyState == 4) {
+	              location.reload();
+                }
+            };
+            xhttp.open("GET", "sign_out.aspx", true);
+            xhttp.send();
+         }
+</script>
 <%@ Page Language="C#" %>
 
-<script>
-  function copyToClipboard(str1,str2) {
-    window.prompt("This is the ASP.NET code of the button.\nCopy to clipboard: Ctrl+C, Enter.\n", str1+"<% =System.Configuration.ConfigurationManager.AppSettings["SVAuth_AspxStub_RootDir"]%>"+str2);
-  }
-</script>
-
 <div id="grad1">
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\sign_out_button.inc" -->
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Facebook_login_button.inc" -->
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Microsoft_login_button.inc" -->
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\MicrosoftAzureAD_login_button.inc" -->
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Google_login_button.inc" -->
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Yahoo_login_button.inc" -->
-
+<%if (Session["UserID"]!=null) { %>
+   <img OnClick="clearSession();" src="/SVAuth/platforms/resources/images/Sign_out.jpg" width=40 height=40>
+<% } else { %>
+   <img OnClick="login_start('Facebook');" src="/SVAuth/platforms/resources/images/Facebook_login.jpg" width=100 height=40>
+   <img OnClick="login_start('Microsoft');" src="/SVAuth/platforms/resources/images/Microsoft_login.jpg" width=100 height=40>
+   <img OnClick="login_start('MicrosoftAzureAD');" src="/SVAuth/platforms/resources/images/MicrosoftAzureAD_login.jpg" width=100 height=40>
+   <img OnClick="login_start('Google');" src="/SVAuth/platforms/resources/images/Google_login.jpg" width=100 height=40>
+   <img OnClick="login_start('Yahoo');" src="/SVAuth/platforms/resources/images/Yahoo_login.jpg" width=100 height=40>
+<% } %>
 </div>
 
-<h3>First, test this page:<br /></h3>
-
-1. Click any button (login or logout) on the banner above; <br />
-2. See the current session variable values: <br />
-
+<h3>User identity bound to this session:<br /></h3>
 
 <font face="Courier New" size=2>
  Session["UserID"]=<%:Session["UserID"]%> <br />
@@ -47,17 +70,5 @@
 </font>
 <br />
 
-
-<h3>Next, follow the instruction to paste code into any ASPX page of your app: <br /></h3>
-
-1. Paste the following code in the beginning of the BODY section of your page;</br>
-<pre>
-&lt;%@ Page Language="C#" %&gt;
-</pre>
-2. The code of every button can be obtained by right-clicking the button. For example, the following are the Facebook login button and a logout button. You can paste them anywhere you want in your page.<br />
-<pre>
-&lt;!-- #include virtual = "/SVAuth/platforms/aspx\buttons\sign_out_button.inc" --&gt;
-&lt;!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Facebook_login_button.inc" --&gt;
-</pre>
 </body>
 </html>
