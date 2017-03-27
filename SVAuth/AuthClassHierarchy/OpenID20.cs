@@ -110,7 +110,7 @@ namespace SVAuth.OpenID20
         public string openid__invalidate_handle;
         [JsonProperty("openid.signed")]
         public string openid__signed;
-
+      
         // Split off from return_to in secret verifier.
         public SVX.Secret CSRF_state;
     }
@@ -264,6 +264,17 @@ namespace SVAuth.OpenID20
             // Move CSRF_state into return_to.
             _AuthenticationRequest.openid__return_to += "?CSRF_state=" + Uri.EscapeDataString(_AuthenticationRequest.CSRF_state.Export());
             _AuthenticationRequest.CSRF_state = null;
+            //add conckey
+           /* string conckey = httpContext.Request.Query["conckey"];
+            if (conckey!=null)
+                 _AuthenticationRequest.openid__return_to += "&conckey=" + Uri.EscapeDataString(conckey);*/
+
+            string concdst = httpContext.Request.Query["concdst"];
+            if (concdst != null)
+                 _AuthenticationRequest.openid__assoc_handle = Uri.EscapeDataString(concdst);
+            string conckey = httpContext.Request.Query["conckey"];
+            if (conckey != null)
+                _AuthenticationRequest.openid__assoc_handle += "++" + Uri.EscapeDataString(conckey);
 
             var rawReq = marshalAuthenticationRequest(_AuthenticationRequest);
 
@@ -310,7 +321,15 @@ namespace SVAuth.OpenID20
                 context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
                 return;
             }
-
+            if (Config.config.AgentSettings.agentScope!="local")
+            {
+                string s = inputMSG.FieldsExpectedToBeSigned.theParams.openid__invalidate_handle;
+                int delim = s.IndexOf("++");
+                if (delim < 7)
+                    throw new Exception("invalid conckey and concdst");
+                context.conckey = s.Substring(delim + 2);
+                context.concdst = System.Net.WebUtility.UrlDecode(s.Substring(0, delim));                
+            }
             await AuthenticationDone(conclusion, context);
         }
     }

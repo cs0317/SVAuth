@@ -135,6 +135,29 @@ namespace SVAuth.OIDC10
             AuthorizationResponse authenticationResponse, TokenResponse tokenResponse) { return null; }
 
         public abstract MessageStructures GetMessageStructures();
+
+        JObject detach_concdst_conckey_formpost(ref SVAuthRequestContext context, string delim)
+        {
+            JObject jo = new JObject(context.http.Request.Form.Select(q => new JProperty(q.Key, q.Value.Single())));
+            string state = jo["state"].ToString();
+            if (String.IsNullOrEmpty(state))
+                throw new Exception("The STATE parameter is missing.");
+
+            int pos1 = state.IndexOf(delim);
+            if (pos1 > 1)
+            {
+                int pos2 = state.Substring(pos1 + 2).IndexOf(delim);
+                if (pos2 > 1)
+                {
+                    context.concdst = System.Net.WebUtility.UrlDecode(state.Substring(0, pos1));
+                    context.conckey = System.Net.WebUtility.UrlDecode(state.Substring(pos1 + 2, pos2));
+                    var state1 = state.Substring(pos1 + pos2 + 2 + 2);
+                    jo["state"] = state1;
+                }
+            }
+            return jo;
+        }
+
         public override async Task AuthorizationCodeFlow_Login_CallbackAsync(HttpContext httpContext)
         {
             var idp = CreateModelOIDCAuthenticationServer();
@@ -143,8 +166,13 @@ namespace SVAuth.OIDC10
 
             var dummyAuthorizationRequest = new AuthorizationRequest();
 
-            var authorizationResponse = (OAuth20.AuthorizationResponse)Utils.ObjectFromFormPost(
+            //Matt's original implementation, without detaching concdst_conckey
+            /*var authorizationResponse = (OAuth20.AuthorizationResponse)Utils.ObjectFromFormPost(
                 context.http.Request.Form,typeof(OAuth20.AuthorizationResponse));
+                */
+
+            JObject jo = detach_concdst_conckey_formpost(ref context, "  ");
+            AuthorizationResponse authorizationResponse = (AuthorizationResponse)Utils.UnreflectObject(jo, typeof(AuthorizationResponse)); ;
 
             GetMessageStructures().authorizationResponse.ImportWithModel(authorizationResponse,
                () => { idp.FakeCodeEndpoint(dummyAuthorizationRequest, authorizationResponse); },
@@ -182,12 +210,20 @@ namespace SVAuth.OIDC10
         }
         public virtual GenericAuth.AuthenticationConclusion createConclusionOidcImplicit(
             AuthenticationResponse_with_id_token authenticationResponse) { return null; }
+
+        
+
         public async Task ImplicitFlow_Login_CallbackAsync(HttpContext httpContext)
         {
             Trace.Write("ImplicitFlow_Login_CallbackAsync");
             var context = new SVAuthRequestContext(SVX_Principal, httpContext);
-            AuthenticationResponse_with_id_token authenticationResponse_with_id_token= (AuthenticationResponse_with_id_token)Utils.ObjectFromFormPost
-                (context.http.Request.Form, typeof(AuthenticationResponse_with_id_token));;
+           
+            //Matt's original implementation, without detaching concdst_conckey
+            /*AuthenticationResponse_with_id_token authenticationResponse_with_id_token= (AuthenticationResponse_with_id_token)Utils.ObjectFromFormPost
+                (context.http.Request.Form, typeof(AuthenticationResponse_with_id_token));
+                */
+            JObject jo = detach_concdst_conckey_formpost(ref context, "  ");
+            AuthenticationResponse_with_id_token authenticationResponse_with_id_token = (AuthenticationResponse_with_id_token)Utils.UnreflectObject(jo, typeof(AuthenticationResponse_with_id_token)); ;
             var idp = CreateModelOIDCAuthenticationServer();
             var dummyAuthorizationRequest = new AuthorizationRequest();
 

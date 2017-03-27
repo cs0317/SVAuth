@@ -27,7 +27,7 @@ namespace SVAuth
             public class PlatformSettings
             {
                 public string name;
-                public string fileExtension;
+                public string fileExtension,sessionCookieName;
             }
 
             // The "SVAuth/platforms" string is hard-coded a bunch of places; no
@@ -47,17 +47,18 @@ namespace SVAuth
         {
             // NOTE: This setting is not automatically passed to the platform.
             // The platform files have to be edited manually to change it.
-            public string scheme = "http";
+            public string scheme = "https";
             public int port;
+            public string agentScope = "local";
         }
-
+        /*
         public SessionIDCookieProperties_ SessionIDCookieProperties;
         public class SessionIDCookieProperties_
         {
             public string domain;
             public bool persistent;
         }
-
+        */
         public AppRegistration_ AppRegistration;
         public class AppRegistration_
         {
@@ -90,7 +91,19 @@ namespace SVAuth
             // finding the project root via Environment.GetCommandLineArgs()[0].
             // ~ t-mattmc@microsoft.com 2016-06-01
             config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("platforms/resources/config.json"));
-
+            switch (config.WebAppSettings.platform.name.ToLower())
+            {
+                case "aspx":
+                    config.WebAppSettings.platform.sessionCookieName= "ASP.NET_SessionId";
+                    config.WebAppSettings.platform.fileExtension = "aspx";
+                    break;
+                case "php":
+                    config.WebAppSettings.platform.sessionCookieName = "PHPSESSID";
+                    config.WebAppSettings.platform.fileExtension = "php";
+                    break;
+                default:
+                    throw new Exception("Unsupported platform");
+            }
             SVX.SVXSettings.settings = config.SVXSettings;
         }
     }

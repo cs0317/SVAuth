@@ -255,6 +255,40 @@ namespace SVAuth.OAuth20
         public virtual GenericAuth.AuthenticationConclusion createConclusion(
             AuthorizationResponse authorizationResponse, UserProfileResponse userProfileResponse) { return null; }
 
+
+        /*********************** smuggling conckey and concdst in the state parameter ******************/
+        string attach_concdst_conckey(string rawReq, HttpContext httpContext, string delim)
+        {
+            string concdst = httpContext.Request.Query["concdst"];
+            string conckey = httpContext.Request.Query["conckey"];
+            if (!String.IsNullOrEmpty(concdst) && !String.IsNullOrEmpty(conckey))
+            {
+                int pos = rawReq.IndexOf("&state=") + ("&state=".Length);
+                string rawReq1 = rawReq.Substring(0, pos) + Uri.EscapeDataString(concdst) + delim + Uri.EscapeDataString(conckey) + delim + rawReq.Substring(pos);
+                rawReq = rawReq1;
+            }
+            return rawReq;
+        }
+        string detach_concdst_conckey(ref SVAuthRequestContext context, string delim)
+        {
+            string rawReq = context.http.Request.QueryString.Value;
+            int pos0 = rawReq.IndexOf("&state=") + ("&state=".Length);
+            if (pos0 < "&state=".Length)
+                throw new Exception("state parameter is missing");
+            int pos1 = rawReq.Substring(pos0).IndexOf(delim);
+            if (pos1 > 1)
+            {
+                int pos2 = rawReq.Substring(pos0 + pos1 + 2).IndexOf(delim);
+                if (pos2 > 1)
+                {
+                    context.concdst = System.Net.WebUtility.UrlDecode(rawReq.Substring(pos0, pos1));
+                    context.conckey = System.Net.WebUtility.UrlDecode(rawReq.Substring(pos0 + pos1 + 2, pos2));
+                    var rawReq1 = rawReq.Substring(0, pos0) + rawReq.Substring(pos0 + pos1 + pos2 + 2 + 2);
+                    rawReq = rawReq1;
+                }
+            }
+            return rawReq;
+        }
         /*************** Start defining OAuth flows ************************/
         public Task Login_StartAsync(HttpContext httpContext)
         {
@@ -262,14 +296,14 @@ namespace SVAuth.OAuth20
 
             // The SymT doesn't actually get used, but why not.
             var _AuthorizationRequest = SVX.SVX_Ops.Call(createAuthorizationRequest, context.channel);
-
+           
             // NOTE: We are assuming that the target URL used by
             // marshalAuthorizationRequest belongs to the principal
             // idpParticipantId.principal.  We haven't extended SVX enforcement
             // that far yet.
             messageStructures.authorizationRequest.Export(_AuthorizationRequest, context.channel, idpParticipantId.principal);
             var rawReq = marshalAuthorizationRequest(_AuthorizationRequest);
-
+            rawReq = attach_concdst_conckey(rawReq, httpContext, "++");
             //set the referrer in the CurrentUrl cookie
             try
             {
@@ -294,6 +328,7 @@ namespace SVAuth.OAuth20
             Trace.Write("AuthorizationCodeFlow_Login_CallbackAsync");
             var context = new SVAuthRequestContext(SVX_Principal, httpContext);
             var idp = CreateModelAuthorizationServer();
+            var rawReq = detach_concdst_conckey(ref context, "++");
 
             // See if any subclasses need us to use their special
             // AuthorizationRequest subclass.
@@ -305,10 +340,12 @@ namespace SVAuth.OAuth20
             // parseHttpMessage supports both requests (query) and responses,
             // but here we know which is which.
             // ~ t-mattmc@microsoft.com 2016-06-01
-            var authorizationResponse = (AuthorizationResponse)Utils.ObjectFromQuery(
-                context.http.Request.Query, LoginCallbackRequestType);
+            //   var authorizationResponse = (AuthorizationResponse)Utils.ObjectFromQuery(
+            //       context.http.Request.Query, LoginCallbackRequestType);
+               var authorizationResponse = (AuthorizationResponse)Utils.ObjectFromQueryString(
+                      rawReq, LoginCallbackRequestType);
 
-            messageStructures.authorizationResponse.ImportWithModel(authorizationResponse,
+               messageStructures.authorizationResponse.ImportWithModel(authorizationResponse,
                 () => { idp.FakeCodeEndpoint(dummyAuthorizationRequest, authorizationResponse); },
                 SVX.Channel.GenerateNew(SVX_Principal),  // unknown producer
                 context.channel);
@@ -316,6 +353,12 @@ namespace SVAuth.OAuth20
             var accessTokenRequest = SVX.SVX_Ops.Call(createAccessTokenRequest, authorizationResponse);
 
             messageStructures.accessTokenRequest.Export(accessTokenRequest, idp.SVX_Principal, null);
+            /*string concdst = httpContext.Request.Query["concdst"];
+            if (concdst != null)
+                accessTokenRequest.redirect_uri += "?concdst=" + Uri.EscapeDataString(concdst);
+            string conckey = httpContext.Request.Query["conckey"];
+            if (conckey != null)
+                accessTokenRequest.redirect_uri += "&conckey=" + Uri.EscapeDataString(conckey);*/
             var rawAccessTokenRequest = marshalAccessTokenRequest(accessTokenRequest);
             var rawAccessTokenResponse = await Utils.PerformHttpRequestAsync(rawAccessTokenRequest);
 

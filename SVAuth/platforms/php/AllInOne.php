@@ -12,29 +12,35 @@
 }
 </style>
 </head>
+<?php
+$json_string = file_get_contents("../resources/config.json");
+$config = json_decode($json_string, true);
 
+if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
+	$scheme = $config['AgentSettings']['scheme'];
+    $port=$config['AgentSettings']['port'];
+} else {
+	$scheme = $config['WebAppSettings']['scheme'];
+    $port=$config['WebAppSettings']['port'];
+}
+?>
 
 <body>
 <script>
       function login_start(provider) {
-
-		  var reg = new RegExp( '[?&]' + 'ReturnPort' + '=([^&#]*)', 'i' );
-		  var ReturnPort=reg.exec(window.location.href);
-		  ReturnPort = ReturnPort? ReturnPort[1]:null
-
-          if (  ReturnPort==null || ReturnPort=="" || ReturnPort=="null" )
-               ReturnPort="3000";
-
-          var reg1 = new RegExp( '[?&]' + 'scheme' + '=([^&#]*)', 'i' );
-		  var scheme=reg1.exec(window.location.href);
-		  scheme = scheme? scheme[1]:null
-
-          if (  scheme==null || scheme=="" || scheme=="null" )
-               scheme="https";
-
+	      scheme = <?php echo "'". $scheme . "'" ?>;
+		  port = <?php echo "'". $port . "'" ?>;
+		  host = <?php echo "'". $host . "'" ?>;
 		  document.cookie="LoginPageUrl=; expires=Thu, 01-Jan-70 00:00:01 GMT;";
 		  document.cookie="LoginPageUrl="+location+";path=/";
-          window.location=(scheme+"://"+location.host+":"+ReturnPort+"/login/"+provider);	
+		  url=scheme+"://"+location.host+":"+port+
+		      <?php if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
+	                   echo "'/login/'+provider;";
+					} else {  
+					     echo "'/SVAuth/platforms/php/start.php?provider='+provider;";
+					}
+			  ?>	 
+		  window.location=url;
 	  }
 
   function clearSession() {
@@ -46,25 +52,29 @@
     };
     xhttp.open("GET", "sign_out.php", true);
     xhttp.send();
- }
+  }
 </script>
 <?php
 // Start the session
 session_start();
+$providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo');
 ?>
 <div id="grad1">
 <?php if ($_SESSION['UserID']!=null) { ?>
     <img OnClick="clearSession();" src="/SVAuth/platforms/resources/images/Sign_out.jpg" width=40 height=40>
-<?php } else { ?>
-   <img OnClick="login_start('Facebook');" src="/SVAuth/platforms/resources/images/Facebook_login.jpg" width=100 height=40>
-   <img OnClick="login_start('Microsoft');" src="/SVAuth/platforms/resources/images/Microsoft_login.jpg" width=100 height=40>
-   <img OnClick="login_start('MicrosoftAzureAD');" src="/SVAuth/platforms/resources/images/MicrosoftAzureAD_login.jpg" width=100 height=40>
-   <img OnClick="login_start('Google');" src="/SVAuth/platforms/resources/images/Google_login.jpg" width=100 height=40>
-   <img OnClick="login_start('Yahoo');" src="/SVAuth/platforms/resources/images/Yahoo_login.jpg" width=100 height=40>
-<?php } ?>
+<?php } else { 
+   foreach ($providers as $provider) {
+       echo "<img OnClick=\"login_start('" . 
+	           $provider . 
+		    "');\" src=\"/SVAuth/platforms/resources/images/" .
+			   $provider . 
+			"_login.jpg\" width=100 height=40>";
+     }
+   }
+?>
 </div>
 
-<h3>User identity bound to this session:<br /></h3>
+<h3>User identity bound to this session (<?php echo session_id() ?>):<br /></h3>
 
 <font face="Courier New" size=2>
  Session["UserID"]=<?php echo $_SESSION['UserID']; ?> <br />

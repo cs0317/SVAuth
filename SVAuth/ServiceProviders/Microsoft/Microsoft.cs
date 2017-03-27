@@ -23,7 +23,8 @@ namespace SVAuth.ServiceProviders.Microsoft
 
     public class MSAuthenticationRequest: OIDC10.AuthenticationRequest
     {
-        public string tParam = "e2lkX3Rva2VuX2ludmFsaWRfbm9uY2UgOiB0cnVlfQ";    //used by the Azure testing IdP only
+        public string tParam = "eyJpZF90b2tlbl9pbnZhbGlkX2NfaGFzaCI6IHRydWV9";
+        // "e2lkX3Rva2VuX2ludmFsaWRfbm9uY2UgOiB0cnVlfQ";    //used by the Azure testing IdP only
     }
     public class MSUserProfile : GenericAuth.UserProfile
     {
