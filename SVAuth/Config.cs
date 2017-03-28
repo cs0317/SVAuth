@@ -21,6 +21,7 @@ namespace SVAuth
         public class WebAppSettings_
         {
             public string hostname;
+            public string rootPath;
             public string scheme;
             public int port;
             public PlatformSettings platform;
@@ -33,7 +34,7 @@ namespace SVAuth
             // The "SVAuth/platforms" string is hard-coded a bunch of places; no
             // point trying to make it configurable.
             public string platformRootUrl =>
-                $"{scheme}://{hostname}:{port}/SVAuth/platforms/{platform.name}/";
+                $"{scheme}://{hostname}:{port}{rootPath}/platforms/{platform.name}/";
         }
 
         // http://docs.telerik.com/fiddler/Configure-Fiddler/Tasks/MonitorLocalTraffic
@@ -49,7 +50,7 @@ namespace SVAuth
             // The platform files have to be edited manually to change it.
             public string scheme = "https";
             public int port;
-            public string agentScope = "local";
+            public string agentScope, agentScope_valid_values, agentHostname, agentRootPath, SSLCertFile, SSLCertFilePassword;
         }
         /*
         public SessionIDCookieProperties_ SessionIDCookieProperties;
@@ -76,8 +77,8 @@ namespace SVAuth
         public string agentRootUrl =>
             $"{AgentSettings.scheme}://{WebAppSettings.hostname}:{AgentSettings.port}/";
         public string internalPlatformRootUrl =>
-            $"{WebAppSettings.scheme}://{internalPlatformHostname}:{WebAppSettings.port}/" +
-            $"SVAuth/platforms/{WebAppSettings.platform.name}/";
+            $"{WebAppSettings.scheme}://{internalPlatformHostname}:{WebAppSettings.port}" +
+            $"{WebAppSettings.rootPath}/platforms/{WebAppSettings.platform.name}/";
         public string MainPageUrl =>
             WebAppSettings.platformRootUrl + "AllInOne." + WebAppSettings.platform.fileExtension;
         public SVX.Entity rpPrincipal => SVX.Entity.Of(WebAppSettings.hostname);

@@ -217,7 +217,7 @@ namespace SVAuth
             string encrypted_str = BitConverter.ToString(encrypted).Replace("-", "");
 
             string redir_url =
-               context.concdst + "/SVAuth/platforms/" + Config.config.WebAppSettings.platform.name + "/" +
+               context.concdst + "/platforms/" + Config.config.WebAppSettings.platform.name + "/" +
                "RemoteCreateNewSession." + Config.config.WebAppSettings.platform.fileExtension +
                 "?encryptedUserProfile=" + encrypted_str;
             //tmp

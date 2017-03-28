@@ -37,7 +37,7 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 		      <?php if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 	                   echo "'/login/'+provider;";
 					} else {  
-					     echo "'/SVAuth/platforms/php/start.php?provider='+provider;";
+					     echo "'" . $config['WebAppSettings']['rootPath'] . "/platforms/php/start.php?provider='+provider;";
 					}
 			  ?>	 
 		  window.location=url;
@@ -61,12 +61,14 @@ $providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo
 ?>
 <div id="grad1">
 <?php if ($_SESSION['UserID']!=null) { ?>
-    <img OnClick="clearSession();" src="/SVAuth/platforms/resources/images/Sign_out.jpg" width=40 height=40>
+    <img OnClick="clearSession();" src="<?php echo $config['WebAppSettings']['rootPath'];?>/platforms/resources/images/Sign_out.jpg" width=40 height=40>
 <?php } else { 
    foreach ($providers as $provider) {
        echo "<img OnClick=\"login_start('" . 
 	           $provider . 
-		    "');\" src=\"/SVAuth/platforms/resources/images/" .
+		    "');\" src=\"" .
+			$config['WebAppSettings']['rootPath'] .
+			"/platforms/resources/images/" .
 			   $provider . 
 			"_login.jpg\" width=100 height=40>";
      }
