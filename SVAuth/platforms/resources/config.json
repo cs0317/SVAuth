@@ -11,12 +11,12 @@
   },
 
   "AgentSettings": {
-    "scheme": "https",
+    "scheme": "http",
     "port": "3000",
     "agentScope": "*",
     "agentScope_valid_values": "The agentScope can be 'local', '.foo.com' or '*'. ",
-    "agentHostname": "localhost",
-    "agentRootPath":  "/SVAuth",
+    "agentHostname": "protoagnostic.cloudapp.net",
+    "agentRootPath": "/SVAuth",
     "SSLCertFile": "ssl-cert/certkey.p12",
     "SSLCertFilePassword": ""
   },

@@ -23,7 +23,7 @@ namespace SVAuth
             Utils.InitForReal();
             SVX.SVX_Ops.Init();
 
-            RunServer();
+            RunAgent();
             //SVX_Test_Concat.Test();
             //SVX_Test_Secret.Test();
             //SVX_Test_ImplicitFlow.Test();
@@ -42,12 +42,12 @@ namespace SVAuth
             }
         }
 
-        private static void RunServer()
+        private static void RunAgent()
         {
             // BCT WORKAROUND: "new T[] { ... }" and params-style method
             // calls (which generate something similar) ~ t-mattmc@microsoft.com 2016-06-15
             var urls = new string[1];
-            urls[0] = Config.config.AgentSettings.scheme + "://"+ Config.config.WebAppSettings.hostname+ ":" + Config.config.AgentSettings.port + "/";
+            urls[0] = Config.config.AgentSettings.scheme + "://"+ Config.config.AgentSettings.agentHostname+ ":" + Config.config.AgentSettings.port + "/";
 
             var host = new WebHostBuilder()
                 // The scheme specified here appears to make no difference
