@@ -29,6 +29,8 @@
     //session_start();
 	//$_SESSION['email'] = $conc["Email"];
   echo "session id2 is " . session_id() . "<br>";
+  echo ("location:" . $_COOKIE["LoginPageUrl"] );
 	header ("location:" . $_COOKIE["LoginPageUrl"] );
+  
 ?>
  

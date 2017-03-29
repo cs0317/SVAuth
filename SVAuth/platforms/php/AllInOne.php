@@ -31,7 +31,7 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 	      scheme = <?php echo "'". $scheme . "'" ?>;
 		  port = <?php echo "'". $port . "'" ?>;
 		  host = <?php echo "'". $host . "'" ?>;
-		  document.cookie="LoginPageUrl=; expires=Thu, 01-Jan-70 00:00:01 GMT;";
+		  document.cookie="LoginPageUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
 		  document.cookie="LoginPageUrl="+location+";path=/";
 		  url=scheme+"://"+location.host+":"+port+
 		      <?php if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {

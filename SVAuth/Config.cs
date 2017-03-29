@@ -52,14 +52,7 @@ namespace SVAuth
             public int port;
             public string agentScope, agentScope_valid_values, agentHostname, agentRootPath, SSLCertFile, SSLCertFilePassword;
         }
-        /*
-        public SessionIDCookieProperties_ SessionIDCookieProperties;
-        public class SessionIDCookieProperties_
-        {
-            public string domain;
-            public bool persistent;
-        }
-        */
+       
         public AppRegistration_ AppRegistration;
         public class AppRegistration_
         {
@@ -75,13 +68,13 @@ namespace SVAuth
         public string stateSecretKey;
 
         public string agentRootUrl =>
-            $"{AgentSettings.scheme}://{WebAppSettings.hostname}:{AgentSettings.port}/";
+            $"{AgentSettings.scheme}://{AgentSettings.agentHostname}:{AgentSettings.port}/";
         public string internalPlatformRootUrl =>
             $"{WebAppSettings.scheme}://{internalPlatformHostname}:{WebAppSettings.port}" +
             $"{WebAppSettings.rootPath}/platforms/{WebAppSettings.platform.name}/";
         public string MainPageUrl =>
             WebAppSettings.platformRootUrl + "AllInOne." + WebAppSettings.platform.fileExtension;
-        public SVX.Entity rpPrincipal => SVX.Entity.Of(WebAppSettings.hostname);
+        public SVX.Entity rpPrincipal => SVX.Entity.Of(AgentSettings.agentHostname);
 
         // Configuration loader:
 
