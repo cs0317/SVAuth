@@ -216,9 +216,9 @@ namespace SVAuth
             byte[] encrypted = EncryptStringToBytes_Aes(SerializedUserProfile, key, IV);
             string encrypted_str = BitConverter.ToString(encrypted).Replace("-", "");
 
+            string concdst=context.concdst.Replace("?", "/SVAuth/platforms/");
             string redir_url =
-               context.concdst + "/platforms/" + Config.config.WebAppSettings.platform.name + "/" +
-               "RemoteCreateNewSession." + Config.config.WebAppSettings.platform.fileExtension +
+               concdst  + "/RemoteCreateNewSession." + Config.config.WebAppSettings.platform.fileExtension +
                 "?encryptedUserProfile=" + encrypted_str;
             //tmp
             //redir_url += "&conckey=" + context.http.Request.Query["conckey"] + "&userProfile=" + SerializedUserProfile; ;

@@ -30,14 +30,13 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
       function login_start(provider) {
 	      scheme = <?php echo "'". $scheme . "'" ?>;
 		  port = <?php echo "'". $port . "'" ?>;
-		  host = <?php echo "'". $host . "'" ?>;
 		  document.cookie="LoginPageUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
 		  document.cookie="LoginPageUrl="+location+";path=/";
 		  url=scheme+"://"+location.host+":"+port+
 		      <?php if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 	                   echo "'/login/'+provider;";
 					} else {  
-					     echo "'" . $config['WebAppSettings']['rootPath'] . "/platforms/php/start.php?provider='+provider;";
+					     echo "'/SVAuth/platforms/php/start.php?provider='+provider;";
 					}
 			  ?>	 
 		  window.location=url;
@@ -61,14 +60,12 @@ $providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo
 ?>
 <div id="grad1">
 <?php if ($_SESSION['UserID']!=null) { ?>
-    <img OnClick="clearSession();" src="<?php echo $config['WebAppSettings']['rootPath'];?>/platforms/resources/images/Sign_out.jpg" width=40 height=40>
+    <img OnClick="clearSession();" src="../resources/images/Sign_out.jpg" width=40 height=40>
 <?php } else { 
    foreach ($providers as $provider) {
        echo "<img OnClick=\"login_start('" . 
 	           $provider . 
-		    "');\" src=\"" .
-			$config['WebAppSettings']['rootPath'] .
-			"/platforms/resources/images/" .
+		    "');\" src=\"../resources/images/" .
 			   $provider . 
 			"_login.jpg\" width=100 height=40>";
      }

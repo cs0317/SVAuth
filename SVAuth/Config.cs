@@ -21,7 +21,6 @@ namespace SVAuth
         public class WebAppSettings_
         {
             public string hostname;
-            public string rootPath;
             public string scheme;
             public int port;
             public PlatformSettings platform;
@@ -33,6 +32,7 @@ namespace SVAuth
 
             // The "SVAuth/platforms" string is hard-coded a bunch of places; no
             // point trying to make it configurable.
+            public string rootPath = "/SVAuth";
             public string platformRootUrl =>
                 $"{scheme}://{hostname}:{port}{rootPath}/platforms/{platform.name}/";
         }
@@ -50,7 +50,8 @@ namespace SVAuth
             // The platform files have to be edited manually to change it.
             public string scheme = "https";
             public int port;
-            public string agentScope, agentScope_valid_values, agentHostname, agentRootPath, SSLCertFile, SSLCertFilePassword;
+            public string agentScope, agentScope_valid_values, agentHostname, SSLCertFile, SSLCertFilePassword;
+            public string agentRootPath= "/SVAuth";
         }
        
         public AppRegistration_ AppRegistration;

@@ -13,28 +13,41 @@
 </style>
 </head>
 
+<%@ Page Language="C#" %>
+<%@ Import Namespace="System.Web.Script.Serialization" %>
+<%@ Import Namespace="System.IO" %>
+<%@ Import Namespace= "System.Security.Cryptography" %>
+<% 
+var jsonString = File.ReadAllText(Request.PhysicalPath+"/../../resources/config.json");
+JavaScriptSerializer js = new JavaScriptSerializer();
+dynamic config = js.Deserialize<dynamic>(jsonString);
+
+string scheme, port;
+if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
+	scheme = config["AgentSettings"]["scheme"];
+    port=config["AgentSettings"]["port"];
+} else {
+	scheme = config["WebAppSettings"]["scheme"];
+    port=config["WebAppSettings"]["port"];
+}
+%>
 
 <body>
  <script>
       function login_start(provider) {
+          scheme = "<% Response.Write(scheme); %>";
+		  port = "<% Response.Write(port); %>";
 
-		  var reg = new RegExp( '[?&]' + 'ReturnPort' + '=([^&#]*)', 'i' );
-		  var ReturnPort=reg.exec(window.location.href);
-		  ReturnPort = ReturnPort? ReturnPort[1]:null
-
-          if (  ReturnPort==null || ReturnPort=="" || ReturnPort=="null" )
-               ReturnPort="3000";
-
-          var reg1 = new RegExp( '[?&]' + 'scheme' + '=([^&#]*)', 'i' );
-		  var scheme=reg1.exec(window.location.href);
-		  scheme = scheme? scheme[1]:null
-
-          if (  scheme==null || scheme=="" || scheme=="null" )
-               scheme="https";
-
-		  document.cookie="LoginPageUrl=; expires=Thu, 01-Jan-70 00:00:01 GMT;";
+		  document.cookie="LoginPageUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
 		  document.cookie="LoginPageUrl="+location+";path=/";
-          window.location=(scheme+"://"+location.host+":"+ReturnPort+"/login/"+provider);	
+		  url=scheme+"://"+location.host+":"+port+
+		      <% if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
+	                  Response.Write("\"/login/\"+provider;");
+					} else {  
+					   Response.Write("\"/SVAuth/platforms/php/start.php?provider=\"+provider;");
+					}
+			  %>	 
+		  window.location=url;
 	  }
       function clearSession() {
 	        var xhttp = new XMLHttpRequest();
@@ -47,18 +60,23 @@
             xhttp.send();
          }
 </script>
-<%@ Page Language="C#" %>
+
 
 <div id="grad1">
-<%if (Session["UserID"]!=null) { %>
-   <img OnClick="clearSession();" src="/SVAuth/platforms/resources/images/Sign_out.jpg" width=40 height=40>
-<% } else { %>
-   <img OnClick="login_start('Facebook');" src="/SVAuth/platforms/resources/images/Facebook_login.jpg" width=100 height=40>
-   <img OnClick="login_start('Microsoft');" src="/SVAuth/platforms/resources/images/Microsoft_login.jpg" width=100 height=40>
-   <img OnClick="login_start('MicrosoftAzureAD');" src="/SVAuth/platforms/resources/images/MicrosoftAzureAD_login.jpg" width=100 height=40>
-   <img OnClick="login_start('Google');" src="/SVAuth/platforms/resources/images/Google_login.jpg" width=100 height=40>
-   <img OnClick="login_start('Yahoo');" src="/SVAuth/platforms/resources/images/Yahoo_login.jpg" width=100 height=40>
-<% } %>
+<% string[] providers = new string[] {"Facebook", "Microsoft", "MicrosoftAzureAD", "Google", "Yahoo"};  
+   if (Session["UserID"]!=null) { 
+%>
+    <img OnClick="clearSession();" src="../resources/images/Sign_out.jpg" width=40 height=40>
+<% } else { 
+   foreach (string provider in providers) {
+       Response.Write( "<img OnClick=\"login_start('" + 
+	           provider + 
+		    "');\" src=\"../resources/images/" +
+			   provider + 
+			"_login.jpg\" width=100 height=40>");
+     }
+   }
+%>
 </div>
 
 <h3>User identity bound to this session:<br /></h3>

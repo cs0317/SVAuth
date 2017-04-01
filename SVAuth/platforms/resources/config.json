@@ -2,21 +2,19 @@
   "__SECTION_1__": "This section configures the web server.",
   "WebAppSettings": {
     "hostname": "localhost",
-    "rootPath": "/SVAuth",
     "scheme": "http",
     "port": "80",
     "platform": {
-      "name": "php"
+      "name": "aspx"
     }
   },
 
   "AgentSettings": {
     "scheme": "https",
     "port": "3000",
-    "agentScope": "local",
+    "agentScope": "*",
     "agentScope_valid_values": "The agentScope can be 'local', '.foo.com' or '*'. ",
     "agentHostname": "localhost",
-    "agentRootPath": "/SVAuth",
     "SSLCertFile": "ssl-cert/certkey.p12",
     "SSLCertFilePassword": ""
   },

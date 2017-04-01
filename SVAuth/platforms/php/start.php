@@ -12,7 +12,7 @@ echo session_id() . "<br>" ;
 echo hash('sha256',session_id());
 $req = $config['AgentSettings']['scheme'] . "://" . $config['AgentSettings']['agentHostname'] . ":" . $config['AgentSettings']['port'];
 $req = $req . "/login/" . $_GET["provider"] . "?conckey=" . substr(hash('sha256',session_id()),strlen(session_id())) ;
-$req = $req . "&concdst=" . $config['WebAppSettings']['scheme'] . "://" . $config['WebAppSettings']['hostname'] . ":" . $config['WebAppSettings']['port'] . $config['WebAppSettings']['rootPath'];
+$req = $req . "&concdst=" . $config['WebAppSettings']['scheme'] . "://" . $config['WebAppSettings']['hostname'] . ":" . $config['WebAppSettings']['port'] . "?" . $config['WebAppSettings']["platform"]["name"];
 echo "<br>" . $req;
 header ("location: " . $req);
 ?>
