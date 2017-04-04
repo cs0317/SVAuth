@@ -44,7 +44,7 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 		      <% if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 	                  Response.Write("\"/login/\"+provider;");
 					} else {  
-					   Response.Write("\"/SVAuth/platforms/php/start.php?provider=\"+provider;");
+					   Response.Write("\"/SVAuth/platforms/aspx/start.aspx?provider=\"+provider;");
 					}
 			  %>	 
 		  window.location=url;
@@ -79,7 +79,7 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 %>
 </div>
 
-<h3>User identity bound to this session:<br /></h3>
+<h3>User identity bound to this session (<%:System.Web.HttpContext.Current.Session.SessionID%>):<br /></h3>
 
 <font face="Courier New" size=2>
  Session["UserID"]=<%:Session["UserID"]%> <br />
