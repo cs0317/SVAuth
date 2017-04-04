@@ -257,6 +257,7 @@ namespace SVAuth.OAuth20
 
 
         /*********************** smuggling conckey and concdst in the state parameter ******************/
+        [BCTOmit]
         string attach_concdst_conckey(string rawReq, HttpContext httpContext, string delim)
         {
             string concdst = httpContext.Request.Query["concdst"];
@@ -264,6 +265,12 @@ namespace SVAuth.OAuth20
             if (!String.IsNullOrEmpty(concdst) && !String.IsNullOrEmpty(conckey))
             {
                 int pos = rawReq.IndexOf("&state=") + ("&state=".Length);
+                if (pos < "&state=".Length)
+                {
+                    pos = rawReq.IndexOf("?state=") + ("?state=".Length);
+                    if (pos < "?state=".Length)
+                        throw new Exception("state parameter is missing");
+                }
                 string rawReq1 = rawReq.Substring(0, pos) + Uri.EscapeDataString(concdst) + delim + Uri.EscapeDataString(conckey) + delim + rawReq.Substring(pos);
                 rawReq = rawReq1;
             }
@@ -271,10 +278,15 @@ namespace SVAuth.OAuth20
         }
         string detach_concdst_conckey(ref SVAuthRequestContext context, string delim)
         {
-            string rawReq = context.http.Request.QueryString.Value;
+            string rawReq = System.Net.WebUtility.UrlDecode(context.http.Request.QueryString.Value);
             int pos0 = rawReq.IndexOf("&state=") + ("&state=".Length);
             if (pos0 < "&state=".Length)
-                throw new Exception("state parameter is missing");
+            {
+                pos0 = rawReq.IndexOf("?state=") + ("?state=".Length);
+                if (pos0 < "?state=".Length)
+                    throw new Exception("state parameter is missing");
+            }
+                
             int pos1 = rawReq.Substring(pos0).IndexOf(delim);
             if (pos1 > 1)
             {
@@ -328,7 +340,7 @@ namespace SVAuth.OAuth20
             Trace.Write("AuthorizationCodeFlow_Login_CallbackAsync");
             var context = new SVAuthRequestContext(SVX_Principal, httpContext);
             var idp = CreateModelAuthorizationServer();
-            var rawReq = detach_concdst_conckey(ref context, "++");
+            var rawReq = detach_concdst_conckey(ref context, "  ");
 
             // See if any subclasses need us to use their special
             // AuthorizationRequest subclass.

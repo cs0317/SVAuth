@@ -118,6 +118,8 @@ namespace SVAuth
             RandomNumberGenerator.Create().GetBytes(result);
             return result;
         }
+
+        [BCTOmit]
         static byte[] EncryptStringToBytes_Aes(string plainText, byte[] Key, byte[] IV)
         {
             var buffer = Encoding.UTF8.GetBytes(plainText);
@@ -282,7 +284,7 @@ namespace SVAuth
         // need an option to disable cookies and just generate a random facet
         // every time.
         public readonly SVX.Channel channel;
-        public string conckey=null, concdst =null; //used by non-local agentscope. 
+        public string conckey=null, concdst =null; //used by a remote agent. 
         const string cookieName = "SVAuthSessionID";
 
         // This will automatically set an agent cookie if the client did not

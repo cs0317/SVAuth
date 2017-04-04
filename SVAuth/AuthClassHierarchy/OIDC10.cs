@@ -136,6 +136,7 @@ namespace SVAuth.OIDC10
 
         public abstract MessageStructures GetMessageStructures();
 
+        [BCTOmit]
         JObject detach_concdst_conckey_formpost(ref SVAuthRequestContext context, string delim)
         {
             JObject jo = new JObject(context.http.Request.Form.Select(q => new JProperty(q.Key, q.Value.Single())));

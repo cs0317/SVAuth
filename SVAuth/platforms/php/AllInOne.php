@@ -32,7 +32,13 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 		  port = <?php echo "'". $port . "'" ?>;
 		  document.cookie="LoginPageUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
 		  document.cookie="LoginPageUrl="+location+";path=/";
-		  url=scheme+"://"+location.host+":"+port+
+		  hostname = location.host;
+		  if (provider.toLowerCase() === "Weibo".toLowerCase()) 
+		      <?php if (strcmp($config['AgentSettings']['agentHostname'],'localhost')==0) {
+                      echo "hostname=\"127.0.0.1\";\n";
+                    }
+			  ?>
+		  url=scheme+"://"+hostname + ":"+ port+
 		      <?php if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 	                   echo "'/login/'+provider;";
 					} else {  
@@ -46,7 +52,14 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
         if (xhttp.readyState == 4) {
-	      location.reload();
+		    <?php  
+				if ($_SERVER['HTTP_HOST']=="127.0.0.1") { 
+				    echo "location.href=\"" . $config['WebAppSettings']['scheme'] . "://localhost:" . $config['WebAppSettings']['port'] . $_SERVER['REQUEST_URI'] ."\""; 
+				} else  {
+	                echo "location.reload();";
+				}
+			?>
+	      
         }
     };
     xhttp.open("GET", "sign_out.php", true);
@@ -56,7 +69,7 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 <?php
 // Start the session
 session_start();
-$providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo');
+$providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo', 'Weibo','WeChat');
 ?>
 <div id="grad1">
 <?php if ($_SESSION['UserID']!=null) { ?>
@@ -82,5 +95,17 @@ $providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo
 </font>
 <br />
 
+
+<?php  
+   /* because weibo doesn't allow localhost to be the redirect_uri */
+   if ($_SERVER['HTTP_HOST']=="localhost") {  
+      echo "<iframe style=\"display: none;\" src=\""
+	        . $config['WebAppSettings']['scheme']
+			. "://127.0.0.1:" 
+	        . $config['WebAppSettings']['port']
+			. "/SVAuth/platforms/php/127d0d0d1.php\""
+	        . "></iframe>";
+   } 
+?> 
 </body>
 </html>

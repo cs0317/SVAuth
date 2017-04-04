@@ -62,6 +62,7 @@ namespace SVAuth
             public ServiceProviders.Microsoft.MicrosoftAzureADAppRegistration MicrosoftAzureAD;
             public ServiceProviders.Google.GGAppRegistration Google;
             public ServiceProviders.Yahoo.YahooAppRegistration Yahoo;
+            public ServiceProviders.Weibo.WBAppRegistration Weibo;
         }
 
         // The same key is used for all OAuth 2.0 IdPs, but the state value will
