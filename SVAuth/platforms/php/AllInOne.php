@@ -33,11 +33,12 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 		  document.cookie="LoginPageUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
 		  document.cookie="LoginPageUrl="+location+";path=/";
 		  hostname = location.host;
-		  if (provider.toLowerCase() === "Weibo".toLowerCase()) 
+		  if (provider.toLowerCase() === "Weibo".toLowerCase()) {
 		      <?php if (strcmp($config['AgentSettings']['agentHostname'],'localhost')==0) {
                       echo "hostname=\"127.0.0.1\";\n";
                     }
 			  ?>
+		   }
 		  url=scheme+"://"+hostname + ":"+ port+
 		      <?php if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 	                   echo "'/login/'+provider;";
@@ -73,7 +74,7 @@ $providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo
 ?>
 <div id="grad1">
 <?php if ($_SESSION['UserID']!=null) { ?>
-    <img OnClick="clearSession();" src="../resources/images/Sign_out.jpg" width=40 height=40>
+    <img OnClick="clearSession();" src="../resources/images/sign_out.jpg" width=40 height=40>
 <?php } else { 
    foreach ($providers as $provider) {
        echo "<img OnClick=\"login_start('" . 

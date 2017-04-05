@@ -11,7 +11,7 @@
     );
 	$endpos=strpos($decrypted,"}"); 
 	$decrypted= substr($decrypted,0,$endpos+1) ;
-	//echo $decrypted . "<<<<";
+	echo $decrypted . "<<<<";
 	$conc = json_decode($decrypted,true);
 	var_dump($conc);
 	echo "LoginPageUrl" . $_COOKIE["LoginPageUrl"];
