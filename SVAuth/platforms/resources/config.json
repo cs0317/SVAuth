@@ -5,14 +5,14 @@
     "scheme": "http",
     "port": "80",
     "platform": {
-      "name": "php"
+      "name": "aspx"
     }
   },
 
   "AgentSettings": {
     "scheme": "https",
     "port": "3000",
-    "agentScope": "*",
+    "agentScope": "local",
     "agentScope_valid_values": "The agentScope can be 'local', '.foo.com' or '*'. ",
     "agentHostname": "localhost",
     "SSLCertFile": "ssl-cert/certkey.p12",

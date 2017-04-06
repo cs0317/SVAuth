@@ -52,6 +52,7 @@ namespace SVAuth.GenericAuth
         // Should this rather be an abstract property for consistency with the
         // design of the other abstract messages? ~ t-mattmc@microsoft.com 2016-06-01
         public string UserID;
+        public string Authority;
     }
 
     public class AuthenticationConclusion : SVX.SVX_MSG

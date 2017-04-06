@@ -40,7 +40,11 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 
 		  document.cookie="LoginPageUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
 		  document.cookie="LoginPageUrl="+location+";path=/";
-		  url=scheme+"://"+location.host+":"+port+
+          hostname = location.host;
+		  if (provider.toLowerCase() === "Weibo".toLowerCase() && hostname=="localhost") {
+                     hostname="127.0.0.1";
+		   }
+		  url=scheme+"://"+hostname+":"+port+
 		      <% if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 	                  Response.Write("\"/login/\"+provider;");
 					} else {  
@@ -53,8 +57,14 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 	        var xhttp = new XMLHttpRequest();
 	        xhttp.onreadystatechange = function() {
                 if (xhttp.readyState == 4) {
-	              location.reload();
-                }
+                <%  
+				if (HttpContext.Current.Request.Url.Host=="127.0.0.1") { 
+				    Response.Write( "location.href=\"" + HttpContext.Current.Request.Url.Scheme + "://localhost:" + HttpContext.Current.Request.Url.Port + "/SVAuth/platforms/aspx/AllInOne.aspx\";"); 
+                 } else  {
+	                Response.Write("location.reload();");
+				}
+			    %>
+	            }
             };
             xhttp.open("GET", "sign_out.aspx", true);
             xhttp.send();
@@ -63,7 +73,7 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 
 
 <div id="grad1">
-<% string[] providers = new string[] {"Facebook", "Microsoft", "MicrosoftAzureAD", "Google", "Yahoo"};  
+<% string[] providers = new string[] {"Facebook", "Microsoft", "MicrosoftAzureAD", "Google", "Yahoo", "Weibo","WeChat"};  
    if (Session["UserID"]!=null) { 
 %>
     <img OnClick="clearSession();" src="../resources/images/Sign_out.jpg" width=40 height=40>
@@ -85,8 +95,20 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
  Session["UserID"]=<%:Session["UserID"]%> <br />
  Session["FullName"]=<%:Session["fullname"]%> <br />
  Session["email"]=<%:Session["email"]%> <br />
+ Session["Authority"]=<%:Session["Authority"]%> <br />
 </font>
 <br />
 
+<%  
+   /* because weibo doesn't allow localhost to be the redirect_uri */
+   if (HttpContext.Current.Request.Url.Host=="localhost") {  
+      Response.Write("<iframe style=\"display: none;\" src=\""
+	        + config["WebAppSettings"]["scheme"]
+			+ "://127.0.0.1:" 
+	        + config["WebAppSettings"]["port"]
+			+ "/SVAuth/platforms/aspx/127d0d0d1.aspx\""
+	        + "></iframe>");
+   } 
+%> 
 </body>
 </html>

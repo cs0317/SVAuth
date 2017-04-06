@@ -71,12 +71,14 @@ for(int i=0; i<hex.Length; i++) {
     hex[i]=Convert.ToByte(b,16);
     encryptedUserProfile=encryptedUserProfile.Substring(2);
 }
+
 string old_session_id = Request.QueryString["old_session_id"];
 HashAlgorithm hashAlgo = SHA256.Create();
 byte[] conckey_bytes=hashAlgo.ComputeHash(System.Text.Encoding.UTF8.GetBytes(old_session_id));
 string conckey = BitConverter.ToString(conckey_bytes).Replace("-","");
 //conckey = conckey.Substring(0,conckey.Length);
 Response.Write("<br>conckey=" + conckey);
+
 UTF8Encoding utf8 = new UTF8Encoding();
 byte[] key = utf8.GetBytes(conckey).Take<byte>(256 / 8).ToArray<byte>();
 byte[] IV = utf8.GetBytes(conckey).Take<byte>(128 / 8).ToArray<byte>();
@@ -89,6 +91,7 @@ dynamic conc = js.Deserialize<dynamic>(decrypted);
 Session["email"] = conc["Email"];
 Session["UserID"] = conc["UserID"];
 Session["FullName"] = conc["FullName"];
+Session["Authority"]= conc["Authority"]; 
 Response.Write("<br>session id=" + System.Web.HttpContext.Current.Session.SessionID);
 Response.Write( "LoginPageUrl=" + Request.Cookies["LoginPageUrl"].Value +"<br>");
 Response.Redirect(Request.Cookies["LoginPageUrl"].Value);

@@ -23,6 +23,7 @@
 	$_SESSION['email'] = $conc['Email'];
 	$_SESSION['UserID'] = $conc['UserID'];
 	$_SESSION['FullName'] = $conc['FullName'];
+  $_SESSION['Authority'] = $conc['Authority'];
 	setcookie(session_name(),'',0,'/');
     session_regenerate_id(true);
 	echo "session id2 is " . session_id() . "<br>";

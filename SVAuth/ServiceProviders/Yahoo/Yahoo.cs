@@ -224,6 +224,7 @@ namespace SVAuth.ServiceProviders.Yahoo
             stateGenerator.Verify(stateParams, inputMSG.FieldsExpectedToBeSigned.theParams.CSRF_state);
 
             AuthConclusion.userProfile = userProfile;
+            AuthConclusion.userProfile.Authority = "Yahoo.com";
             return AuthConclusion;
         }
     }

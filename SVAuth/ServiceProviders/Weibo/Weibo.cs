@@ -25,7 +25,6 @@ namespace SVAuth.ServiceProviders.Weibo
     {
         public string Email;
         public string FullName;
-        public string FB_ID;
     }
     public class WBUserProfileRequest : OAuth20.UserProfileRequest
     {
@@ -137,6 +136,7 @@ namespace SVAuth.ServiceProviders.Weibo
             UserProfile.Email = "";
             UserProfile.FullName = WBUserProfileResponse.name;
             conclusion.userProfile = UserProfile;
+            conclusion.userProfile.Authority = "Weibo.com";
             return conclusion;
         }
 

@@ -167,6 +167,7 @@ namespace SVAuth.ServiceProviders.Microsoft
             userProfile.UserID = userProfile.Email;
 
             AuthConclusion.userProfile = userProfile;
+            AuthConclusion.userProfile.Authority = "Microsoft.com";
             return AuthConclusion;
         }
     }

@@ -14,11 +14,13 @@ SESSID <?php  echo $_COOKIE["PHPSESSID"]; ?>
     $UserID = $_POST['UserID'];
 	$FullName = $_POST['FullName'];
 	$email = $_POST['Email'];
+	$Authority = $_POST['Authority'];
 	if (!(strlen($UserID) > 0)) {
 		echo "before abandon:",$_COOKIE["PHPSESSID"];
 		unset($_SESSION['UserID']);
 		unset($_SESSION['FullName']);
 		unset($_SESSION['email']);
+		unset($_SESSION['Authority']);
 		session_destroy();
 		echo "after abandon:",$_COOKIE["PHPSESSID"];
 		return;
@@ -30,6 +32,7 @@ SESSID <?php  echo $_COOKIE["PHPSESSID"]; ?>
         $_SESSION['UserID'] = $UserID;
         $_SESSION['FullName'] = $FullName;
         $_SESSION['email'] = $email;
+		$_SESSION['Authority'] = $Authority;
 		//setcookie("PHPSESSID", $new_sessionid,0, "/");
 		echo "set vars (",$_SESSION['UserID'],")(",$_COOKIE["PHPSESSID"],")(",$new_sessionid,")";
     }

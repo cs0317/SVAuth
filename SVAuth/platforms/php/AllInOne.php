@@ -33,11 +33,8 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 		  document.cookie="LoginPageUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
 		  document.cookie="LoginPageUrl="+location+";path=/";
 		  hostname = location.host;
-		  if (provider.toLowerCase() === "Weibo".toLowerCase()) {
-		      <?php if (strcmp($config['AgentSettings']['agentHostname'],'localhost')==0) {
-                      echo "hostname=\"127.0.0.1\";\n";
-                    }
-			  ?>
+		  if (provider.toLowerCase() === "Weibo".toLowerCase() && hostname=="localhost") {
+                     hostname="127.0.0.1";
 		   }
 		  url=scheme+"://"+hostname + ":"+ port+
 		      <?php if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
@@ -93,6 +90,7 @@ $providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo
  Session["UserID"]=<?php echo $_SESSION['UserID']; ?> <br />
  Session["FullName"]=<?php echo $_SESSION['FullName']; ?> <br />
  Session["email"]=<?php echo $_SESSION['email']; ?> <br />
+ Session["Authority"]=<?php echo $_SESSION['Authority']; ?> <br />
 </font>
 <br />
 

@@ -155,6 +155,7 @@ namespace SVAuth.ServiceProviders.Google
             stateGenerator.Verify(stateParams, authenticationResponse.state);
 
             AuthConclusion.userProfile = userProfile;
+            AuthConclusion.userProfile.Authority = "Google.com";
             return AuthConclusion;
         }
     }

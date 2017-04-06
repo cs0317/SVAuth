@@ -127,11 +127,12 @@ namespace SVAuth.ServiceProviders.Facebook
             var conclusion = new GenericAuth.AuthenticationConclusion();
             conclusion.channel = authorizationResponse.SVX_sender;
             var fbUserProfile = new FBUserProfile();
-            fbUserProfile.UserID = fbUserProfileResponse.email;
+            fbUserProfile.UserID = fbUserProfileResponse.id;
             fbUserProfile.Email = fbUserProfileResponse.email;
             fbUserProfile.FB_ID = fbUserProfileResponse.id;
             fbUserProfile.FullName = fbUserProfileResponse.name;
             conclusion.userProfile = fbUserProfile;
+            conclusion.userProfile.Authority = "Facebook.com";
             return conclusion;
         }
 
@@ -167,8 +168,8 @@ namespace SVAuth.ServiceProviders.Facebook
         {
             return new FBUserProfileResponse
             {
-                id = SVX.VProgram_API.Nondet<string>(),
-                email = userID,
+                id = userID,
+                email = SVX.VProgram_API.Nondet<string>(),
                 name = SVX.VProgram_API.Nondet<string>()
             };
         }
