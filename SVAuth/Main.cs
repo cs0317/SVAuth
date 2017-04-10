@@ -23,7 +23,7 @@ namespace SVAuth
             Utils.InitForReal();
             SVX.SVX_Ops.Init();
 
-            RunServer();
+            RunAgent();
             //SVX_Test_Concat.Test();
             //SVX_Test_Secret.Test();
             //SVX_Test_ImplicitFlow.Test();
@@ -42,12 +42,12 @@ namespace SVAuth
             }
         }
 
-        private static void RunServer()
+        private static void RunAgent()
         {
             // BCT WORKAROUND: "new T[] { ... }" and params-style method
             // calls (which generate something similar) ~ t-mattmc@microsoft.com 2016-06-15
             var urls = new string[1];
-            urls[0] = Config.config.AgentSettings.scheme + "://"+ Config.config.WebAppSettings.hostname+ ":" + Config.config.AgentSettings.port + "/";
+            urls[0] = Config.config.AgentSettings.scheme + "://"+ Config.config.AgentSettings.agentHostname+ ":" + Config.config.AgentSettings.port + "/";
 
             var host = new WebHostBuilder()
                 // The scheme specified here appears to make no difference
@@ -71,7 +71,9 @@ namespace SVAuth
                     X509Certificate2 cer;
                     //If the pfx is protected by a password, using the following line
                     //cer = new X509Certificate2("ssl-cert/password-protected-pfx-file.pfx", "password"); 
-                    cer = new X509Certificate2("ssl-cert/certkey.p12"); 
+                    string sslFilename = Config.config.AgentSettings.SSLCertFile;
+                    string password = Config.config.AgentSettings.SSLCertFilePassword;
+                    cer = new X509Certificate2(sslFilename, password); 
                     kestrelOptions.UseHttps(cer);
                     break;
                 case "http":
@@ -109,6 +111,7 @@ namespace SVAuth
             ServiceProviders.Microsoft.MicrosoftAzureAD_RP.Init(routeBuilder);
             ServiceProviders.Google.Google_RP.Init(routeBuilder);
             ServiceProviders.Yahoo.Yahoo_RP.Init(routeBuilder);
+            ServiceProviders.Weibo.Weibo_RP.Init(routeBuilder);
             app.UseRouter(routeBuilder.Build());
         }
 
@@ -116,7 +119,7 @@ namespace SVAuth
         private static Task MainPageHandler(HttpContext context)
         {
             context.Response.StatusCode = 303;
-            context.Response.Redirect(Config.config.MainPageUrl + "?ReturnPort=" + Config.config.AgentSettings.port + "&scheme=" + Config.config.AgentSettings.scheme);
+            context.Response.Redirect(Config.config.MainPageUrl);
             return Task.CompletedTask;
         }
     }

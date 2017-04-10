@@ -9,10 +9,10 @@ using Newtonsoft.Json.Linq;
 namespace SVX
 {
     [JsonConverter(typeof(PrincipalJsonConverter))]
-    public abstract class PrincipalHandle
+    public abstract class Principal
     {
         // No other subclasses please.  If we really cared, we could define a Visit method.
-        internal PrincipalHandle() { }
+        internal Principal() { }
         public override abstract bool Equals(object that);
         public override abstract int GetHashCode();
 
@@ -23,9 +23,9 @@ namespace SVX
          * once. ~ t-mattmc@microsoft.com 2016-07-05 */
         [BCTOmitImplementation]
         // Careful: either argument could be null!
-        public static bool operator ==(PrincipalHandle left, PrincipalHandle right) => Equals(left, right);
+        public static bool operator ==(Principal left, Principal right) => Equals(left, right);
         [BCTOmitImplementation]
-        public static bool operator !=(PrincipalHandle left, PrincipalHandle right) => !Equals(left, right);
+        public static bool operator !=(Principal left, Principal right) => !Equals(left, right);
     }
 
     // TODO: Do we want to discourage callers from poking at fields in
@@ -41,7 +41,7 @@ namespace SVX
     {
         public override bool CanConvert(Type objectType)
         {
-            return typeof(PrincipalHandle).IsAssignableFrom(objectType);
+            return typeof(Principal).IsAssignableFrom(objectType);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
@@ -53,11 +53,11 @@ namespace SVX
             JObject jobject = JObject.Load(reader);
             string name = jobject.Value<string>("name");
             if (name != null)
-                return Principal.Of(name);
+                return Entity.Of(name);
             else
-                return PrincipalFacet.Of(
+                return Channel.Of(
                     // XXX Inefficient; learn if there is a better way to use this API.
-                    serializer.Deserialize<Principal>(new JTokenReader(jobject["issuer"])),
+                    serializer.Deserialize<Entity>(new JTokenReader(jobject["issuer"])),
                     jobject.Value<string>("id"));
         }
 
@@ -70,7 +70,7 @@ namespace SVX
     }
 
     [JsonConverter(typeof(PrincipalJsonConverter))]
-    public class Principal : PrincipalHandle
+    public class Entity : Principal
     {
         // The naming conventions are not finalized, but for now we are using
         // hostnames and some other special formats that cannot be confused with
@@ -78,7 +78,7 @@ namespace SVX
         // formats?)
         public readonly string name;
 
-        private Principal(string name)
+        private Entity(string name)
         {
             if (name == null)
                 throw new ArgumentNullException();
@@ -86,14 +86,14 @@ namespace SVX
         }
 
         [BCTOmitImplementation]
-        public static Principal Of(string name)
+        public static Entity Of(string name)
         {
-            return new Principal(name);
+            return new Entity(name);
         }
 
         public override bool Equals(object that)
         {
-            var thatPrincipal = that as Principal;
+            var thatPrincipal = that as Entity;
             return thatPrincipal != null && name == thatPrincipal.name;
         }
         public override int GetHashCode() => Hasher.Start.With(name.GetHashCode());
@@ -104,17 +104,17 @@ namespace SVX
     /* A PrincipalFacet is a placeholder identifier automatically assigned to a
      * principal whose true identity is not immediately known. */
     [JsonConverter(typeof(PrincipalJsonConverter))]
-    public class PrincipalFacet : PrincipalHandle
+    public class Channel : Principal
     {
         /* This is mainly here for diagnostic purposes.  If all trusted
          * principals generate the ID randomly, we can assume there are no
          * collisions among the facets they generate, and we can't assume
          * anything about what untrusted principals do anyway. */
-        public readonly Principal issuer;
+        public readonly Entity issuer;
         // Should be generated randomly.
         public readonly string id;
 
-        private PrincipalFacet(Principal issuer, string id)
+        private Channel(Entity issuer, string id)
         {
             if (issuer == null || id == null)
                 throw new ArgumentNullException();
@@ -123,19 +123,19 @@ namespace SVX
         }
 
         [BCTOmitImplementation]
-        public static PrincipalFacet Of(Principal issuer, string id)
+        public static Channel Of(Entity issuer, string id)
         {
-            return new PrincipalFacet(issuer, id);
+            return new Channel(issuer, id);
         }
 
-        public static PrincipalFacet GenerateNew(Principal issuer)
+        public static Channel GenerateNew(Entity issuer)
         {
-            return new PrincipalFacet(issuer, Utils.RandomIdString());
+            return new Channel(issuer, Utils.RandomIdString());
         }
 
         public override bool Equals(object that)
         {
-            var thatFacet = that as PrincipalFacet;
+            var thatFacet = that as Channel;
             return thatFacet != null && issuer == thatFacet.issuer && id == thatFacet.id;
         }
         public override int GetHashCode() => Hasher.Start.With(issuer.GetHashCode()).With(id.GetHashCode());

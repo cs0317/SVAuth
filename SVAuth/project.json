@@ -31,7 +31,6 @@
     "compile": {
       "exclude": [
         "ServiceProviders\\anyServiceProviderYouWantToExclude\\anyServiceProviderYouWantToExclude.cs"
-
       ]
     }
   },

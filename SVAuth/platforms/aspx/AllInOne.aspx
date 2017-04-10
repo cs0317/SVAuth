@@ -13,51 +13,102 @@
 </style>
 </head>
 
+<%@ Page Language="C#" %>
+<%@ Import Namespace="System.Web.Script.Serialization" %>
+<%@ Import Namespace="System.IO" %>
+<%@ Import Namespace= "System.Security.Cryptography" %>
+<% 
+var jsonString = File.ReadAllText(Request.PhysicalPath+"/../../site_config/site_config.json");
+JavaScriptSerializer js = new JavaScriptSerializer();
+dynamic config = js.Deserialize<dynamic>(jsonString);
+
+string scheme, port;
+if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
+	scheme = config["AgentSettings"]["scheme"];
+    port=config["AgentSettings"]["port"];
+} else {
+	scheme = config["WebAppSettings"]["scheme"];
+    port=config["WebAppSettings"]["port"];
+}
+%>
 
 <body>
+ <script>
+      function login_start(provider) {
+          scheme = "<% Response.Write(scheme); %>";
+		  port = "<% Response.Write(port); %>";
 
-<%@ Page Language="C#" %>
-
-<script>
-  function copyToClipboard(str1,str2) {
-    window.prompt("This is the ASP.NET code of the button.\nCopy to clipboard: Ctrl+C, Enter.\n", str1+"<% =System.Configuration.ConfigurationManager.AppSettings["SVAuth_AspxStub_RootDir"]%>"+str2);
-  }
+		  document.cookie="LoginPageUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
+		  document.cookie="LoginPageUrl="+location+";path=/";
+          hostname = location.host;
+		  if (provider.toLowerCase() === "Weibo".toLowerCase() && hostname=="localhost") {
+                     hostname="127.0.0.1";
+		   }
+		  url=scheme+"://"+hostname+":"+port+
+		      <% if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
+	                  Response.Write("\"/login/\"+provider;");
+					} else {  
+					   Response.Write("\"/SVAuth/platforms/aspx/start.aspx?provider=\"+provider;");
+					}
+			  %>	 
+		  window.location=url;
+	  }
+      function clearSession() {
+	        var xhttp = new XMLHttpRequest();
+	        xhttp.onreadystatechange = function() {
+                if (xhttp.readyState == 4) {
+                <%  
+				if (HttpContext.Current.Request.Url.Host=="127.0.0.1") { 
+				    Response.Write( "location.href=\"" + HttpContext.Current.Request.Url.Scheme + "://localhost:" + HttpContext.Current.Request.Url.Port + "/SVAuth/platforms/aspx/AllInOne.aspx\";"); 
+                 } else  {
+	                Response.Write("location.reload();");
+				}
+			    %>
+	            }
+            };
+            xhttp.open("GET", "sign_out.aspx", true);
+            xhttp.send();
+         }
 </script>
 
-<div id="grad1">
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\sign_out_button.inc" -->
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Facebook_login_button.inc" -->
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Microsoft_login_button.inc" -->
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\MicrosoftAzureAD_login_button.inc" -->
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Google_login_button.inc" -->
-<!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Yahoo_login_button.inc" -->
 
+<div id="grad1">
+<% string[] providers = new string[] {"Facebook", "Microsoft", "MicrosoftAzureAD", "Google", "Yahoo", "Weibo","WeChat"};  
+   if (Session["UserID"]!=null) { 
+%>
+    <img OnClick="clearSession();" src="../resources/images/Sign_out.jpg" width=40 height=40>
+<% } else { 
+   foreach (string provider in providers) {
+       Response.Write( "<img OnClick=\"login_start('" + 
+	           provider + 
+		    "');\" src=\"../resources/images/" +
+			   provider + 
+			"_login.jpg\" width=100 height=40>");
+     }
+   }
+%>
 </div>
 
-<h3>First, test this page:<br /></h3>
-
-1. Click any button (login or logout) on the banner above; <br />
-2. See the current session variable values: <br />
-
+<h3>User identity bound to this session (<%:System.Web.HttpContext.Current.Session.SessionID%>):<br /></h3>
 
 <font face="Courier New" size=2>
  Session["UserID"]=<%:Session["UserID"]%> <br />
  Session["FullName"]=<%:Session["fullname"]%> <br />
  Session["email"]=<%:Session["email"]%> <br />
+ Session["Authority"]=<%:Session["Authority"]%> <br />
 </font>
 <br />
 
-
-<h3>Next, follow the instruction to paste code into any ASPX page of your app: <br /></h3>
-
-1. Paste the following code in the beginning of the BODY section of your page;</br>
-<pre>
-&lt;%@ Page Language="C#" %&gt;
-</pre>
-2. The code of every button can be obtained by right-clicking the button. For example, the following are the Facebook login button and a logout button. You can paste them anywhere you want in your page.<br />
-<pre>
-&lt;!-- #include virtual = "/SVAuth/platforms/aspx\buttons\sign_out_button.inc" --&gt;
-&lt;!-- #include virtual = "/SVAuth/platforms/aspx\buttons\Facebook_login_button.inc" --&gt;
-</pre>
+<%  
+   /* because weibo doesn't allow localhost to be the redirect_uri */
+   if (HttpContext.Current.Request.Url.Host=="localhost") {  
+      Response.Write("<iframe style=\"display: none;\" src=\""
+	        + config["WebAppSettings"]["scheme"]
+			+ "://127.0.0.1:" 
+	        + config["WebAppSettings"]["port"]
+			+ "/SVAuth/platforms/aspx/127d0d0d1.aspx\""
+	        + "></iframe>");
+   } 
+%> 
 </body>
 </html>

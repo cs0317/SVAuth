@@ -11,10 +11,10 @@ namespace SVX
     {
         abstract class FieldHandler
         {
-            internal virtual void Export(TMessage message, PrincipalHandle receiver, PrincipalHandle target) { }
+            internal virtual void Export(TMessage message, Principal receiver, Principal target) { }
             internal virtual void Extract(TMessage message) { }
             internal virtual void RecordExtract(TMessage message) { }  // Happens even if fake.
-            internal virtual void Import(TMessage message, PrincipalHandle producer, PrincipalHandle sender) { }
+            internal virtual void Import(TMessage message, Principal producer, Principal sender) { }
         }
 
         // TBD how to represent handlers for nested fields.
@@ -33,9 +33,9 @@ namespace SVX
             where TSecret : Secret
         {
             internal FieldAccessor<TMessage, TSecret> accessor;
-            internal Func<TMessage, PrincipalHandle[]> getKnownReaders;
+            internal Func<TMessage, Principal[]> getKnownReaders;
 
-            internal override void Export(TMessage message, PrincipalHandle receiver, PrincipalHandle target)
+            internal override void Export(TMessage message, Principal receiver, Principal target)
             {
                 var secret = accessor.Get(message);
 
@@ -53,17 +53,17 @@ namespace SVX
                 secret.exportApproved = true;
             }
 
-            internal override void Import(TMessage message, PrincipalHandle producer, PrincipalHandle sender)
+            internal override void Import(TMessage message, Principal producer, Principal sender)
             {
                 var secret = accessor.Get(message);
                 // Automatically infer that the producer and sender must be
                 // allowed readers.  This should cover some more cases and put
                 // off the need for symbolic secret export checking.
-                secret.knownReaders = getKnownReaders(message).Concat(new PrincipalHandle[] { producer, sender }).ToArray();
+                secret.knownReaders = getKnownReaders(message).Concat(new Principal[] { producer, sender }).ToArray();
             }
         }
 
-        public void AddSecret(string fieldName, Func<TMessage, PrincipalHandle[]> getKnownReaders)
+        public void AddSecret(string fieldName, Func<TMessage, Principal[]> getKnownReaders)
         {
             var accessor = FieldLookup.Lookup<TMessage, Secret>(fieldName);
             // Throws if field name already has a handler.
@@ -110,7 +110,7 @@ namespace SVX
         }
 
         public void AddMessagePayloadSecret<TInnerMessage>(string fieldName,
-            Func<TMessage, PrincipalHandle[]> getKnownReaders,
+            Func<TMessage, Principal[]> getKnownReaders,
             MessagePayloadSecretGenerator<TInnerMessage> generator,
             bool verifyOnImport)
             where TInnerMessage : SVX_MSG
@@ -133,7 +133,7 @@ namespace SVX
         // logic in one method and then define various restricted entry points.
         // ~ t-mattmc@microsoft.com 2016-07-25
         private void Export(bool fake, TMessage message,
-            PrincipalHandle receiver, PrincipalHandle target, PrincipalHandle requestProducer)
+            Principal receiver, Principal target, Principal requestProducer)
         {
             if (!fake)
             {
@@ -155,7 +155,7 @@ namespace SVX
             SVX_Ops.WipeActiveFlags(message);
         }
 
-        public void Export(TMessage message, PrincipalHandle receiver, PrincipalHandle target)
+        public void Export(TMessage message, Principal receiver, Principal target)
         {
             Export(false, message, receiver, target, null);
         }
@@ -167,17 +167,17 @@ namespace SVX
         // For cleanliness in serialization, provide a separate API so that
         // message.SVX_placeholderRequestProducer is only set when we expect the
         // receiver to use it.
-        public void ExportDirectResponse(TMessage message, PrincipalHandle receiver, PrincipalHandle requestProducer)
+        public void ExportDirectResponse(TMessage message, Principal receiver, Principal requestProducer)
         {
             Export(false, message, receiver, null, requestProducer);
         }
-        public void FakeExportDirectResponse(TMessage message, PrincipalHandle requestProducer)
+        public void FakeExportDirectResponse(TMessage message, Principal requestProducer)
         {
             Export(true, message, null, null, requestProducer);
         }
 
         private void Import(bool fake, TMessage message, Action modelAction,
-            PrincipalHandle producer, PrincipalHandle sender, PrincipalHandle realRequestProducer)
+            Principal producer, Principal sender, Principal realRequestProducer)
         {
             // Extract all fields before importing any, in case getKnownReaders
             // for one secret references information extracted from another
@@ -206,7 +206,7 @@ namespace SVX
             }
         }
 
-        public void Import(TMessage message, PrincipalHandle producer, PrincipalHandle sender)
+        public void Import(TMessage message, Principal producer, Principal sender)
         {
             Import(false, message, null, producer, sender, null);
         }
@@ -227,30 +227,30 @@ namespace SVX
          * worst case, the use of models with an assumed path severely weakens
          * the assurance that SVX provides.)
          */
-        public void ImportWithModel(TMessage message, Action modelAction, PrincipalHandle producer, PrincipalHandle sender)
+        public void ImportWithModel(TMessage message, Action modelAction, Principal producer, Principal sender)
         {
             Import(false, message, modelAction, producer, sender, null);
         }
-        public void FakeImport(TMessage message, PrincipalHandle producer, PrincipalHandle sender)
+        public void FakeImport(TMessage message, Principal producer, Principal sender)
         {
             Import(true, message, null, producer, sender, null);
         }
 
         // TODO: client needs to tie in to some ambient "current principal" variable
-        private void ImportDirectResponse(bool fake, TMessage message, Action modelAction, PrincipalHandle server, PrincipalHandle client)
+        private void ImportDirectResponse(bool fake, TMessage message, Action modelAction, Principal server, Principal client)
         {
             Import(fake, message, modelAction, server, server, client);
         }
 
-        public void ImportDirectResponse(TMessage message, PrincipalHandle server, PrincipalHandle client)
+        public void ImportDirectResponse(TMessage message, Principal server, Principal client)
         {
             ImportDirectResponse(false, message, null, server, client);
         }
-        public void ImportDirectResponseWithModel(TMessage message, Action modelAction, PrincipalHandle server, PrincipalHandle client)
+        public void ImportDirectResponseWithModel(TMessage message, Action modelAction, Principal server, Principal client)
         {
             ImportDirectResponse(false, message, modelAction, server, client);
         }
-        public void FakeImportDirectResponse(TMessage message, PrincipalHandle server, PrincipalHandle client)
+        public void FakeImportDirectResponse(TMessage message, Principal server, Principal client)
         {
             ImportDirectResponse(true, message, null, server, client);
         }

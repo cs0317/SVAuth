@@ -31,7 +31,7 @@ namespace SVX
         // These will usually be null in messages being exported; if so, they
         // should be omitted for cleanliness.
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public PrincipalHandle SVX_producer, SVX_sender;
+        public Principal SVX_producer, SVX_sender;
 
         // This field is currently used for direct responses only to pass the
         // server-generated client facet back to the client.  It is set on
@@ -39,7 +39,7 @@ namespace SVX
         // It is public for serialization but shouldn't otherwise be manipulated
         // by protocol code.
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public PrincipalHandle SVX_placeholderRequestProducer;
+        public Principal SVX_placeholderRequestProducer;
 
         // True if we know the symT is valid from our point of view.  When a
         // message is imported, the developer will set the symT field to the
@@ -66,9 +66,9 @@ namespace SVX
     // We might be able to get away without translating this, but it's fine to translate too.
     public class Participant
     {
-        public Principal SVX_Principal { get; }
+        public Entity SVX_Principal { get; }
 
-        public Participant(Principal principal)
+        public Participant(Entity principal)
         {
             SVX_Principal = principal;
         }
@@ -123,9 +123,9 @@ namespace SVX
         // TODO: Change to Dictionary<Tuple<string, Type>, object> (or a
         // custom class in place of Tuple) once we have suitable stubs to
         // compare the keys by value.
-        static Dictionary<Principal, Dictionary<Type, object>> participants = new Dictionary<Principal, Dictionary<Type, object>>();
+        static Dictionary<Entity, Dictionary<Type, object>> participants = new Dictionary<Entity, Dictionary<Type, object>>();
 
-        public static T GetParticipant<T>(Principal principal)
+        public static T GetParticipant<T>(Entity principal)
         {
             return (T)GetParticipant(new ParticipantId(principal, typeof(T)));
         }
@@ -171,7 +171,7 @@ namespace SVX
             return participantObj;
         }
 
-        internal static void CreateParticipant<T>(Principal principal, T participant)
+        internal static void CreateParticipant<T>(Entity principal, T participant)
         {
             Dictionary<Type, object> dict1;
             if (!participants.TryGetValue(principal, out dict1))
@@ -203,7 +203,7 @@ namespace SVX
             return ret;
         }
 
-        static Dictionary<PrincipalHandle, HashSet<PrincipalHandle>> actsForEdges = new Dictionary<PrincipalHandle, HashSet<PrincipalHandle>>();
+        static Dictionary<Principal, HashSet<Principal>> actsForEdges = new Dictionary<Principal, HashSet<Principal>>();
 
         // Little breadth-first search.  Suggestions for a better library or
         // performance improvements welcome.
@@ -211,11 +211,11 @@ namespace SVX
         // In the vProgram, we definitely want to use the SMT solver's support
         // for reasoning about partial orders rather than having Corral unroll
         // this code.
-        static HashSet<PrincipalHandle> GetAllowedTargets(PrincipalHandle actor)
+        static HashSet<Principal> GetAllowedTargets(Principal actor)
         {
-            var ret = new HashSet<PrincipalHandle>();
-            var q = new Queue<PrincipalHandle>();
-            Action<PrincipalHandle> Visit = (ph) =>
+            var ret = new HashSet<Principal>();
+            var q = new Queue<Principal>();
+            Action<Principal> Visit = (ph) =>
             {
                 if (!ret.Contains(ph))
                 {
@@ -227,7 +227,7 @@ namespace SVX
             while (q.Count > 0)
             {
                 var ph = q.Dequeue();
-                HashSet<PrincipalHandle> outEdges;
+                HashSet<Principal> outEdges;
                 if (actsForEdges.TryGetValue(ph, out outEdges))
                 {
                     foreach (var ph2 in outEdges)
@@ -243,12 +243,12 @@ namespace SVX
         // unsoundness, so for simplicity we don't allow it to be called in prod
         // at all.
         [BCTOmitImplementation]
-        public static bool ActsFor(PrincipalHandle actor, PrincipalHandle target)
+        public static bool ActsFor(Principal actor, Principal target)
         {
             throw new NotImplementedException();
         }
 
-        public static bool ActsForAny(PrincipalHandle actor, PrincipalHandle[] targets)
+        public static bool ActsForAny(Principal actor, Principal[] targets)
         {
             // I'd like to write the following, but BCT can't handle it for
             // several reasons.  Not worth worrying about at the moment.
@@ -262,7 +262,7 @@ namespace SVX
         }
 
         // OK, this really doesn't belong in VProgram_API... fix it later.
-        internal static bool KnownActsForAny(PrincipalHandle actor, PrincipalHandle[] targets)
+        internal static bool KnownActsForAny(Principal actor, Principal[] targets)
         {
             var allowedTargets = GetAllowedTargets(actor);
             return targets.Any((target) => allowedTargets.Contains(target));
@@ -275,16 +275,16 @@ namespace SVX
         // doing.
         // XXX: This does not really belong in VProgram_API, because it will
         // have an effect on secrets read enforcement in production.
-        public static void AssumeActsFor(PrincipalHandle actor, PrincipalHandle target)
+        public static void AssumeActsFor(Principal actor, Principal target)
         {
             if (InVProgram)
                 Contract.Assume(ActsFor(actor, target));
             else
             {
-                HashSet<PrincipalHandle> outEdges;
+                HashSet<Principal> outEdges;
                 if (!actsForEdges.TryGetValue(actor, out outEdges))
                 {
-                    outEdges = new HashSet<PrincipalHandle>();
+                    outEdges = new HashSet<Principal>();
                     actsForEdges.Add(actor, outEdges);
                 }
                 outEdges.Add(target);  // OK if it was already there
@@ -292,14 +292,14 @@ namespace SVX
         }
 
         [BCTOmitImplementation]
-        private static void AssumeBorneImpl(PrincipalHandle bearer, string secretValue)
+        private static void AssumeBorneImpl(Principal bearer, string secretValue)
         {
             // Should only be called by emitted vProgram code.
             throw new NotImplementedException();
         }
 
         // Wrapper: the easiest way to get BCT to record the arguments.
-        internal static void AssumeBorne(PrincipalHandle bearer, string secretValue)
+        internal static void AssumeBorne(Principal bearer, string secretValue)
         {
             AssumeBorneImpl(bearer, secretValue);
         }
@@ -311,7 +311,7 @@ namespace SVX
         }
 
         [BCTOmitImplementation]
-        private static void AssumeAuthenticatesBearerImpl(string secretValue, PrincipalHandle[] originalReaders)
+        private static void AssumeAuthenticatesBearerImpl(string secretValue, Principal[] originalReaders)
         {
             // Does nothing in production.
         }
@@ -322,7 +322,7 @@ namespace SVX
         }
 
         // Wrapper: the easiest way to get BCT to record the arguments.
-        internal static void AssumeValidSecret(string secretValue, object theParams, PrincipalHandle[] originalReaders)
+        internal static void AssumeValidSecret(string secretValue, object theParams, Principal[] originalReaders)
         {
             // Just get BCT to record the readers.
             if (InVProgram)
@@ -346,7 +346,7 @@ namespace SVX
         }
 
         [BCTOmitImplementation]
-        public static Principal UnderlyingPrincipal(PrincipalHandle ph)
+        public static Entity Owner(Principal ph)
         {
             throw new NotImplementedException();
         }
@@ -354,18 +354,18 @@ namespace SVX
         // The principals that act for __trusted are trusted for the purpose of
         // the current verification.  Saves us from axiomatizing separately that
         // if we trust a principal, we trust everyone who acts for them.
-        internal static Principal trustedPrincipal = Principal.Of("__trusted");
+        internal static Entity trustedPrincipal = Entity.Of("__trusted");
 
         // This principal has no meaning except to define a set of trusted
         // servers that is closed under acts-for.
-        internal static Principal trustedServerPrincipal = Principal.Of("__trustedServer");
+        internal static Entity trustedServerPrincipal = Entity.Of("__trustedServer");
 
-        internal static bool IsTrusted(PrincipalHandle ph)
+        internal static bool IsTrusted(Principal ph)
         {
             return ActsFor(ph, trustedPrincipal);
         }
 
-        public static void AssumeTrusted(PrincipalHandle ph)
+        public static void AssumeTrusted(Principal ph)
         {
             if (!InPredicate)
                 throw new InvalidOperationException("Trust assumptions may only be made from the predicate.");
@@ -373,13 +373,13 @@ namespace SVX
         }
 
         [BCTOmitImplementation]
-        private static void AssumeNoOneElseActsFor(PrincipalHandle ph)
+        private static void AssumeNoOneElseActsFor(Principal ph)
         {
             throw new NotImplementedException();
         }
 
         // No other principal may act for the underlying principal of the browser.
-        public static void AssumeTrustedBrowser(PrincipalHandle ph)
+        public static void AssumeTrustedBrowser(Principal ph)
         {
             AssumeTrusted(ph);  // checks InPredicate
             AssumeNoOneElseActsFor(ph);
@@ -388,7 +388,7 @@ namespace SVX
         // No one who acts for a trusted server may be sender of a message with
         // a "browser only" message structure.  Of course, trusted servers may
         // /produce/ such messages.
-        public static void AssumeTrustedServer(PrincipalHandle ph)
+        public static void AssumeTrustedServer(Principal ph)
         {
             if (!InPredicate)
                 throw new InvalidOperationException("Trust assumptions may only be made from the predicate.");
