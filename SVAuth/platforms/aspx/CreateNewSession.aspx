@@ -18,7 +18,7 @@ protected void Page_Load(object sender, EventArgs e)  {
     Session["UserID"]=Request.Form["UserID"];
     Session["Fullname"]=Request.Form["Fullname"];
     Session["email"]=Request.Form["email"];
-    Session["ReturnPort"]=Request.Form["ReturnPort"]; //This is only for debugging in visual studio
+    Session["Authority"]=Request.Form["Authority"]; 
    }    
  }
 }

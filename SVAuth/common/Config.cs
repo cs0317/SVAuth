@@ -27,13 +27,14 @@ namespace SVAuth
             public class PlatformSettings
             {
                 public string name;
-                public string fileExtension;
+                public string fileExtension,sessionCookieName;
             }
 
             // The "SVAuth/platforms" string is hard-coded a bunch of places; no
             // point trying to make it configurable.
+            public string rootPath = "/SVAuth";
             public string platformRootUrl =>
-                $"{scheme}://{hostname}:{port}/SVAuth/platforms/{platform.name}/";
+                $"{scheme}://{hostname}:{port}{rootPath}/platforms/{platform.name}/";
         }
 
         // http://docs.telerik.com/fiddler/Configure-Fiddler/Tasks/MonitorLocalTraffic
@@ -47,17 +48,12 @@ namespace SVAuth
         {
             // NOTE: This setting is not automatically passed to the platform.
             // The platform files have to be edited manually to change it.
-            public string scheme = "http";
+            public string scheme = "https";
             public int port;
+            public string agentScope, agentScope_valid_values, agentHostname, SSLCertFile, SSLCertFilePassword;
+            public string agentRootPath= "/SVAuth";
         }
-
-        public SessionIDCookieProperties_ SessionIDCookieProperties;
-        public class SessionIDCookieProperties_
-        {
-            public string domain;
-            public bool persistent;
-        }
-
+       
         public AppRegistration_ AppRegistration;
         public class AppRegistration_
         {
@@ -66,6 +62,7 @@ namespace SVAuth
             public ServiceProviders.Microsoft.MicrosoftAzureADAppRegistration MicrosoftAzureAD;
             public ServiceProviders.Google.GGAppRegistration Google;
             public ServiceProviders.Yahoo.YahooAppRegistration Yahoo;
+            public ServiceProviders.Weibo.WBAppRegistration Weibo;
         }
 
         // The same key is used for all OAuth 2.0 IdPs, but the state value will
@@ -73,13 +70,13 @@ namespace SVAuth
         public string stateSecretKey;
 
         public string agentRootUrl =>
-            $"{AgentSettings.scheme}://{WebAppSettings.hostname}:{AgentSettings.port}/";
+            $"{AgentSettings.scheme}://{AgentSettings.agentHostname}:{AgentSettings.port}/";
         public string internalPlatformRootUrl =>
-            $"{WebAppSettings.scheme}://{internalPlatformHostname}:{WebAppSettings.port}/" +
-            $"SVAuth/platforms/{WebAppSettings.platform.name}/";
+            $"{WebAppSettings.scheme}://{internalPlatformHostname}:{WebAppSettings.port}" +
+            $"{WebAppSettings.rootPath}/platforms/{WebAppSettings.platform.name}/";
         public string MainPageUrl =>
             WebAppSettings.platformRootUrl + "AllInOne." + WebAppSettings.platform.fileExtension;
-        public SVX.Principal rpPrincipal => SVX.Principal.Of(WebAppSettings.hostname);
+        public SVX.Entity rpPrincipal => SVX.Entity.Of(AgentSettings.agentHostname);
 
         // Configuration loader:
 
@@ -89,8 +86,20 @@ namespace SVAuth
             // original Auth.JS had the same limitation.)  We could consider
             // finding the project root via Environment.GetCommandLineArgs()[0].
             // ~ t-mattmc@microsoft.com 2016-06-01
-            config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("config.json"));
-
+            config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("common/agent_config.json"));
+            switch (config.WebAppSettings.platform.name.ToLower())
+            {
+                case "aspx":
+                    config.WebAppSettings.platform.sessionCookieName= "ASP.NET_SessionId";
+                    config.WebAppSettings.platform.fileExtension = "aspx";
+                    break;
+                case "php":
+                    config.WebAppSettings.platform.sessionCookieName = "PHPSESSID";
+                    config.WebAppSettings.platform.fileExtension = "php";
+                    break;
+                default:
+                    throw new Exception("Unsupported platform");
+            }
             SVX.SVXSettings.settings = config.SVXSettings;
         }
     }

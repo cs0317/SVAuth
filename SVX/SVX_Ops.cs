@@ -15,10 +15,10 @@ namespace SVX
 {
     public class ParticipantId
     {
-        public readonly Principal principal;
+        public readonly Entity principal;
         public readonly Type type;
 
-        public ParticipantId(Principal principal, Type type)
+        public ParticipantId(Entity principal, Type type)
         {
             this.principal = principal;
             this.type = type;
@@ -170,9 +170,9 @@ namespace SVX
             Dictionary<string, string> messageIdMap = new Dictionary<string, string>();
 
             // Current policy.  TODO: make configurable.
-            bool ShouldKeep(PrincipalHandle ph) => ph is Principal;
+            bool ShouldKeep(Principal ph) => ph is Entity;
 
-            PrincipalHandle Rewrite(PrincipalHandle ph) => ShouldKeep(ph) ? ph : null;
+            Principal Rewrite(Principal ph) => ShouldKeep(ph) ? ph : null;
             internal SymT Rewrite(SymT symT)
             {
                 if (!(symT is SymTComposite))
@@ -241,7 +241,7 @@ namespace SVX
         }
 
         // In support of old examples.  Won't be part of the real SVX API.
-        public static void TransferForTesting(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender)
+        public static void TransferForTesting(SVX_MSG msg, Principal producer, Principal sender)
         {
             Transfer(msg, producer, sender, null, false);
         }
@@ -249,7 +249,7 @@ namespace SVX
         [BCTOmit]
         class ProducerReplacer
         {
-            internal PrincipalHandle oldProducer, newProducer;
+            internal Principal oldProducer, newProducer;
             internal SymT Rewrite(SymT symT)
             {
                 var symTTransfer = symT as SymTTransfer;
@@ -261,7 +261,7 @@ namespace SVX
 
         // Crashes the CCI unstacker. :(
         [BCTOmitImplementation]
-        private static void TransferProd(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender, PrincipalHandle realRequestProducer, bool browserOnly)
+        private static void TransferProd(SVX_MSG msg, Principal producer, Principal sender, Principal realRequestProducer, bool browserOnly)
         {
             var originalSymT = (SymT)msg.SVX_symT ?? new SymTNondet { messageTypeFullName = msg.GetType().FullName };
 
@@ -292,8 +292,8 @@ namespace SVX
             msg.active = true;
         }
 
-        internal static void Transfer(SVX_MSG msg, PrincipalHandle producer, PrincipalHandle sender,
-            PrincipalHandle realRequestProducer, bool browserOnly)
+        internal static void Transfer(SVX_MSG msg, Principal producer, Principal sender,
+            Principal realRequestProducer, bool browserOnly)
         {
             if (producer == null || sender == null)
                 // Auto-generate them instead?  But we'd need to know the issuer.
@@ -318,7 +318,7 @@ namespace SVX
 
         // Crashes the CCI unstacker. :(
         [BCTOmitImplementation]
-        private static void TransferNestedProd(SVX_MSG msg, PrincipalHandle producer)
+        private static void TransferNestedProd(SVX_MSG msg, Principal producer)
         {
             msg.SVX_symT = new SymTTransfer
             {
@@ -329,7 +329,7 @@ namespace SVX
             msg.active = true;
         }
 
-        internal static void TransferNested(SVX_MSG msg, PrincipalHandle producer)
+        internal static void TransferNested(SVX_MSG msg, Principal producer)
         {
             if (producer == null)
                 // Auto-generate it instead?  But we'd need to know the issuer.

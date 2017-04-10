@@ -16,8 +16,8 @@ namespace SVAuth.OpenID20
 {
     static class OpenID20Standards
     {
-        public static SVX.Principal OpenID20ClientIDPrincipal(SVX.Principal idpPrincipal, string realm) =>
-          SVX.Principal.Of(idpPrincipal.name + ":" + realm);
+        public static SVX.Entity OpenID20ClientIDPrincipal(SVX.Entity idpPrincipal, string realm) =>
+          SVX.Entity.Of(idpPrincipal.name + ":" + realm);
     }
     class StateParams
     {
@@ -29,10 +29,10 @@ namespace SVAuth.OpenID20
 
         // We expect this to be a facet issued by the RP.
         [JsonProperty(Order = 0)]
-        public SVX.PrincipalHandle client;
+        public SVX.Principal client;
 
         [JsonProperty(Order = 1)]
-        public SVX.Principal idpPrincipal;
+        public SVX.Entity idpPrincipal;
     }
 
     // This class demonstrates how to use an HMAC, which is the easiest,
@@ -41,20 +41,20 @@ namespace SVAuth.OpenID20
     // once and enforce an expiration time, etc.
     class StateGenerator : SVX.SecretGenerator<StateParams>
     {
-        readonly SVX.Principal rpPrincipal;
+        readonly SVX.Entity rpPrincipal;
         readonly string key;
 
         // TODO: Get the key lazily once SVX supports the "prod context".
-        internal StateGenerator(SVX.Principal rpPrincipal, string key)
+        internal StateGenerator(SVX.Entity rpPrincipal, string key)
         {
             this.rpPrincipal = rpPrincipal;
             this.key = key;
         }
 
-        protected override SVX.PrincipalHandle[] GetReaders(object theParams)
+        protected override SVX.Principal[] GetReaders(object theParams)
         {
             var params2 = (StateParams)theParams;
-            return new SVX.PrincipalHandle[] { params2.idpPrincipal, rpPrincipal, params2.client };
+            return new SVX.Principal[] { params2.idpPrincipal, rpPrincipal, params2.client };
         }
 
         protected override string RawGenerate(StateParams theParams)
@@ -110,7 +110,7 @@ namespace SVAuth.OpenID20
         public string openid__invalidate_handle;
         [JsonProperty("openid.signed")]
         public string openid__signed;
-
+      
         // Split off from return_to in secret verifier.
         public SVX.Secret CSRF_state;
     }
@@ -136,15 +136,15 @@ namespace SVAuth.OpenID20
         public readonly SVX.MessageStructure<AuthenticationResponse> authenticationResponse;
 
         protected abstract OpenID20SignedFieldsVerifier getOpenID20SignedFieldsVerifier();
-        public MessageStructures(SVX.Principal idpPrincipal)
+        public MessageStructures(SVX.Entity idpPrincipal)
         {
             authenticationRequest = new SVX.MessageStructure<AuthenticationRequest> { BrowserOnly = true };
             authenticationRequest.AddSecret(nameof(AuthenticationRequest.CSRF_state),
-               (msg) => new SVX.PrincipalHandle[] { GenericAuth.GenericAuthStandards.GetUrlTargetPrincipal(msg.openid__return_to) });
+               (msg) => new SVX.Principal[] { GenericAuth.GenericAuthStandards.GetUrlTargetPrincipal(msg.openid__return_to) });
 
             authenticationResponse = new SVX.MessageStructure<AuthenticationResponse> { BrowserOnly = true };
             authenticationResponse.AddMessagePayloadSecret(nameof(AuthenticationResponse.FieldsExpectedToBeSigned),
-                (msg) => new SVX.PrincipalHandle[] { },
+                (msg) => new SVX.Principal[] { },
                 getOpenID20SignedFieldsVerifier(),
                 true);
         }
@@ -153,15 +153,15 @@ namespace SVAuth.OpenID20
     public abstract class OpenID20SignedFieldsVerifier : MessagePayloadSecretGenerator<FieldsExpectedToBeSigned>
     {
 
-        public Principal IdPPrincipal;
+        public Entity IdPPrincipal;
 
-        protected override PrincipalHandle Signer => IdPPrincipal;
+        protected override Principal Signer => IdPPrincipal;
 
         // XXX Eventually this needs to be a parameter.
-        protected override PrincipalHandle[] GetReaders(object theParams)
+        protected override Principal[] GetReaders(object theParams)
         {
             var FieldsExpectedToBeSigned = (FieldsExpectedToBeSigned)theParams;
-            return new PrincipalHandle[] {
+            return new Principal[] {
                     // Comment this to get an internal error during secret generation.
                     Signer,
                     // Comment either of these to see the secret export check fail.
@@ -225,7 +225,7 @@ namespace SVAuth.OpenID20
         public string IdP_OpenID20_Uri;
         public string return_to_uri;
         internal StateGenerator stateGenerator;
-        public RelyingParty(SVX.Principal rpPrincipal, string IdP_OpenID20_Uri1, string return_to_uri1, string stateKey = null)
+        public RelyingParty(SVX.Entity rpPrincipal, string IdP_OpenID20_Uri1, string return_to_uri1, string stateKey = null)
             : base(rpPrincipal)
         {
             // Give this a valid value in the vProgram.  FIXME: Doing observably
@@ -246,7 +246,7 @@ namespace SVAuth.OpenID20
         protected sealed override SVX.ParticipantId idpParticipantId =>
            SVX.ParticipantId.Of(CreateModelOpenID20AuthenticationServer());
 
-        public abstract AuthenticationRequest createAuthenticationRequest(SVX.PrincipalFacet client);
+        public abstract AuthenticationRequest createAuthenticationRequest(SVX.Channel client);
         public abstract string /*Uri*/ marshalAuthenticationRequest(AuthenticationRequest _AuthorizationRequest);
 
         [BCTOmit]
@@ -254,16 +254,27 @@ namespace SVAuth.OpenID20
         {
             var context = new SVAuthRequestContext(SVX_Principal, httpContext);
 
-            var _AuthenticationRequest = SVX.SVX_Ops.Call(createAuthenticationRequest, context.client);
+            var _AuthenticationRequest = SVX.SVX_Ops.Call(createAuthenticationRequest, context.channel);
             // NOTE: We are assuming that the target URL used by
             // marshalAuthorizationRequest belongs to the principal
             // idpParticipantId.principal.  We haven't extended SVX enforcement
             // that far yet.
-            GetMessageStructures().authenticationRequest.Export(_AuthenticationRequest, context.client, idpParticipantId.principal);
+            GetMessageStructures().authenticationRequest.Export(_AuthenticationRequest, context.channel, idpParticipantId.principal);
 
             // Move CSRF_state into return_to.
             _AuthenticationRequest.openid__return_to += "?CSRF_state=" + Uri.EscapeDataString(_AuthenticationRequest.CSRF_state.Export());
             _AuthenticationRequest.CSRF_state = null;
+            //add conckey
+           /* string conckey = httpContext.Request.Query["conckey"];
+            if (conckey!=null)
+                 _AuthenticationRequest.openid__return_to += "&conckey=" + Uri.EscapeDataString(conckey);*/
+
+            string concdst = httpContext.Request.Query["concdst"];
+            if (concdst != null)
+                 _AuthenticationRequest.openid__assoc_handle = Uri.EscapeDataString(concdst);
+            string conckey = httpContext.Request.Query["conckey"];
+            if (conckey != null)
+                _AuthenticationRequest.openid__assoc_handle += "++" + Uri.EscapeDataString(conckey);
 
             var rawReq = marshalAuthenticationRequest(_AuthenticationRequest);
 
@@ -299,8 +310,8 @@ namespace SVAuth.OpenID20
                 throw new Exception("Openid.ns does not contain the expected value.");
             GetMessageStructures().authenticationResponse.ImportWithModel(inputMSG,
                  () => { idp.FakeAuthenticationEndpoint(dummyAuthenticationRequest, inputMSG); },
-                SVX.PrincipalFacet.GenerateNew(SVX_Principal),  // unknown producer
-                 context.client);
+                SVX.Channel.GenerateNew(SVX_Principal),  // unknown producer
+                 context.channel);
             Trace.Write("Got Valid AuthenticationResponse");
 
             GenericAuth.AuthenticationConclusion conclusion = SVX_Ops.Call(createConclusion,inputMSG);
@@ -310,7 +321,15 @@ namespace SVAuth.OpenID20
                 context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
                 return;
             }
-
+            if (Config.config.AgentSettings.agentScope!="local")
+            {
+                string s = inputMSG.FieldsExpectedToBeSigned.theParams.openid__invalidate_handle;
+                int delim = s.IndexOf("++");
+                if (delim < 7)
+                    throw new Exception("invalid conckey and concdst");
+                context.conckey = s.Substring(delim + 2);
+                context.concdst = System.Net.WebUtility.UrlDecode(s.Substring(0, delim));                
+            }
             await AuthenticationDone(conclusion, context);
         }
     }
@@ -329,13 +348,13 @@ namespace SVAuth.OpenID20
         }
 
         protected abstract OpenID20SignedFieldsVerifier getSignedFieldsGenerator();
-        public ModelOpenID20AuthenticationServer(SVX.Principal idpPrincipal)
+        public ModelOpenID20AuthenticationServer(SVX.Entity idpPrincipal)
            : base(idpPrincipal)
         {
         }
         public class IdPAuthenticationEntry : SVX.SVX_MSG
         {
-            public SVX.PrincipalHandle authenticatedClient;
+            public SVX.Principal channel;
             public string userID;
         }
 
@@ -348,8 +367,8 @@ namespace SVAuth.OpenID20
             // request a code.  We don't care about the value of
             // req.response_type in its own right.
 
-            var producer = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
-            var client = SVX.PrincipalFacet.GenerateNew(SVX_Principal);
+            var producer = SVX.Channel.GenerateNew(SVX_Principal);
+            var client = SVX.Channel.GenerateNew(SVX_Principal);
 
             messageStructures.authenticationRequest.FakeImport(req, producer, client);
 
@@ -368,7 +387,7 @@ namespace SVAuth.OpenID20
             internal IdPAuthenticationEntry entry;
             internal void Declare()
             {
-                outer.SignedInPredicate.Declare(SVX.VProgram_API.UnderlyingPrincipal(entry.authenticatedClient), entry.userID);
+                outer.BrowserOwnedBy.Declare(SVX.VProgram_API.Owner(entry.channel), entry.userID);
             }
         }
 
@@ -376,7 +395,7 @@ namespace SVAuth.OpenID20
         {
             var d = new SignedInDeclarer { outer = this, entry = entry };
             SVX.SVX_Ops.Ghost(d.Declare);
-            SVX.VProgram_API.AssumeActsFor(entry.authenticatedClient,
+            SVX.VProgram_API.AssumeActsFor(entry.channel,
                 GenericAuth.GenericAuthStandards.GetIdPUserPrincipal(SVX_Principal, entry.userID));
             // Reuse the message... Should be able to get away with it.
             return entry;
@@ -386,7 +405,7 @@ namespace SVAuth.OpenID20
             // In the real AuthenticationEndpoint, we would request an
             // IdPAuthenticationEntry for req.SVX_sender, but SVX doesn't know
             // that, so we have to do a concrete check.
-            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.authenticatedClient);
+            SVX.VProgram_API.Assert(req.SVX_sender == idpConc.channel);
 
             return MakeSignedFields(req.openid__realm, idpConc.userID, req.openid__return_to, req.CSRF_state);
         }

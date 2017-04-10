@@ -41,29 +41,29 @@ namespace SVX
             // Hope the C# compiler (and any tools we might use to view vPrograms) are fuzz-proof...
             return "@\"" + x.Replace("\"", "\"\"") + "\"";
         }
-        static string EmitPrincipal(Principal p) =>
-            "SVX.Principal.Of(" + Quote(p.name) + ")";
-        static string EmitPrincipalHandle(PrincipalHandle ph)
+        static string EmitPrincipal(Entity p) =>
+            "SVX.Entity.Of(" + Quote(p.name) + ")";
+        static string EmitPrincipalHandle(Principal ph)
         {
-            Principal p;
-            PrincipalFacet pf;
-            if ((p = ph as Principal) != null)
+            Entity p;
+            Channel pf;
+            if ((p = ph as Entity) != null)
             {
                 return EmitPrincipal(p);
             }
-            else if ((pf = ph as PrincipalFacet) != null)
+            else if ((pf = ph as Channel) != null)
             {
                 // I don't think we use this, but might as well implement it.
                 // ~ t-mattmc@microsoft.com 2016-07-19
-                return "SVX.PrincipalFacet.Of(" + EmitPrincipalHandle(pf.issuer) + ", " + Quote(pf.id) + ")";
+                return "SVX.Channel.Of(" + EmitPrincipalHandle(pf.issuer) + ", " + Quote(pf.id) + ")";
             }
             else
             {
-                throw new NotImplementedException("Unexpected PrincipalHandle");
+                throw new NotImplementedException("Unexpected Channel");
             }
         }
-        static string EmitPrincipalHandleOrNondet(PrincipalHandle p)
-            => (p == null) ? "SVX.VProgram_API.Nondet<SVX.PrincipalHandle>()" : EmitPrincipalHandle(p);
+        static string EmitPrincipalHandleOrNondet(Principal p)
+            => (p == null) ? "SVX.VProgram_API.Nondet<SVX.Principal>()" : EmitPrincipalHandle(p);
 
         static string EmitParticipant(SymTParticipantId id) =>
             string.Format("SVX.VProgram_API.GetParticipant<{0}>({1})",
@@ -278,7 +278,7 @@ namespace SVX
             else if ((symTTransfer = symT as SymTTransfer) != null)
             {
                 string producerVarName = nextVar("producer");
-                AppendFormattedLine("SVX.PrincipalHandle {0} = {1};", producerVarName, EmitPrincipalHandleOrNondet(symTTransfer.producer));
+                AppendFormattedLine("SVX.Principal {0} = {1};", producerVarName, EmitPrincipalHandleOrNondet(symTTransfer.producer));
                 outputVarName = nextVar("msg");
                 AppendFormattedLine("{0} {1};", FormatTypeFullName(symTTransfer.MessageTypeFullName), outputVarName);
                 AppendFormattedLine("if (SVX.VProgram_API.IsTrusted({0})) {{", producerVarName);

@@ -6,38 +6,41 @@ using System.Diagnostics.Contracts;
 using BytecodeTranslator.Diagnostics;
 using System.IO;
 
-namespace SVAuth.ServiceProviders.Facebook
+namespace SVAuth.ServiceProviders.Weibo
 {
-    public class FBAppRegistration
+    public class WBAppRegistration
     {
-        public string appId;
-        public string appSecret;
+        public string clientID;
+        public string clientSecret;
     }
 
     class DebugTokenRequest
     {
     }
-    public class FBAuthorizationRequest : OAuth20.AuthorizationRequest
+    public class WBAccessTokenResponse : OAuth20.AccessTokenResponse
     {
-        public string type;
+        public string uid;
     }
-    public class FBUserProfile : GenericAuth.UserProfile
+    public class WBUserProfile : GenericAuth.UserProfile
     {
         public string Email;
         public string FullName;
-        public string FB_ID;
     }
-    public class FBUserProfileResponse : OAuth20.UserProfileResponse
+    public class WBUserProfileRequest : OAuth20.UserProfileRequest
+    {
+        public string uid;
+    }
+    
+    public class WBUserProfileResponse : OAuth20.UserProfileResponse
     {
         public string id;
         public string name;
-        public string email;
     }
 
-    public class Facebook_RP : OAuth20.Client
+    public class Weibo_RP : OAuth20.Client
     {
         public string UserProfileUrl;
-        public Facebook_RP(SVX.Entity rpPrincipal,
+        public Weibo_RP(SVX.Entity rpPrincipal,
             string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null,
             string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string UserProfileUrl1 = null,
             string stateKey = null)
@@ -45,24 +48,23 @@ namespace SVAuth.ServiceProviders.Facebook
         {
             UserProfileUrl = UserProfileUrl1;
         }
-
+        protected override Type AccessTokenResponseType { get { return typeof(WBAccessTokenResponse); } }
         protected override OAuth20.ModelAuthorizationServer CreateModelAuthorizationServer() =>
-            new Facebook_IdP(Facebook_IdP.facebookPrincipal);
+            new Weibo_IdP(Weibo_IdP.facebookPrincipal);
 
-        // Very little of this is Facebook-specific.  Consider moving it to
+        // Very little of this is Weibo-specific.  Consider moving it to
         // OAuth20.  (Exception: it's unclear if the user profile request is an
         // OAuth20 concept at all, so maybe the entirety of that should move to
-        // Facebook with only a hook remaining in OAuth20.)
+        // Weibo with only a hook remaining in OAuth20.)
 
         /*** implementing the methods for AuthorizationRequest ***/
         public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.Channel client)
         {
-            var authorizationRequest = new FBAuthorizationRequest();
+            var authorizationRequest = new OAuth20.AuthorizationRequest();
             authorizationRequest.client_id = client_id;      
             authorizationRequest.response_type = "code";
-            authorizationRequest.scope = "user_about_me email";
+            //authorizationRequest.scope = "user_about_me email";
             authorizationRequest.redirect_uri = redirect_uri;
-            authorizationRequest.type = "web_server";
             var stateParams = new OAuth20.StateParams
             {
                 client = client,
@@ -73,7 +75,10 @@ namespace SVAuth.ServiceProviders.Facebook
         }
         public override string marshalAuthorizationRequest(OAuth20.AuthorizationRequest authorizationRequest)
         {
-            return AuthorizationEndpointUrl + "?" + Utils.ObjectToUrlEncodedString(authorizationRequest);
+            string req = AuthorizationEndpointUrl + "?" + Utils.ObjectToUrlEncodedString(authorizationRequest);
+            //The next line is needed because Weibo app registration doesn't allow the hostname to be localhost, but 127.0.0.1
+            req = req.Replace("%2F%2Flocalhost", "%2F%2F127.0.0.1");
+            return req;
         }
 
         /*** implementing the methods for AccessTokenRequest ***/
@@ -87,27 +92,27 @@ namespace SVAuth.ServiceProviders.Facebook
             stateGenerator.Verify(stateParams, authorizationResponse.state);
 
             OAuth20.AccessTokenRequest _AccessTokenRequest = new OAuth20.AccessTokenRequest();
-            //Facebook's access token request doesn't need "grant_type=authorization_code". 
-            //See https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow
             _AccessTokenRequest.client_id = client_id;
             _AccessTokenRequest.code = authorizationResponse.code;
             _AccessTokenRequest.redirect_uri = redirect_uri;
+            _AccessTokenRequest.grant_type = "authorization_code";
             _AccessTokenRequest.client_secret = client_secret;
             return _AccessTokenRequest;
         }
 
         public override HttpRequestMessage marshalAccessTokenRequest(OAuth20.AccessTokenRequest accessTokenRequest)
-        {
+        {            
             var RawRequestUrl = TokenEndpointUrl + "?" + Utils.ObjectToUrlEncodedString(accessTokenRequest);
-            return new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
+            RawRequestUrl = RawRequestUrl.Replace("%2F%2Flocalhost", "%2F%2F127.0.0.1");
+            return new HttpRequestMessage(HttpMethod.Post, RawRequestUrl);
         }
 
         /*** implementing the methods for UserProfileRequest ***/
         public override OAuth20.UserProfileRequest createUserProfileRequest(OAuth20.AccessTokenResponse accessTokenResponse)
         {
-            OAuth20.UserProfileRequest userProfileRequest = new OAuth20.UserProfileRequest();
+            WBUserProfileRequest userProfileRequest = new WBUserProfileRequest();
             userProfileRequest.access_token = accessTokenResponse.access_token;
-            userProfileRequest.fields = "name,email";
+            userProfileRequest.uid = ((WBAccessTokenResponse)accessTokenResponse).uid;
             return userProfileRequest;
         }
 
@@ -118,58 +123,57 @@ namespace SVAuth.ServiceProviders.Facebook
         }
 
         /*** implementing the methods for AuthenticationConclusion ***/
-        protected override Type UserProfileResponseType { get { return typeof(FBUserProfileResponse); } }
+        protected override Type UserProfileResponseType { get { return typeof(WBUserProfileResponse); } }
         public override GenericAuth.AuthenticationConclusion createConclusion(
             OAuth20.AuthorizationResponse authorizationResponse,
             OAuth20.UserProfileResponse userProfileResponse)
         {
-            var fbUserProfileResponse = (FBUserProfileResponse)userProfileResponse;
+            var WBUserProfileResponse = (WBUserProfileResponse)userProfileResponse;
             var conclusion = new GenericAuth.AuthenticationConclusion();
             conclusion.channel = authorizationResponse.SVX_sender;
-            var fbUserProfile = new FBUserProfile();
-            fbUserProfile.UserID = fbUserProfileResponse.id;
-            fbUserProfile.Email = fbUserProfileResponse.email;
-            fbUserProfile.FB_ID = fbUserProfileResponse.id;
-            fbUserProfile.FullName = fbUserProfileResponse.name;
-            conclusion.userProfile = fbUserProfile;
-            conclusion.userProfile.Authority = "Facebook.com";
+            var UserProfile = new WBUserProfile();
+            UserProfile.UserID = WBUserProfileResponse.id;
+            UserProfile.Email = "";
+            UserProfile.FullName = WBUserProfileResponse.name;
+            conclusion.userProfile = UserProfile;
+            conclusion.userProfile.Authority = "Weibo.com";
             return conclusion;
         }
 
         public static void Init(RouteBuilder routeBuilder)
         {
-            var RP = new Facebook_RP(
+            var RP = new Weibo_RP(
                 Config.config.rpPrincipal,
-                Config.config.AppRegistration.Facebook.appId,
-                Config.config.agentRootUrl + "callback/Facebook",
-                Config.config.AppRegistration.Facebook.appSecret,
-                "https://www.facebook.com/v2.0/dialog/oauth",
-                "https://graph.facebook.com/v2.3/oauth/access_token",
-                "https://graph.facebook.com/v2.5/me",
+                Config.config.AppRegistration.Weibo.clientID,
+                Config.config.agentRootUrl + "callback/Weibo",
+                Config.config.AppRegistration.Weibo.clientSecret,
+                "https://api.weibo.com/oauth2/authorize",
+                "https://api.weibo.com/oauth2/access_token",
+                "https://api.weibo.com/2/users/show.json",
                 Config.config.stateSecretKey
                 );
-            routeBuilder.MapRoute("login/Facebook", RP.Login_StartAsync);
-            routeBuilder.MapRoute("callback/Facebook", RP.AuthorizationCodeFlow_Login_CallbackAsync);
+            routeBuilder.MapRoute("login/Weibo", RP.Login_StartAsync);
+            routeBuilder.MapRoute("callback/Weibo", RP.AuthorizationCodeFlow_Login_CallbackAsync);
         }
     }
-    public class Facebook_IdP : OAuth20.ModelAuthorizationServer
+    public class Weibo_IdP : OAuth20.ModelAuthorizationServer
     {
 
-        public Facebook_IdP(SVX.Entity idpPrincipal)
+        public Weibo_IdP(SVX.Entity idpPrincipal)
             : base(idpPrincipal)
         {
             // We only support facebookPrincipal.
             Contract.Assert(idpPrincipal == facebookPrincipal);
         }
 
-        public static SVX.Entity facebookPrincipal = SVX.Entity.Of("facebook.com");
+        public static SVX.Entity facebookPrincipal = SVX.Entity.Of("weibo.com");
 
         public override OAuth20.UserProfileResponse CreateUserProfileResponse(string userID)
         {
-            return new FBUserProfileResponse
+            return new WBUserProfileResponse
             {
                 id = userID,
-                email = SVX.VProgram_API.Nondet<string>(),
+                //email = userID,
                 name = SVX.VProgram_API.Nondet<string>()
             };
         }
