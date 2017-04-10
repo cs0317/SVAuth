@@ -13,7 +13,7 @@
 </style>
 </head>
 <?php
-$json_string = file_get_contents("../config/config.json");
+$json_string = file_get_contents("../site_config/site_config.json");
 $config = json_decode($json_string, true);
 
 if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {

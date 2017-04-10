@@ -1,12 +1,8 @@
 <?php
-$json_string = file_get_contents("../config/config.json");
+echo "start <br>";
+$json_string = file_get_contents("../site_config/site_config.json");
 $config = json_decode($json_string, true);
 
-if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
-  echo "The agent\'s agentScope is \'local\'. Please directly redirect the browser to one of the local entry points, such as https://thisMachine.com:3000/login/Facebook.";
-  exit(0);
-}
-echo $config['AgentSettings']['agentScope'];
 session_start();
 echo session_id() . "<br>" ;
 echo hash('sha256',session_id());

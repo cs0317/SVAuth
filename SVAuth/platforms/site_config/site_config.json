@@ -1,0 +1,16 @@
+{
+  "WebAppSettings": {
+    "hostname": "localhost",
+    "scheme": "http",
+    "port": "80",
+    "platform": {
+      "name": "php"
+    }
+  },
+
+  "AgentSettings": {
+    "scheme": "https",
+    "port": "3020",
+    "agentHostname": "authjs.westus.cloudapp.azure.com"
+  }
+}

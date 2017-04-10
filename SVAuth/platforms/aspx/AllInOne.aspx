@@ -18,7 +18,7 @@
 <%@ Import Namespace="System.IO" %>
 <%@ Import Namespace= "System.Security.Cryptography" %>
 <% 
-var jsonString = File.ReadAllText(Request.PhysicalPath+"/../../config/config.json");
+var jsonString = File.ReadAllText(Request.PhysicalPath+"/../../site_config/site_config.json");
 JavaScriptSerializer js = new JavaScriptSerializer();
 dynamic config = js.Deserialize<dynamic>(jsonString);
 

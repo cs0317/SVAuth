@@ -3,13 +3,10 @@
 <%@ Import Namespace="System.IO" %>
 <%@ Import Namespace= "System.Security.Cryptography" %>
 <% 
-var jsonString = File.ReadAllText(Request.PhysicalPath+"/../../config/config.json");
+var jsonString = File.ReadAllText(Request.PhysicalPath+"/../../site_config/site_config.json");
 JavaScriptSerializer js = new JavaScriptSerializer();
 dynamic config = js.Deserialize<dynamic>(jsonString);
-if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
-  Response.Write( "The agent\'s agentScope is \'local\'. Please directly redirect the browser to one of the local entry points, such as https://thisMachine.com:3000/login/Facebook. <br>");
-  Response.End();
-}
+
 Session["foo"]=1;
 var session_id=System.Web.HttpContext.Current.Session.SessionID;
 Response.Write( "session_id=" + session_id +"<br>");
