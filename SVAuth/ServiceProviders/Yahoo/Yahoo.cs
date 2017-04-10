@@ -192,10 +192,26 @@ namespace SVAuth.ServiceProviders.Yahoo
 
         public override OpenID20.AuthenticationResponse parse_AuthenticationResponse(HttpContext context)
         {
-            OpenID20.AuthenticationResponse AuthenticationResponse = (OpenID20.AuthenticationResponse)Utils.ObjectFromQuery(context.Request.Query, typeof(AuthenticationResponse));
-            PayloadSecret<OpenID20.FieldsExpectedToBeSigned> SignedFields = PayloadSecret<OpenID20.FieldsExpectedToBeSigned>.Import(context.Request.QueryString.Value);
+            OpenID20.AuthenticationResponse AuthenticationResponse;
+            string arg_string;
+            if (context.Request.Method.ToLower() == "get")
+            {
+                AuthenticationResponse = (OpenID20.AuthenticationResponse)Utils.ObjectFromQuery(context.Request.Query, typeof(AuthenticationResponse));
+                arg_string = context.Request.QueryString.Value;
+            }
+            else
+            {
+                AuthenticationResponse = (OpenID20.AuthenticationResponse)Utils.ObjectFromFormPost(context.Request.Form, typeof(AuthenticationResponse));
+                arg_string = context.Request.QueryString.Value;
+                foreach (string key in context.Request.Form.Keys)
+                {
+                    arg_string += "&" + key + "=" + System.Net.WebUtility.UrlEncode(context.Request.Form[key]);
+                }
+            }
+            PayloadSecret<OpenID20.FieldsExpectedToBeSigned> SignedFields = PayloadSecret<OpenID20.FieldsExpectedToBeSigned>.Import(arg_string);
             AuthenticationResponse.FieldsExpectedToBeSigned = SignedFields;
             return AuthenticationResponse;
+
         }
 
         public override GenericAuth.AuthenticationConclusion createConclusion(OpenID20.AuthenticationResponse inputMSG)

@@ -3,7 +3,7 @@
 <%@ Import Namespace="System.IO" %>
 <%@ Import Namespace= "System.Security.Cryptography" %>
 <% 
-var jsonString = File.ReadAllText(Request.PhysicalPath+"/../../resources/config.json");
+var jsonString = File.ReadAllText(Request.PhysicalPath+"/../../config/config.json");
 JavaScriptSerializer js = new JavaScriptSerializer();
 dynamic config = js.Deserialize<dynamic>(jsonString);
 if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
