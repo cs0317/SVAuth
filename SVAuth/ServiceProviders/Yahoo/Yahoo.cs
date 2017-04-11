@@ -189,7 +189,7 @@ namespace SVAuth.ServiceProviders.Yahoo
         {
             return IdP_OpenID20_Uri + "?" + Utils.ObjectToUrlEncodedString(AuthenticationRequest);
         }
-
+        [BCTOmit]
         public override OpenID20.AuthenticationResponse parse_AuthenticationResponse(HttpContext context)
         {
             OpenID20.AuthenticationResponse AuthenticationResponse;
