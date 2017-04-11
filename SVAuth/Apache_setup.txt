@@ -2,6 +2,7 @@
 * Setting a virtual path:
 Suppose "/....../" is the parent directory of your SVAuth installtion.
 Go to the apache root folder /var/www/html and then ran the following:
+   sudo ln -s /......./SVAuth/SVAuth
 
 Or, open the httpd.conf, then searh the <IfModule alias_module> tag and insert the two lines.
 

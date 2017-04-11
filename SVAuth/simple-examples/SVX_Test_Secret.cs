@@ -9,12 +9,12 @@ namespace SVAuth
 {
     public static class SVX_Test_Secret
     {
-        static readonly Principal idpPrincipal = Principal.Of("IdP");
-        static readonly Principal rpPrincipal = Principal.Of("RP");
+        static readonly Entity idpPrincipal = Entity.Of("IdP");
+        static readonly Entity rpPrincipal = Entity.Of("RP");
 
-        static Principal IdPUserPrincipal(string username)
+        static Entity IdPUserPrincipal(string username)
         {
-            return Principal.Of("IdP:" + username);
+            return Entity.Of("IdP:" + username);
         }
 
         class SSOSecretParams
@@ -24,9 +24,9 @@ namespace SVAuth
         }
         class SSOSecretGenerator : SecretGenerator<SSOSecretParams>
         {
-            protected override PrincipalHandle[] GetReaders(object theParams)
+            protected override Principal[] GetReaders(object theParams)
             {
-                return new Principal[] { idpPrincipal, rpPrincipal, IdPUserPrincipal(((SSOSecretParams)theParams).username),
+                return new Entity[] { idpPrincipal, rpPrincipal, IdPUserPrincipal(((SSOSecretParams)theParams).username),
                     // Uncomment to see the verification fail.
                     //Principal.Of("other")
                 };
@@ -58,13 +58,13 @@ namespace SVAuth
         }
         public class AuthenticationConclusion : SVX_MSG
         {
-            public PrincipalHandle authenticatedClient;
+            public Principal authenticatedClient;
             public string idpUsername;
         }
 
         public class IdP : Participant
         {
-            public IdP(Principal principal) : base(principal) { }
+            public IdP(Entity principal) : base(principal) { }
 
             private SSOSecretGenerator ssoSecretGenerator = new SSOSecretGenerator();
 
@@ -88,7 +88,7 @@ namespace SVAuth
         }
         public class RP : Participant
         {
-            public RP(Principal principal) : base(principal) { }
+            public RP(Entity principal) : base(principal) { }
 
             public AuthenticationConclusion SignInRP(SignInRPReq req)
             {
@@ -107,7 +107,7 @@ namespace SVAuth
                 // BCT accepts this code but silently mistranslates it!
                 //return VProgram_API.ActsForAny(conc.authenticatedClient,
                 //    new PrincipalHandle[] { idpPrincipal, rpPrincipal, IdPUserPrincipal(conc.idpUsername) });
-                var targets = new PrincipalHandle[3];
+                var targets = new Principal[3];
                 targets[0] = idpPrincipal;
                 targets[1] = rpPrincipal;
                 targets[2] = userPrincipal;
@@ -121,8 +121,8 @@ namespace SVAuth
             var idp = new IdP(idpPrincipal);
             var rp = new RP(rpPrincipal);
 
-            var aliceIdP = PrincipalFacet.GenerateNew(idpPrincipal);
-            var aliceRP = PrincipalFacet.GenerateNew(rpPrincipal);
+            var aliceIdP = Channel.GenerateNew(idpPrincipal);
+            var aliceRP = Channel.GenerateNew(rpPrincipal);
 
             var idpReq = new SignInIdPReq {
                 username = "alice",

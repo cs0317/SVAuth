@@ -29,31 +29,31 @@ procedure {:inline 1} System.String.Concat$System.String$System.String$System.St
 ///////////////////////////////////////////////////////////////////////////////
 // Principals
 
-// Pretend that PrincipalHandles are interned, like strings.
+// Pretend that Principals are interned, like strings.
 
 // XXX Do we need to actually axiomatize that the principal has the name we asked for?
 // That probably requires replacing the public field with a property that we can implement in Boogie.
-function Principal.Of(name: Ref) : Ref;
-axiom (forall name1, name2: Ref :: Principal.Of(name1) == Principal.Of(name2) ==> name1 == name2);
-function PrincipalFacet.Of(issuer: Ref, id: Ref) : Ref;
-axiom (forall issuer1, id1, issuer2, id2: Ref :: PrincipalFacet.Of(issuer1, id1) == PrincipalFacet.Of(issuer2, id2) ==> (issuer1 == issuer2 && id1 == id2));
+function Entity.Of(name: Ref) : Ref;
+axiom (forall name1, name2: Ref :: Entity.Of(name1) == Entity.Of(name2) ==> name1 == name2);
+function Channel.Of(issuer: Ref, id: Ref) : Ref;
+axiom (forall issuer1, id1, issuer2, id2: Ref :: Channel.Of(issuer1, id1) == Channel.Of(issuer2, id2) ==> (issuer1 == issuer2 && id1 == id2));
 
-implementation {:inline 1} SVX.Principal.Of$System.String(name$in: Ref) returns ($result: Ref)
+implementation {:inline 1} SVX.Entity.Of$System.String(name$in: Ref) returns ($result: Ref)
 {
-  $result := Principal.Of(name$in);
+  $result := Entity.Of(name$in);
 }
 
-implementation {:inline 1} SVX.PrincipalFacet.Of$SVX.Principal$System.String(issuer$in: Ref, id$in: Ref) returns ($result: Ref)
+implementation {:inline 1} SVX.Channel.Of$SVX.Entity$System.String(issuer$in: Ref, id$in: Ref) returns ($result: Ref)
 {
-  $result := PrincipalFacet.Of(issuer$in, id$in);
+  $result := Channel.Of(issuer$in, id$in);
 }
 
-implementation {:inline 1} SVX.PrincipalHandle.op_Equality$SVX.PrincipalHandle$SVX.PrincipalHandle(a$in: Ref, b$in: Ref) returns ($result: bool)
+implementation {:inline 1} SVX.Principal.op_Equality$SVX.Principal$SVX.Principal(a$in: Ref, b$in: Ref) returns ($result: bool)
 {
   $result := (a$in == b$in);
 }
 
-implementation {:inline 1} SVX.PrincipalHandle.op_Inequality$SVX.PrincipalHandle$SVX.PrincipalHandle(a$in: Ref, b$in: Ref) returns ($result: bool)
+implementation {:inline 1} SVX.Principal.op_Inequality$SVX.Principal$SVX.Principal(a$in: Ref, b$in: Ref) returns ($result: bool)
 {
   $result := (a$in != b$in);
 }
@@ -65,10 +65,10 @@ implementation {:inline 1} SVX.PrincipalHandle.op_Inequality$SVX.PrincipalHandle
 // it is its own underlying principal.
 // var F$SVX.VProgram_API.trustedPrincipal : Ref;
 
-// We don't care what this returns for Refs that aren't PrincipalHandles.
-function UnderlyingPrincipal(principalHandle: Ref) : Ref;
-axiom (forall p: Ref :: $DynamicType(UnderlyingPrincipal(p)) == T$SVX.Principal());
-axiom (forall p: Ref :: $DynamicType(p) == T$SVX.Principal() ==> UnderlyingPrincipal(p) == p);
+// We don't care what this returns for Refs that aren't Principals.
+function Owner(principalHandle: Ref) : Ref;
+axiom (forall p: Ref :: $DynamicType(Owner(p)) == T$SVX.Entity());
+axiom (forall p: Ref :: $DynamicType(p) == T$SVX.Entity() ==> Owner(p) == p);
 
 // Meaningful for principals only.  Note, we do not assume antisymmetry.
 //
@@ -82,22 +82,22 @@ axiom (forall x, y, z: Ref :: {PrincipalActsFor(x, y), PrincipalActsFor(y, z)}
   PrincipalActsFor(x, y) && PrincipalActsFor(y, z) ==> PrincipalActsFor(x, z));
 
 function ActsFor(actorHandle: Ref, targetHandle: Ref) : bool {
-  PrincipalActsFor(UnderlyingPrincipal(actorHandle), UnderlyingPrincipal(targetHandle))
+  PrincipalActsFor(Owner(actorHandle), Owner(targetHandle))
 }
 
-implementation SVX.VProgram_API.UnderlyingPrincipal$SVX.PrincipalHandle(ph$in: Ref) returns ($result: Ref)
+implementation SVX.VProgram_API.Owner$SVX.Principal(ph$in: Ref) returns ($result: Ref)
 {
-  $result := UnderlyingPrincipal(ph$in);
+  $result := Owner(ph$in);
 }
 
-implementation SVX.VProgram_API.ActsFor$SVX.PrincipalHandle$SVX.PrincipalHandle(actor$in: Ref, target$in: Ref) returns ($result: bool)
+implementation SVX.VProgram_API.ActsFor$SVX.Principal$SVX.Principal(actor$in: Ref, target$in: Ref) returns ($result: bool)
 {
   $result := ActsFor(actor$in, target$in);
 }
 
-implementation SVX.VProgram_API.AssumeNoOneElseActsFor$SVX.PrincipalHandle(ph$in: Ref)
+implementation SVX.VProgram_API.AssumeNoOneElseActsFor$SVX.Principal(ph$in: Ref)
 {
-  assume (forall actor: Ref :: ActsFor(actor, ph$in) ==> UnderlyingPrincipal(actor) == UnderlyingPrincipal(ph$in));
+  assume (forall actor: Ref :: ActsFor(actor, ph$in) ==> Owner(actor) == Owner(ph$in));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -112,7 +112,7 @@ function Borne(bearer: Ref, secretValue: Ref) : bool;
 
 function TokenParams(tokenValue: Ref) : Ref;
 
-implementation SVX.VProgram_API.AssumeBorneImpl$SVX.PrincipalHandle$System.String(bearer$in: Ref, secretValue$in: Ref)
+implementation SVX.VProgram_API.AssumeBorneImpl$SVX.Principal$System.String(bearer$in: Ref, secretValue$in: Ref)
 {
   // Note, secretValue may be null.  This should be harmless.
   assume Borne(bearer$in, secretValue$in);
@@ -128,7 +128,7 @@ implementation SVX.VProgram_API.AssumeTokenParamsImpl$System.String$System.Objec
   assume TokenParams(tokenValue$in) == theParams$in;
 }
 
-implementation SVX.VProgram_API.AssumeAuthenticatesBearerImpl$System.String$SVX.PrincipalHandlearray(secretValue$in: Ref, readers$in: Ref)
+implementation SVX.VProgram_API.AssumeAuthenticatesBearerImpl$System.String$SVX.Principalarray(secretValue$in: Ref, readers$in: Ref)
 {
   assume (forall bearer: Ref :: Borne(bearer, secretValue$in) ==>
     // This duplicates the logic of VProgram_API.ActsForAny, but I don't see any

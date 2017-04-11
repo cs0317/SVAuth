@@ -112,10 +112,126 @@ namespace SVAuth
             SVX.Utils.ToUrlSafeBase64String(
                 new HMACSHA256(Encoding.UTF8.GetBytes(key))
                 .ComputeHash(Encoding.UTF8.GetBytes(input)));
+        private static byte[] GetRandomData(int bits)
+        {
+            var result = new byte[bits / 8];
+            RandomNumberGenerator.Create().GetBytes(result);
+            return result;
+        }
 
+        [BCTOmit]
+        static byte[] EncryptStringToBytes_Aes(string plainText, byte[] Key, byte[] IV)
+        {
+            var buffer = Encoding.UTF8.GetBytes(plainText);
+            byte[] result;
+            using (var aes = Aes.Create())
+            {
+                aes.Key = Key;
+                aes.IV = IV;
+
+                using (var encryptor = aes.CreateEncryptor(aes.Key, aes.IV))
+                using (var resultStream = new MemoryStream())
+                {
+                    using (var aesStream = new CryptoStream(resultStream, encryptor, CryptoStreamMode.Write))
+                    using (var plainStream = new MemoryStream(buffer))
+                    {
+                        plainStream.CopyTo(aesStream);
+                    }
+
+                    result = resultStream.ToArray();
+                }
+            }
+            return result;
+
+        }
+        /*
+        static string DecryptStringFromBytes_Aes(byte[] cipherText, byte[] Key, byte[] IV)
+        {
+            // Check arguments.
+            if (cipherText == null || cipherText.Length <= 0)
+                throw new ArgumentNullException("cipherText");
+            if (Key == null || Key.Length <= 0)
+                throw new ArgumentNullException("Key");
+            if (IV == null || IV.Length <= 0)
+                throw new ArgumentNullException("IV");
+
+            // Declare the string used to hold
+            // the decrypted text.
+            string plaintext = null;
+
+            // Create an AesManaged object
+            // with the specified key and IV.
+            using (AesManaged aesAlg = new AesManaged())
+            {
+                aesAlg.Key = Key;
+                aesAlg.IV = IV;
+
+                // Create a decrytor to perform the stream transform.
+                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+
+                // Create the streams used for decryption.
+                using (MemoryStream msDecrypt = new MemoryStream(cipherText))
+                {
+                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+                    {
+                        using (StreamReader srDecrypt = new StreamReader(csDecrypt))
+                        {
+
+                            // Read the decrypted bytes from the decrypting stream
+                            // and place them in a string.
+                            plaintext = srDecrypt.ReadToEnd();
+                        }
+                    }
+                }
+
+            }
+            return plaintext;
+        }*/
         // Session management
 
         public static async Task AbandonAndCreateSessionAsync(GenericAuth.AuthenticationConclusion conclusion, SVAuthRequestContext context)
+        {
+            if (Config.config.AgentSettings.agentScope.ToLower()=="local") {
+                await LocalAbandonAndCreateSessionAsync(conclusion, context);
+                return;
+            }
+            else
+            {
+                RemoteAbandonAndCreateSessionAsync(conclusion, context);
+            }
+        }
+        
+        public static void RemoteAbandonAndCreateSessionAsync(GenericAuth.AuthenticationConclusion conclusion, SVAuthRequestContext context)
+        {
+            string agentscope = Config.config.AgentSettings.agentScope.ToLower();
+            if (agentscope != "*" && !context.concdst.ToLower().EndsWith(agentscope))
+            {
+                throw new Exception("This agent is not allowed to serve the host " + context.concdst);
+            }
+            string SerializedUserProfile = JsonConvert.SerializeObject(conclusion.userProfile);
+            Console.WriteLine(SerializedUserProfile);
+            string conckey = context.conckey;
+           
+            UTF8Encoding utf8 = new UTF8Encoding();
+            byte[] key = utf8.GetBytes(conckey).Take<byte>(256 / 8).ToArray<byte>();
+            byte[] IV = utf8.GetBytes(conckey).Take<byte>(128 / 8).ToArray<byte>();
+            byte[] encrypted = EncryptStringToBytes_Aes(SerializedUserProfile, key, IV);
+            string encrypted_str = BitConverter.ToString(encrypted).Replace("-", "");
+
+            int pos = context.concdst.IndexOf('?');
+            if (pos < 1)
+                throw new Exception("platform info is missing in the concdst string");
+            string platform = context.concdst.Substring(pos + 1);
+            string concdst=context.concdst.Replace("?", "/SVAuth/platforms/");
+            string redir_url =
+               concdst  + "/RemoteCreateNewSession." + platform +
+                "?encryptedUserProfile=" + encrypted_str;
+            //tmp
+            //redir_url += "&conckey=" + context.http.Request.Query["conckey"] + "&userProfile=" + SerializedUserProfile; ;
+            context.http.Response.StatusCode = 303;
+            context.http.Response.Redirect(redir_url);
+        }
+        public static async Task LocalAbandonAndCreateSessionAsync(GenericAuth.AuthenticationConclusion conclusion, SVAuthRequestContext context)
         {
             Console.WriteLine(JsonConvert.SerializeObject(conclusion.userProfile));
             //return;
@@ -125,11 +241,9 @@ namespace SVAuth
                 "CreateNewSession." + Config.config.WebAppSettings.platform.fileExtension;
 
             var abandonSessionRequest = new HttpRequestMessage(HttpMethod.Post, createSessionEndpoint);
+
             abandonSessionRequest.Headers.Add("Cookie",
-                "ASP.NET_SessionId="+context.http.Request.Cookies["ASP.NET_SessionId"]  
-                   + ";" +
-                "PHPSESSID=" + context.http.Request.Cookies["PHPSESSID"]
-                );
+                Config.config.WebAppSettings.platform.sessionCookieName +"=" +context.http.Request.Cookies[Config.config.WebAppSettings.platform.sessionCookieName] + ";" );
 
             HttpResponseMessage abandonSessionResponse = await PerformHttpRequestAsync(abandonSessionRequest);
             Trace.Write("Abandoned session");
@@ -173,14 +287,14 @@ namespace SVAuth
         // implementation of the server side of a server-to-server call, we'll
         // need an option to disable cookies and just generate a random facet
         // every time.
-        public readonly SVX.PrincipalFacet client;
-
+        public readonly SVX.Channel channel;
+        public string conckey=null, concdst =null; //used by a remote agent. 
         const string cookieName = "SVAuthSessionID";
 
         // This will automatically set an agent cookie if the client did not
         // pass one.  Call it only once on a given HttpContext, because it
         // isn't smart enough to check if there's already a Set-Cookie.
-        public SVAuthRequestContext(SVX.Principal serverPrincipal, HttpContext httpContext)
+        public SVAuthRequestContext(SVX.Entity serverPrincipal, HttpContext httpContext)
         {
             http = httpContext;
             string sessionId;
@@ -193,7 +307,7 @@ namespace SVAuth
             // session ID and compute the session cookie as an HMAC, but
             // this is a little easier.
             string publicSessionId = Utils.Digest(sessionId);
-            client = SVX.PrincipalFacet.Of(serverPrincipal, publicSessionId);
+            channel = SVX.Channel.Of(serverPrincipal, publicSessionId);
         }
     }
 }

@@ -1,0 +1,18 @@
+{
+  "WebAppSettings": {
+    "hostname": "localhost",
+    "scheme": "http",
+    "port": "80",
+    "platform": {
+      "name": "php"
+    }
+  },
+
+  "AgentSettings": {
+    "scheme": "https",
+    "port": "3020",
+    "agentScope": "*",
+    "agentScope_valid_values": "The agentScope can be 'local', '.foo.com' or '*'. ",
+    "agentHostname": "authjs.westus.cloudapp.azure.com"
+  }
+}
