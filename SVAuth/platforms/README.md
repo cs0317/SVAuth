@@ -35,10 +35,10 @@ Suppose your website http(s)://foo.com (note: "foo.com" can be "localhost") is r
 * If your PHP page ```x.php``` wants to initiate a ```Facebook``` login, it simply redirects the browser to http(s)://foo.com/SVAuth/platforms/php/start.php?provider=```Facebook```;
 * SVAuth will set the user data into the following session variables in your session. Your application code takes the data from there. That's it.
 ```
-Session["UserID"]=436436434635643 
-Session["FullName"]=John Doe 
-Session["email"]=johndoe@abcd.com 
-Session["Authority"]=Facebook.com 
+Session["SVAuth_UserID"]=436436434635643 
+Session["SVAuth_FullName"]=John Doe 
+Session["SVAuth_Email"]=johndoe@abcd.com 
+Session["SVAuth_Authority"]=Facebook.com 
 ```
 
 #### Other web languages and SSO services
@@ -49,7 +49,7 @@ In this README description, "php" can be replaced by the following:
 
 #### Customize the landing URL
 
-By default, SVAuth will redirect the browser back to ```x.php``` when the login is done. If you want the user to land on a different page ```y.php```, ```x.php``` should set the "LoginPageUrl" cookie to be the full URL of ```y.php```. This can be implemented in PHP as follows:
+By default, SVAuth will redirect the browser back to ```x.php``` when the login is done. If you want the user to land on a different page ```y.php```, ```x.php``` should set the "LandingUrl" cookie to be the full URL of ```y.php```. This can be implemented in PHP as follows:
 ```
-setcookie("LoginPageUrl", "http(s)://foo.com/y.php", 0 ,"/"); 
+setcookie("LandingUrl", "http(s)://foo.com/y.php", 0 ,"/"); 
 ```

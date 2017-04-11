@@ -263,8 +263,8 @@ namespace SVAuth
             // in the same response).
             context.http.Response.Headers.Add("Set-Cookie", setcookie.ToArray());
 
-            string redir_url = context.http.Request.Cookies["LoginPageUrl"];
-            Console.WriteLine("LoginPageUrl="+ redir_url);
+            string redir_url = context.http.Request.Cookies["LandingUrl"];
+            Console.WriteLine("LandingUrl="+ redir_url);
             if (redir_url == null || redir_url == "")
             {
                 Microsoft.Extensions.Primitives.StringValues referer;

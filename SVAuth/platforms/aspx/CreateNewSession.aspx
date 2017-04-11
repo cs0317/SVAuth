@@ -11,14 +11,15 @@ protected void Page_Load(object sender, EventArgs e)  {
  } else {
    if (String.IsNullOrEmpty(Request.Form["UserID"])) {
       Session.Abandon();
-
+      Response.Write("Session abadoned.");
       Response.Cookies.Add(new HttpCookie("ASP.NET_SessionId", ""));
 
    } else {
-    Session["UserID"]=Request.Form["UserID"];
-    Session["Fullname"]=Request.Form["Fullname"];
-    Session["email"]=Request.Form["email"];
-    Session["Authority"]=Request.Form["Authority"]; 
+    Session["SVAuth_UserID"]="Request.Form[UserID]";
+    Session["SVAuth_Fullname"]=Request.Form["Fullname"];
+    Session["SVAuth_Email"]=Request.Form["Email"];
+    Session["SVAuth_Authority"]=Request.Form["Authority"]; 
+    Response.Write("Session variables are set.");
    }    
  }
 }

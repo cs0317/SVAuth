@@ -13,7 +13,7 @@ if (strcmp($config['AgentSettings']['agentHostname'],'localhost')==0 && strcmp($
 if (strcmp($config['WebAppSettings']['hostname'],'localhost')==0 && strcmp($_GET["provider"],'Weibo')==0) {
      $config['WebAppSettings']['hostname'] = "127.0.0.1";
      $cookieValue = $config['WebAppSettings']['scheme'] . "://localhost:" .  $config['WebAppSettings']['port'] . "/SVAuth/platforms/php/AllInOne.php";
-     setcookie("LoginPageUrl", $cookieValue, 0 ,"/"); 
+     setcookie("LandingUrl", $cookieValue, 0 ,"/"); 
      echo $cookieValue;
 }
 $req = $config['AgentSettings']['scheme'] . "://" . $config['AgentSettings']['agentHostname'] . ":" . $config['AgentSettings']['port'];

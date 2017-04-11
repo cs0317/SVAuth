@@ -14,24 +14,22 @@
 	echo $decrypted . "<<<<";
 	$conc = json_decode($decrypted,true);
 	var_dump($conc);
-	echo "LoginPageUrl" . $_COOKIE["LoginPageUrl"];
+	echo "LandingUrl" . $_COOKIE["LandingUrl"];
 	echo "session id1 is " . session_id() . "<br>";
-    echo ($_SESSION['email'] . "<<<" . $conc['Email']) . ">>>";
 	session_unset();
   //  session_destroy();
 //	session_write_close();
-	$_SESSION['email'] = $conc['Email'];
-	$_SESSION['UserID'] = $conc['UserID'];
-	$_SESSION['FullName'] = $conc['FullName'];
-  $_SESSION['Authority'] = $conc['Authority'];
+	$_SESSION["SVAuth_Email"] = $conc['Email'];
+	$_SESSION["SVAuth_UserID"] = $conc['UserID'];
+	$_SESSION["SVAuth_FullName"] = $conc['FullName'];
+  $_SESSION["SVAuth_Authority"] = $conc['Authority'];
 	setcookie(session_name(),'',0,'/');
     session_regenerate_id(true);
 	echo "session id2 is " . session_id() . "<br>";
     //session_start();
-	//$_SESSION['email'] = $conc["Email"];
   echo "session id2 is " . session_id() . "<br>";
-  echo ("location:" . $_COOKIE["LoginPageUrl"] );
-	header ("location:" . $_COOKIE["LoginPageUrl"] );
+  echo ("location:" . $_COOKIE["LandingUrl"] );
+	header ("location:" . $_COOKIE["LandingUrl"] );
   
 ?>
  

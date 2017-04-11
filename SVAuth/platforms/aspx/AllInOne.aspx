@@ -38,8 +38,8 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
           scheme = "<% Response.Write(scheme); %>";
 		  port = "<% Response.Write(port); %>";
 
-		  document.cookie="LoginPageUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
-		  document.cookie="LoginPageUrl="+location+";path=/";
+		  document.cookie="LandingUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
+		  document.cookie="LandingUrl="+location+";path=/";
           hostname = location.host;
 		  if (provider.toLowerCase() === "Weibo".toLowerCase() && hostname=="localhost") {
                      hostname="127.0.0.1";
@@ -74,7 +74,7 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 
 <div id="grad1">
 <% string[] providers = new string[] {"Facebook", "Microsoft", "MicrosoftAzureAD", "Google", "Yahoo", "Weibo"};  
-   if (Session["UserID"]!=null) { 
+   if (Session["SVAuth_UserID"]!=null) { 
 %>
     <img OnClick="clearSession();" src="../resources/images/Sign_out.jpg" width=40 height=40>
 <% } else { 
@@ -92,10 +92,10 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 <h3>User identity bound to this session (<%:System.Web.HttpContext.Current.Session.SessionID%>):<br /></h3>
 
 <font face="Courier New" size=2>
- Session["UserID"]=<%:Session["UserID"]%> <br />
- Session["FullName"]=<%:Session["fullname"]%> <br />
- Session["email"]=<%:Session["email"]%> <br />
- Session["Authority"]=<%:Session["Authority"]%> <br />
+ Session["SVAuth_UserID"]=<%:Session["SVAuth_UserID"]%> <br />
+ Session["SVAuth_FullName"]=<%:Session["SVAuth_FullName"]%> <br />
+ Session["SVAuth_Email"]=<%:Session["SVAuth_Email"]%> <br />
+ Session["SVAuth_Authority"]=<%:Session["SVAuth_Authority"]%> <br />
 </font>
 <br />
 
