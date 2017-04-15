@@ -18,7 +18,7 @@
 <%@ Import Namespace="System.IO" %>
 <%@ Import Namespace= "System.Security.Cryptography" %>
 <% 
-var jsonString = File.ReadAllText(Request.PhysicalPath+"/../../site_config/site_config.json");
+var jsonString = File.ReadAllText(Request.PhysicalPath+"/../../adapter_config/adapter_config.json");
 JavaScriptSerializer js = new JavaScriptSerializer();
 dynamic config = js.Deserialize<dynamic>(jsonString);
 
@@ -48,7 +48,7 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 		      <% if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 	                  Response.Write("\"/login/\"+provider;");
 					} else {  
-					   Response.Write("\"/SVAuth/platforms/aspx/start.aspx?provider=\"+provider;");
+					   Response.Write("\"/SVAuth/adapters/aspx/start.aspx?provider=\"+provider;");
 					}
 			  %>	 
 		  window.location=url;
@@ -59,7 +59,7 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
                 if (xhttp.readyState == 4) {
                 <%  
 				if (HttpContext.Current.Request.Url.Host=="127.0.0.1") { 
-				    Response.Write( "location.href=\"" + HttpContext.Current.Request.Url.Scheme + "://localhost:" + HttpContext.Current.Request.Url.Port + "/SVAuth/platforms/aspx/AllInOne.aspx\";"); 
+				    Response.Write( "location.href=\"" + HttpContext.Current.Request.Url.Scheme + "://localhost:" + HttpContext.Current.Request.Url.Port + "/SVAuth/adapters/aspx/AllInOne.aspx\";"); 
                  } else  {
 	                Response.Write("location.reload();");
 				}
@@ -106,7 +106,7 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 	        + config["WebAppSettings"]["scheme"]
 			+ "://127.0.0.1:" 
 	        + config["WebAppSettings"]["port"]
-			+ "/SVAuth/platforms/aspx/127d0d0d1.aspx\""
+			+ "/SVAuth/adapters/aspx/127d0d0d1.aspx\""
 	        + "></iframe>");
    } 
 %> 

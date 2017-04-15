@@ -54,7 +54,7 @@ hotcrp/lib/login.php
     }
 ```
 
-hotcrp/SVAuth/platforms/php/CreateNewSession.php
+hotcrp/SVAuth/adapters/php/CreateNewSession.php
 
 ```php
 <?php

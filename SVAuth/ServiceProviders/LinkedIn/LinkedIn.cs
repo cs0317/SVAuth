@@ -6,9 +6,9 @@ using System.Diagnostics.Contracts;
 using BytecodeTranslator.Diagnostics;
 using System.IO;
 
-namespace SVAuth.ServiceProviders.Weibo
+namespace SVAuth.ServiceProviders.LinkedIn
 {
-    public class WBAppRegistration
+    public class AppRegistration
     {
         public string clientID;
         public string clientSecret;
@@ -17,30 +17,26 @@ namespace SVAuth.ServiceProviders.Weibo
     class DebugTokenRequest
     {
     }
-    public class WBAccessTokenResponse : OAuth20.AccessTokenResponse
+    public class AccessTokenResponse : OAuth20.AccessTokenResponse
     {
         public string uid;
     }
-    public class WBUserProfile : GenericAuth.UserProfile
+    public class UserProfile : GenericAuth.UserProfile
     {
         public string Email;
         public string FullName;
     }
-    public class WBUserProfileRequest : OAuth20.UserProfileRequest
-    {
-        public string uid;
-    }
     
-    public class WBUserProfileResponse : OAuth20.UserProfileResponse
+    public class UserProfileResponse : OAuth20.UserProfileResponse
     {
         public string id;
-        public string name;
+        public string firstName,lastName,emailAddress;
     }
 
-    public class Weibo_RP : OAuth20.Client
+    public class LinkedIn_RP : OAuth20.Client
     {
         public string UserProfileUrl;
-        public Weibo_RP(SVX.Entity rpPrincipal,
+        public LinkedIn_RP(SVX.Entity rpPrincipal,
             string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null,
             string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string UserProfileUrl1 = null,
             string stateKey = null)
@@ -48,9 +44,9 @@ namespace SVAuth.ServiceProviders.Weibo
         {
             UserProfileUrl = UserProfileUrl1;
         }
-        protected override Type AccessTokenResponseType { get { return typeof(WBAccessTokenResponse); } }
+        protected override Type AccessTokenResponseType { get { return typeof(AccessTokenResponse); } }
         protected override OAuth20.ModelAuthorizationServer CreateModelAuthorizationServer() =>
-            new Weibo_IdP(Weibo_IdP.WeiboPrincipal);
+            new Weibo_IdP(Weibo_IdP.facebookPrincipal);
 
         // Very little of this is Weibo-specific.  Consider moving it to
         // OAuth20.  (Exception: it's unclear if the user profile request is an
@@ -63,7 +59,7 @@ namespace SVAuth.ServiceProviders.Weibo
             var authorizationRequest = new OAuth20.AuthorizationRequest();
             authorizationRequest.client_id = client_id;      
             authorizationRequest.response_type = "code";
-            //authorizationRequest.scope = "user_about_me email";
+            authorizationRequest.scope = "r_basicprofile r_emailaddress";
             authorizationRequest.redirect_uri = redirect_uri;
             var stateParams = new OAuth20.StateParams
             {
@@ -76,8 +72,6 @@ namespace SVAuth.ServiceProviders.Weibo
         public override string marshalAuthorizationRequest(OAuth20.AuthorizationRequest authorizationRequest)
         {
             string req = AuthorizationEndpointUrl + "?" + Utils.ObjectToUrlEncodedString(authorizationRequest);
-            //The next line is needed because Weibo app registration doesn't allow the hostname to be localhost, but 127.0.0.1
-            req = req.Replace("%2F%2Flocalhost", "%2F%2F127.0.0.1");
             return req;
         }
 
@@ -103,57 +97,57 @@ namespace SVAuth.ServiceProviders.Weibo
         public override HttpRequestMessage marshalAccessTokenRequest(OAuth20.AccessTokenRequest accessTokenRequest)
         {            
             var RawRequestUrl = TokenEndpointUrl + "?" + Utils.ObjectToUrlEncodedString(accessTokenRequest);
-            RawRequestUrl = RawRequestUrl.Replace("%2F%2Flocalhost", "%2F%2F127.0.0.1");
             return new HttpRequestMessage(HttpMethod.Post, RawRequestUrl);
         }
 
         /*** implementing the methods for UserProfileRequest ***/
         public override OAuth20.UserProfileRequest createUserProfileRequest(OAuth20.AccessTokenResponse accessTokenResponse)
         {
-            WBUserProfileRequest userProfileRequest = new WBUserProfileRequest();
+            OAuth20.UserProfileRequest userProfileRequest = new OAuth20.UserProfileRequest();
             userProfileRequest.access_token = accessTokenResponse.access_token;
-            userProfileRequest.uid = ((WBAccessTokenResponse)accessTokenResponse).uid;
             return userProfileRequest;
         }
 
         public override HttpRequestMessage marshalUserProfileRequest(OAuth20.UserProfileRequest _UserProfileRequest)
         {
-            var RawRequestUrl = UserProfileUrl + "?" + Utils.ObjectToUrlEncodedString(_UserProfileRequest);
-            return new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
+            var RawRequestUrl = UserProfileUrl + "?" + "format=json";
+            var req = new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
+            req.Headers.Add("Authorization", "Bearer " + _UserProfileRequest.access_token);
+            return req;
         }
 
         /*** implementing the methods for AuthenticationConclusion ***/
-        protected override Type UserProfileResponseType { get { return typeof(WBUserProfileResponse); } }
+        protected override Type UserProfileResponseType { get { return typeof(UserProfileResponse); } }
         public override GenericAuth.AuthenticationConclusion createConclusion(
             OAuth20.AuthorizationResponse authorizationResponse,
             OAuth20.UserProfileResponse userProfileResponse)
         {
-            var WBUserProfileResponse = (WBUserProfileResponse)userProfileResponse;
+            var UserProfileResponse = (UserProfileResponse)userProfileResponse;
             var conclusion = new GenericAuth.AuthenticationConclusion();
             conclusion.channel = authorizationResponse.SVX_sender;
-            var UserProfile = new WBUserProfile();
-            UserProfile.UserID = WBUserProfileResponse.id;
-            UserProfile.Email = "";
-            UserProfile.FullName = WBUserProfileResponse.name;
+            var UserProfile = new UserProfile();
+            UserProfile.UserID = UserProfileResponse.id;
+            UserProfile.Email = UserProfileResponse.emailAddress;
+            UserProfile.FullName = UserProfileResponse.firstName + " " + UserProfileResponse.lastName;
             conclusion.userProfile = UserProfile;
-            conclusion.userProfile.Authority = "Weibo.com";
+            conclusion.userProfile.Authority = "LinkedIn.com";
             return conclusion;
         }
 
         public static void Init(RouteBuilder routeBuilder)
         {
-            var RP = new Weibo_RP(
+            var RP = new LinkedIn_RP(
                 Config.config.rpPrincipal,
-                Config.config.AppRegistration.Weibo.clientID,
-                Config.config.agentRootUrl + "callback/Weibo",
-                Config.config.AppRegistration.Weibo.clientSecret,
-                "https://api.weibo.com/oauth2/authorize",
-                "https://api.weibo.com/oauth2/access_token",
-                "https://api.weibo.com/2/users/show.json",
+                Config.config.AppRegistration.LinkedIn.clientID,
+                Config.config.agentRootUrl + "callback/LinkedIn",
+                Config.config.AppRegistration.LinkedIn.clientSecret,
+                "https://www.linkedin.com/oauth/v2/authorization",
+                "https://www.linkedin.com/oauth/v2/accessToken",
+                "https://api.linkedin.com/v1/people/~:(id,first-name,last-name,email-address)",
                 Config.config.stateSecretKey
                 );
-            routeBuilder.MapRoute("login/Weibo", RP.Login_StartAsync);
-            routeBuilder.MapRoute("callback/Weibo", RP.AuthorizationCodeFlow_Login_CallbackAsync);
+            routeBuilder.MapRoute("login/LinkedIn", RP.Login_StartAsync);
+            routeBuilder.MapRoute("callback/LinkedIn", RP.AuthorizationCodeFlow_Login_CallbackAsync);
         }
     }
     public class Weibo_IdP : OAuth20.ModelAuthorizationServer
@@ -162,18 +156,21 @@ namespace SVAuth.ServiceProviders.Weibo
         public Weibo_IdP(SVX.Entity idpPrincipal)
             : base(idpPrincipal)
         {
-            Contract.Assert(idpPrincipal == WeiboPrincipal);
+            // We only support facebookPrincipal.
+            Contract.Assert(idpPrincipal == facebookPrincipal);
         }
 
-        public static SVX.Entity WeiboPrincipal = SVX.Entity.Of("weibo.com");
+        public static SVX.Entity facebookPrincipal = SVX.Entity.Of("weibo.com");
 
         public override OAuth20.UserProfileResponse CreateUserProfileResponse(string userID)
         {
-            return new WBUserProfileResponse
+            return new UserProfileResponse
             {
                 id = userID,
                 //email = userID,
-                name = SVX.VProgram_API.Nondet<string>()
+                firstName = SVX.VProgram_API.Nondet<string>(),
+                lastName = SVX.VProgram_API.Nondet<string>(),
+                emailAddress = SVX.VProgram_API.Nondet<string>()
             };
         }
 

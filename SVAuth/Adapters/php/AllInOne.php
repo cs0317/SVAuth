@@ -13,7 +13,7 @@
 </style>
 </head>
 <?php
-$json_string = file_get_contents("../site_config/site_config.json");
+$json_string = file_get_contents("../adapter_config/adapter_config.json");
 $config = json_decode($json_string, true);
 
 if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
@@ -40,7 +40,7 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 		      <?php if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 	                   echo "'/login/'+provider;";
 					} else {  
-					     echo "'/SVAuth/platforms/php/start.php?provider='+provider;";
+					     echo "'/SVAuth/adapters/php/start.php?provider='+provider;";
 					}
 			  ?>	 
 		  window.location=url;
@@ -67,7 +67,7 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 <?php
 // Start the session
 session_start();
-$providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo', 'Weibo');
+$providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo', "LinkedIn", 'Weibo');
 ?>
 <div id="grad1">
 <?php if ($_SESSION["SVAuth_UserID"]!=null) { ?>
@@ -102,7 +102,7 @@ $providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo
 	        . $config['WebAppSettings']['scheme']
 			. "://127.0.0.1:" 
 	        . $config['WebAppSettings']['port']
-			. "/SVAuth/platforms/php/127d0d0d1.php\""
+			. "/SVAuth/adapters/php/127d0d0d1.php\""
 	        . "></iframe>";
    } 
 ?> 
