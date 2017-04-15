@@ -13,7 +13,7 @@
 </style>
 </head>
 <?php
-$json_string = file_get_contents("../site_config/site_config.json");
+$json_string = file_get_contents("../adapter_config/adapter_config.json");
 $config = json_decode($json_string, true);
 
 if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
@@ -30,8 +30,8 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
       function login_start(provider) {
 	      scheme = <?php echo "'". $scheme . "'" ?>;
 		  port = <?php echo "'". $port . "'" ?>;
-		  document.cookie="LoginPageUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
-		  document.cookie="LoginPageUrl="+location+";path=/";
+		  document.cookie="LandingUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
+		  document.cookie="LandingUrl="+location+";path=/";
 		  hostname = location.host;
 		  if (provider.toLowerCase() === "Weibo".toLowerCase() && hostname=="localhost") {
                      hostname="127.0.0.1";
@@ -40,7 +40,7 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 		      <?php if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 	                   echo "'/login/'+provider;";
 					} else {  
-					     echo "'/SVAuth/platforms/php/start.php?provider='+provider;";
+					     echo "'/SVAuth/adapters/php/start.php?provider='+provider;";
 					}
 			  ?>	 
 		  window.location=url;
@@ -67,10 +67,10 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 <?php
 // Start the session
 session_start();
-$providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo', 'Weibo');
+$providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo', "LinkedIn", 'Weibo');
 ?>
 <div id="grad1">
-<?php if ($_SESSION['UserID']!=null) { ?>
+<?php if ($_SESSION["SVAuth_UserID"]!=null) { ?>
     <img OnClick="clearSession();" src="../resources/images/sign_out.jpg" width=40 height=40>
 <?php } else { 
    foreach ($providers as $provider) {
@@ -87,10 +87,10 @@ $providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo
 <h3>User identity bound to this session (<?php echo session_id() ?>):<br /></h3>
 
 <font face="Courier New" size=2>
- Session["UserID"]=<?php echo $_SESSION['UserID']; ?> <br />
- Session["FullName"]=<?php echo $_SESSION['FullName']; ?> <br />
- Session["email"]=<?php echo $_SESSION['email']; ?> <br />
- Session["Authority"]=<?php echo $_SESSION['Authority']; ?> <br />
+ Session["SVAuth_UserID"]=<?php echo $_SESSION["SVAuth_UserID"]; ?> <br />
+ Session["SVAuth_FullName"]=<?php echo $_SESSION["SVAuth_FullName"]; ?> <br />
+ Session["SVAuth_Email"]=<?php echo $_SESSION["SVAuth_Email"]; ?> <br />
+ Session["SVAuth_Authority"]=<?php echo $_SESSION["SVAuth_Authority"]; ?> <br />
 </font>
 <br />
 
@@ -102,7 +102,7 @@ $providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo
 	        . $config['WebAppSettings']['scheme']
 			. "://127.0.0.1:" 
 	        . $config['WebAppSettings']['port']
-			. "/SVAuth/platforms/php/127d0d0d1.php\""
+			. "/SVAuth/adapters/php/127d0d0d1.php\""
 	        . "></iframe>";
    } 
 ?> 

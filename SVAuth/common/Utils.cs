@@ -222,7 +222,7 @@ namespace SVAuth
             if (pos < 1)
                 throw new Exception("platform info is missing in the concdst string");
             string platform = context.concdst.Substring(pos + 1);
-            string concdst=context.concdst.Replace("?", "/SVAuth/platforms/");
+            string concdst=context.concdst.Replace("?", "/SVAuth/adapters/");
             string redir_url =
                concdst  + "/RemoteCreateNewSession." + platform +
                 "?encryptedUserProfile=" + encrypted_str;
@@ -263,8 +263,8 @@ namespace SVAuth
             // in the same response).
             context.http.Response.Headers.Add("Set-Cookie", setcookie.ToArray());
 
-            string redir_url = context.http.Request.Cookies["LoginPageUrl"];
-            Console.WriteLine("LoginPageUrl="+ redir_url);
+            string redir_url = context.http.Request.Cookies["LandingUrl"];
+            //Console.WriteLine("LandingUrl="+ redir_url);
             if (redir_url == null || redir_url == "")
             {
                 Microsoft.Extensions.Primitives.StringValues referer;

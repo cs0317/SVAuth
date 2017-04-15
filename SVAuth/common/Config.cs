@@ -30,11 +30,11 @@ namespace SVAuth
                 public string fileExtension,sessionCookieName;
             }
 
-            // The "SVAuth/platforms" string is hard-coded a bunch of places; no
+            // The "SVAuth/adapters" string is hard-coded a bunch of places; no
             // point trying to make it configurable.
             public string rootPath = "/SVAuth";
             public string platformRootUrl =>
-                $"{scheme}://{hostname}:{port}{rootPath}/platforms/{platform.name}/";
+                $"{scheme}://{hostname}:{port}{rootPath}/adapters/{platform.name}/";
         }
 
         // http://docs.telerik.com/fiddler/Configure-Fiddler/Tasks/MonitorLocalTraffic
@@ -62,6 +62,7 @@ namespace SVAuth
             public ServiceProviders.Microsoft.MicrosoftAzureADAppRegistration MicrosoftAzureAD;
             public ServiceProviders.Google.GGAppRegistration Google;
             public ServiceProviders.Yahoo.YahooAppRegistration Yahoo;
+            public ServiceProviders.LinkedIn.AppRegistration LinkedIn;
             public ServiceProviders.Weibo.WBAppRegistration Weibo;
         }
 
@@ -73,7 +74,7 @@ namespace SVAuth
             $"{AgentSettings.scheme}://{AgentSettings.agentHostname}:{AgentSettings.port}/";
         public string internalPlatformRootUrl =>
             $"{WebAppSettings.scheme}://{internalPlatformHostname}:{WebAppSettings.port}" +
-            $"{WebAppSettings.rootPath}/platforms/{WebAppSettings.platform.name}/";
+            $"{WebAppSettings.rootPath}/adapters/{WebAppSettings.platform.name}/";
         public string MainPageUrl =>
             WebAppSettings.platformRootUrl + "AllInOne." + WebAppSettings.platform.fileExtension;
         public SVX.Entity rpPrincipal => SVX.Entity.Of(AgentSettings.agentHostname);

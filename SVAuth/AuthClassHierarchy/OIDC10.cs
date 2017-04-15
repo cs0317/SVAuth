@@ -246,7 +246,7 @@ namespace SVAuth.OIDC10
             if (conclusion == null)
             {
                 context.http.Response.StatusCode = 303;
-                context.http.Response.Redirect(context.http.Request.Cookies["LoginPageUrl"]);
+                context.http.Response.Redirect(context.http.Request.Cookies["LandingUrl"]);
                 return;
             }
 

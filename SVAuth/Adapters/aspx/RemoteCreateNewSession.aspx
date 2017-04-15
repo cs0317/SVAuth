@@ -88,11 +88,11 @@ JavaScriptSerializer js = new JavaScriptSerializer();
 dynamic conc = js.Deserialize<dynamic>(decrypted);
 
 
-Session["email"] = conc["Email"];
-Session["UserID"] = conc["UserID"];
-Session["FullName"] = conc["FullName"];
-Session["Authority"]= conc["Authority"]; 
+Session["SVAuth_Email"] = conc["Email"];
+Session["SVAuth_UserID"] = conc["UserID"];
+Session["SVAuth_FullName"] = conc["FullName"];
+Session["SVAuth_Authority"]= conc["Authority"]; 
 Response.Write("<br>session id=" + System.Web.HttpContext.Current.Session.SessionID);
-Response.Write( "LoginPageUrl=" + Request.Cookies["LoginPageUrl"].Value +"<br>");
-Response.Redirect(Request.Cookies["LoginPageUrl"].Value);
+Response.Write( "LandingUrl=" + Request.Cookies["LandingUrl"].Value +"<br>");
+//Response.Redirect(Request.Cookies["LandingUrl"].Value);
 %>

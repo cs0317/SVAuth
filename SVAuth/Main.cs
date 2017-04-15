@@ -111,6 +111,7 @@ namespace SVAuth
             ServiceProviders.Microsoft.MicrosoftAzureAD_RP.Init(routeBuilder);
             ServiceProviders.Google.Google_RP.Init(routeBuilder);
             ServiceProviders.Yahoo.Yahoo_RP.Init(routeBuilder);
+            ServiceProviders.LinkedIn.LinkedIn_RP.Init(routeBuilder);
             ServiceProviders.Weibo.Weibo_RP.Init(routeBuilder);
             app.UseRouter(routeBuilder.Build());
         }

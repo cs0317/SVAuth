@@ -3,7 +3,7 @@
 session_start();
 ?>
 Hello <?php echo $_POST['Email']; ?> <br>
-Current <?php  echo $_SESSION['UserID']; ?> <br>
+Current <?php  echo $_SESSION["SVAuth_UserID"]; ?> <br>
 SESSID <?php  echo $_COOKIE["PHPSESSID"]; ?>
 <?php
 	if ($_SERVER['REMOTE_ADDR'] != "127.0.0.1" and $_SERVER['REMOTE_ADDR'] != "::1"){
@@ -29,10 +29,10 @@ SESSID <?php  echo $_COOKIE["PHPSESSID"]; ?>
    	    session_regenerate_id();
         $new_sessionid = session_id();
 
-        $_SESSION['UserID'] = $UserID;
-        $_SESSION['FullName'] = $FullName;
-        $_SESSION['email'] = $email;
-		$_SESSION['Authority'] = $Authority;
+        $_SESSION["SVAuth_UserID"] = $UserID;
+        $_SESSION["SVAuth_FullName"] = $FullName;
+        $_SESSION["SVAuth_Email"] = $email;
+		$_SESSION["SVAuth_Authority"] = $Authority;
 		//setcookie("PHPSESSID", $new_sessionid,0, "/");
 		echo "set vars (",$_SESSION['UserID'],")(",$_COOKIE["PHPSESSID"],")(",$new_sessionid,")";
     }

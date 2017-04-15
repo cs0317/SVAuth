@@ -45,6 +45,10 @@
       "clientID": "dj0yJmk9OWl3QUE4OGkyQUswJmQ9WVdrOVZUTnlUVk5sTjJjbWNHbzlNQS0tJnM9Y29uc3VtZXJzZWNyZXQmeD00Yw--",
       "clientSecret": "5d14dd29003e144a0f6af4b3b1831c45378aa9d2"
     },
+    "LinkedIn": {
+      "clientID": "86qyssj0d8dtgx",
+      "clientSecret": "1QK0stw2jVDUTgCH",
+    },
     "Weibo": {
       "clientID": "1860713139",
       "clientSecret": "130188626a1b8a70516d84057db2ea18"

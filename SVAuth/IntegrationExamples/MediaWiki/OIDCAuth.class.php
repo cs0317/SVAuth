@@ -3,7 +3,7 @@ class OIDCAuth {
 
 /* URL setting */
 	private static $login_url="https://localhost:3000/login/MicrosoftAzureAD";
-    private static $logout_url="http://localhost/SVAuth/platforms/php/sign_out.php";
+    private static $logout_url="http://localhost/SVAuth/adapters/php/sign_out.php";
 /* ******************** */
 
 	private static function init() {

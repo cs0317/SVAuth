@@ -323,12 +323,12 @@ namespace SVAuth.OAuth20
                 if (context.http.Request.Headers.TryGetValue("referer", out referer))
                 {
                     context.http.Response.Headers["set-cookie"] = Microsoft.Extensions.Primitives.StringValues.Concat
-                            (context.http.Response.Headers["set-cookie"], "LoginPageUrl=" + System.Net.WebUtility.UrlDecode(referer) + ";path=/");
+                            (context.http.Response.Headers["set-cookie"], "LandingUrl=" + System.Net.WebUtility.UrlDecode(referer) + ";path=/");
                 }
             }
             catch (Exception ex)
             {
-                //there is already a set-cookie for LoginPageUrl
+                //there is already a set-cookie for LandingUrl
             };
             context.http.Response.StatusCode = 303;
             context.http.Response.Redirect(rawReq);
