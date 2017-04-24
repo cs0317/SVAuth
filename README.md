@@ -1,6 +1,6 @@
 # SVAuth: Self-verifying single-sign-on solutions
 
-<img src="logo1.jpg" style="width: 372px;"/>
+<img src="logo1.jpg" style="width: 200px;"/>
 SVAuth tries to provide the simplest and the most secure integration solution for a website to integrate single-sign-on (SSO) services. It is so simple that a website programmer doesn't need to know anything about SSO protocols or implementations. It is secure because every user login is formally proved for it logic correctness by the state-of-the-art program verifier. 
 
 If your website needs SSO login, don't be overwhelmed by all kinds of libraries and protocol documents. Try SVAuth. It may save you tons of time and effort, and save your website from serious security bugs!
