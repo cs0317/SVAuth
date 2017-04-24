@@ -11,7 +11,7 @@
   "AgentSettings": {
     "scheme": "https",
     "port": "3000",
-    "agentScope": "local",
+    "agentScope": "*",
     "agentScope_valid_values": "The agentScope can be 'local', '.foo.com' or '*'. ",
     "agentHostname": "localhost"
   }
