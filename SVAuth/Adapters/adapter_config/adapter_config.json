@@ -10,9 +10,9 @@
 
   "AgentSettings": {
     "scheme": "https",
-    "port": "3000",
+    "port": "3020",
     "agentScope": "*",
     "agentScope_valid_values": "The agentScope can be 'local', '.foo.com' or '*'. ",
-    "agentHostname": "localhost"
+    "agentHostname": "authjs.westus.cloudapp.azure.com"
   }
 }
