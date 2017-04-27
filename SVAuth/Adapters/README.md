@@ -5,7 +5,7 @@
 Suppose your website http(s)://foo.com (note: "foo.com" can be "localhost") is running PHP. Here is how you use SVAuth:
 
 * Create a directory or a virtual directory on foo.com called ```/SVAuth```;
-* Unzip the zip file of the "SVAuth-website-adapter" release into a folder;
+* Unzip the zip file of the "SVAuth-adapter" zip file into a folder;
 * Open ```adapter_config/adapter_config.json```. You will see the following:
 ```
 {
@@ -45,7 +45,7 @@ Session["SVAuth_Authority"]=Facebook.com
 In this README description, "php" can be replaced by the following:
 ```php```,```aspx```. 
 
-"Facebook" can be replaced by ```Facebook```, ```Microsoft```, ```MicrosoftAzureAD```, ```Google```, ```Yahoo```, ```Weibo```.
+"Facebook" can be replaced by ```Facebook```, ```Microsoft```, ```MicrosoftAzureAD```, ```Google```, ```Yahoo```, ```LinkedIn```, ```Weibo```.
 
 #### Customize the landing URL
 
