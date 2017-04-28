@@ -1,7 +1,0 @@
-{
-  "name": "svauth-python-adapter",
-  "description": "Python adapter for SVAuth",
-  "repository": "https://github.com/pmcao/svauth-python-adapter",
-  "keywords": ["python", "oauth", "svauth"]
-}
-
