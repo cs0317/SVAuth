@@ -1,5 +1,10 @@
-Python adapter for SVAuth
+# Python adapter for SVAuth
 
+[Live demo on Heroku](https://svauth-python-adapter.herokuapp.com/) 
+
+![Python adapter for SVAuth](https://media.giphy.com/media/xUPGcHE7FCbpkFqV8I/giphy.gif "Demo")
+
+[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://github.com/pmcao/svauth-python-adapter-example)
 
 # Prerequisites
 On any machine with Python 3, install requirements:
@@ -29,10 +34,3 @@ Note: you might need `root` permission to run the python webserver on port 80
 
 An important thing to note: your login has been verified by `SVAuth`
 
-# Demo
-
-![Python adapter for SVAuth](https://media.giphy.com/media/xUPGcHE7FCbpkFqV8I/giphy.gif "Demo")
-
-# Deploy with Heroku
-
-[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy)
