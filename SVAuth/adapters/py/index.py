@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 SVAuth Python Platform
-Time-stamp: <2017-04-27 22:44:39 phuong>
+Time-stamp: <2017-04-28 00:10:33 phuong>
 """
 
 import os
@@ -64,8 +64,11 @@ def remote_create_new_session():
     iv = key[:16]
     encryptedUserProfile = bytes(bytearray.fromhex(encryptedUserProfile))
     res = decrypt(key, iv, encryptedUserProfile)
-    res = res[:-2]
-    res = json.loads(res)
+    try:
+        res = json.loads(res)
+    except:
+        res = res[:-2]
+        res = json.loads(res)
     fields = ["UserID", "FullName", "Email", "Authority"]
     for field in fields:
         session[field] = res[field]
@@ -105,10 +108,7 @@ if __name__ == '__main__':
     app.debug = True
     app.secret_key = os.urandom(24)
     config_file = "adapter_config.json"
-    if ("HEROKU" in os.environ):
-        config_file = "config/" + config_file
-    else:
-        config_file = "../adapter_config/" + config_file
+    config_file = "../adapter_config/" + config_file
     # read adapter config
     with open(
             config_file,
