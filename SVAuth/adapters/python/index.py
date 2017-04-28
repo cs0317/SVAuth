@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 SVAuth Python Platform
-Time-stamp: <2017-04-27 21:50:33 phuong>
+Time-stamp: <2017-04-27 22:44:39 phuong>
 """
 
 import os
@@ -20,15 +20,15 @@ def index():
     """
     Show an index page with social login buttons
     """
-    if request.remote_addr != "127.0.0.1":
-        abort(403)
+    # if request.remote_addr != "127.0.0.1":
+    #     abort(403)
     if "UserID" in request.form and len(request.form["UserID"]) == 0:
         session.clear()
     resp = make_response(render_template("index.html"))
     resp.set_cookie('LandingUrl',
-                    '{}://{}:{}'.format(config['WebAppSettings']['scheme'],
-                                        config['WebAppSettings']['hostname'],
-                                        config['WebAppSettings']['port']))
+                    '{}://{}'.format(config['WebAppSettings']['scheme'],
+                                        config['WebAppSettings']['hostname']
+                                        ))
     if "UserID" not in session:
         session["UserID"] = ""
     return resp
@@ -82,12 +82,12 @@ def start():
     sid_sha256 = hashlib.sha256(
         request.cookies.get('session').encode('utf-8')).hexdigest()
     conckey = sid_sha256[:max_conckey]
-    url = '{}://{}:{}/login/{}?conckey={}&concdst={}://{}:{}?{}'.format(
+    url = '{}://{}:{}/login/{}?conckey={}&concdst={}://{}?{}'.format(
         config['AgentSettings']['scheme'],
         config['AgentSettings']['agentHostname'],
         config['AgentSettings']['port'], IDP, conckey,
         config['WebAppSettings']['scheme'],
-        config['WebAppSettings']['hostname'], config['WebAppSettings']['port'],
+        config['WebAppSettings']['hostname'], 
         config['WebAppSettings']['platform']['name'])
     session["key"] = sid_sha256[:max_conckey]
     return redirect(url)
@@ -104,9 +104,15 @@ if __name__ == '__main__':
     global config
     app.debug = True
     app.secret_key = os.urandom(24)
+    config_file = "adapter_config.json"
+    if ("HEROKU" in os.environ):
+        config_file = "config/" + config_file
+    else:
+        config_file = "../adapter_config/" + config_file
     # read adapter config
     with open(
-            '../adapter_config/adapter_config.json',
+            config_file,
             encoding='utf-8') as data_file:
         config = json.loads(data_file.read())
-    app.run(host='0.0.0.0', port=80)
+    port = int(os.environ.get('PORT', 80))
+    app.run(host='0.0.0.0', port=port)

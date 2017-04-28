@@ -32,3 +32,7 @@ An important thing to note: your login has been verified by `SVAuth`
 # Demo
 
 ![Python adapter for SVAuth](https://media.giphy.com/media/xUPGcHE7FCbpkFqV8I/giphy.gif "Demo")
+
+# Deploy with Heroku
+
+[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy)
