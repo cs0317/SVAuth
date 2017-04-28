@@ -31,4 +31,4 @@ An important thing to note: your login has been verified by `SVAuth`
 
 # Demo
 
-![Python adapter for SVAuth](static/demo.gif "Demo")
+![Python adapter for SVAuth](http://www.giphy.com/gifs/xUPGcHE7FCbpkFqV8I "Demo")
