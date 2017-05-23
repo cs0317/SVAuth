@@ -38,8 +38,10 @@ namespace SVX
         {
             // If we have the certRequest in certificationCache, return true immediately
             // because we only cache verified certRequests
-            string certStr = SerializationUtils.ReflectObject(certRequest).ToString();
-            string certHash = SerializationUtils.Hash(certStr);
+            // force using Windows-style line ending in cache files
+            string certStr = SerializationUtils.ReflectObject(certRequest).ToString().Replace(Environment.NewLine, "\r\n");
+            byte[] certBytes = Encoding.UTF8.GetBytes(certStr);
+            string certHash = SerializationUtils.Hash(certBytes);
 
             Console.WriteLine("Hash of the theorem to verify {0}", certHash);
 
@@ -63,7 +65,7 @@ namespace SVX
                 // store serialized cert request to directory
                 // file format: {SHA256 hash of certRequest}.json
                 string fileName = String.Format(@"{0}\{1}.json", certResultStoreFolderPath, certHash);
-                File.WriteAllText(fileName, certStr);
+                File.WriteAllBytes(fileName, certBytes);
             }
             catch (Exception e)
             {
@@ -110,11 +112,11 @@ namespace SVX
             // Load cached cert requests
             try
             {
-                string certStr = File.ReadAllText(path);
+                byte[] certBytes = File.ReadAllBytes(path)
                 string certHash;
 
-                /* This is a good sanity check, but before we implement the remote certification server, we need to manually add hash value, and cannot do this check
-                                certHash = SerializationUtils.Hash(certStr);
+                /* TODO: This is a good sanity check, but before we implement the remote certification server, we need to manually add hash value, and cannot do this check
+                                certHash = SerializationUtils.Hash(certBytes);
                 */
                 /* Instead, we do the following */
                 int pos = path.IndexOf(".json");
