@@ -27,6 +27,7 @@ namespace SVX
         // use ConcurrentDictionary as memory cache in addition to file-based cache
         // we store sha256 hash of a verified cert request in the memory
         private static ConcurrentDictionary<string, bool> certificationCache = new ConcurrentDictionary<string, bool>();
+        private string agentHostname = "localhost";
 
         // returns the certification result for a certificationRequest
         //  
@@ -39,9 +40,11 @@ namespace SVX
             // If we have the certRequest in certificationCache, return true immediately
             // because we only cache verified certRequests
             // force using Windows-style line ending in cache files
-            string certStr = SerializationUtils.ReflectObject(certRequest).ToString().Replace(Environment.NewLine, "\r\n");
-            byte[] certBytes = Encoding.UTF8.GetBytes(certStr);
-            string certHash = SerializationUtils.Hash(certBytes);
+            string certStr = SerializationUtils.ReflectObject(certRequest).ToString()
+                .Replace(Environment.NewLine, "\r\n")
+                .Replace(this.agentHostname, SVXSettings.settings.canocialagentHostname);
+
+            string certHash = SerializationUtils.Hash(certStr);
 
             Console.WriteLine("Hash of the theorem to verify {0}", certHash);
 
@@ -65,7 +68,7 @@ namespace SVX
                 // store serialized cert request to directory
                 // file format: {SHA256 hash of certRequest}.json
                 string fileName = String.Format(@"{0}\{1}.json", certResultStoreFolderPath, certHash);
-                File.WriteAllBytes(fileName, certBytes);
+                File.WriteAllBytes(fileName, Encoding.UTF8.GetBytes(certStr));
             }
             catch (Exception e)
             {
@@ -79,6 +82,10 @@ namespace SVX
 
         public void InitCache()
         {
+            // load agent hostname from config file
+            JObject config = JObject.Parse(File.ReadAllText("common/agent_config.json"));
+            this.agentHostname = (string)config.SelectToken("AgentSettings")["agentHostname"];
+
             // create the cache directory and the directory to store failed cert requests if not exists
             // CreateDirectory will NOT overwrite an existing cache folder (see its document)
             // https://msdn.microsoft.com/en-us/library/07wt70x2(v=vs.110).aspx
@@ -112,7 +119,7 @@ namespace SVX
             // Load cached cert requests
             try
             {
-                byte[] certBytes = File.ReadAllBytes(path)
+                byte[] certBytes = File.ReadAllBytes(path);
                 string certHash;
 
                 /* TODO: This is a good sanity check, but before we implement the remote certification server, we need to manually add hash value, and cannot do this check
