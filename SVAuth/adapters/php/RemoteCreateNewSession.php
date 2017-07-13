@@ -19,11 +19,19 @@
   $json_string = file_get_contents("../adapter_config/adapter_config.json");
   $config = json_decode($json_string, true);
   echo "conckey recalculation=" . $key . "<br>";
-  $respText = file_get_contents($config["AgentSettings"]["scheme"] . "://" . $config["AgentSettings"]["agentHostname"] . ":"
-                            . $config["AgentSettings"]["port"] . "/CheckAuthCode?authcode=" . $_GET["authcode"]);
-  echo $respText . "<br>";
+  $filename = $config["AgentSettings"]["scheme"] . "://" . $config["AgentSettings"]["agentHostname"] . ":"
+                            . $config["AgentSettings"]["port"] . "/CheckAuthCode?authcode=" . $_GET["authcode"];
+
+  $respText = file_get_contents($filename);
+/*
+  ********  for some reason, file_get_contents may not always work. curl is an alternative *******
+  $respText = shell_exec("curl -k " . $filename);
+*/
+  echo "<br>" . $filename;
+  echo "<br>respText=" . $respText . ".<br>";
   $entry = json_decode($respText, true);
   $conc = $entry["userProfile"];
+
   
   if (strcmp($key,$entry["conckey"])!=0 || strcmp($key,$_GET["conckey"])!=0)
     throw new Exception("conckey mismatch!");
