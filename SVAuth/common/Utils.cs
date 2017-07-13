@@ -331,7 +331,7 @@ namespace SVAuth
             DateTime now = DateTime.Now;
             foreach (KeyValuePair<string, AgentAuthCodeEntry> entry in AuthCodeDict)
             {
-                if (entry.Value.datetime < now.AddSeconds(10))
+                if (entry.Value.datetime < now.AddSeconds(-10))
                     AuthCodeDict.Remove(entry.Key);
             }
         }
