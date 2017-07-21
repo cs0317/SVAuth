@@ -1,11 +1,12 @@
 <?php
     session_start();
-	$hex = hex2bin($_GET['encryptedUserProfile']);
+
+   //$hex = hex2bin($_GET['encryptedUserProfile']);
     //echo bin2hex($hex[0]) . "-" . bin2hex($hex[271]);
 	$key = substr(hash('sha256',session_id()),strlen(session_id()));
 	$key = utf8_encode($key).substr(256 / 8);
 	// echo bin2hex($key[0]) . "-" . bin2hex($key[31]);
-	$IV = utf8_encode($key).substr(128 / 8);
+	/*$IV = utf8_encode($key).substr(128 / 8);
     $decrypted = openssl_decrypt (
          $hex, "AES-256-CBC", $key, OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING,$IV
     );
@@ -13,6 +14,32 @@
 	$decrypted= substr($decrypted,0,$endpos+1) ;
 	echo $decrypted . "<<<<";
 	$conc = json_decode($decrypted,true);
+  */
+  
+  $json_string = file_get_contents("../adapter_config/adapter_config.json");
+  $config = json_decode($json_string, true);
+  echo "conckey recalculation=" . $key . "<br>";
+  $filename = $config["AgentSettings"]["scheme"] . "://" . $config["AgentSettings"]["agentHostname"] . ":"
+                            . $config["AgentSettings"]["port"] . "/CheckAuthCode?authcode=" . $_GET["authcode"];
+
+  $respText = file_get_contents($filename);
+/*
+  ********  for some reason, file_get_contents may not always work. curl is an alternative *******
+  $respText = shell_exec("curl -k " . $filename);
+*/
+  echo "<br>" . $filename;
+  echo "<br>respText=" . $respText . ".<br>";
+  $entry = json_decode($respText, true);
+  $conc = $entry["userProfile"];
+
+  
+  if (strcmp($key,$entry["conckey"])!=0 || strcmp($key,$_GET["conckey"])!=0)
+    throw new Exception("conckey mismatch!");
+  $concdst= $config["WebAppSettings"]["scheme"] . "://" . $config["WebAppSettings"]["hostname"] . ":" . $config["WebAppSettings"]["port"] 
+             . "?" . $config["WebAppSettings"]["platform"]["name"];
+  echo "<br>concdst=" . concdst;
+  if (strcmp($concdst,$entry["concdst"])!=0)
+    throw new Exception("concdst mismatch!");
 	var_dump($conc);
 	echo "LandingUrl" . $_COOKIE["LandingUrl"];
 	echo "session id1 is " . session_id() . "<br>";

@@ -32,11 +32,15 @@ namespace SVX
         public string SVXCacheFolderPath => Path.Combine(SVXFolderPath, "cache");
         // a folder to store failed certification requests
         public string SVXCacheFailedCertsFolderPath => Path.Combine(SVXFolderPath, "failed-certs");
+        // when saving cache files we will standarlize agentHostname
+        // so that the cache files can be shared on multiple machines
+        public string canocialagentHostname => "Canonical_RP_Name";
 
         // If true, keep temporary VPrograms after verification for debugging
         // purposes.
         public bool KeepVPrograms = true;
 
         public bool ReadableVProgramFolderNames = true;
+        
     }
 }

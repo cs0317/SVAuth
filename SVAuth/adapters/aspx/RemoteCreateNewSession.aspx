@@ -4,6 +4,7 @@
 <%@ Import Namespace= "System.Text" %>
 <%@ Import Namespace= "System.IO" %>
 <%@ Import Namespace= "System.Web.SessionState" %>
+<%@ Import Namespace= "System.Net" %>
 
 <script runat="server" type="text/C#">
 string DecryptStringFromBytes_Aes(byte[] cipherText, byte[] Key, byte[] IV)
@@ -50,6 +51,10 @@ string DecryptStringFromBytes_Aes(byte[] cipherText, byte[] Key, byte[] IV)
 }
 </script>
 <%
+var jsonString = File.ReadAllText(Request.PhysicalPath+"/../../adapter_config/adapter_config.json");
+JavaScriptSerializer js = new JavaScriptSerializer();
+dynamic config = js.Deserialize<dynamic>(jsonString);
+
 var session_id=System.Web.HttpContext.Current.Session.SessionID;
 Response.Write( "session_id=" + session_id +"<br>");
 Response.Write( "session[UserID]=" + Session["UserID"] +"<br>");
@@ -62,6 +67,7 @@ if (String.IsNullOrEmpty(Request.QueryString["pass"]) || Request.QueryString["pa
    string redir = HttpContext.Current.Request.Url + "&pass=second&old_session_id="+session_id;
    Response.Redirect(redir);
 }
+/*
 string encryptedUserProfile=Request.QueryString["encryptedUserProfile"];
 string b;
 byte[] hex=new byte[encryptedUserProfile.Length/2];
@@ -71,14 +77,34 @@ for(int i=0; i<hex.Length; i++) {
     hex[i]=Convert.ToByte(b,16);
     encryptedUserProfile=encryptedUserProfile.Substring(2);
 }
+*/
+
+HttpWebRequest request = (HttpWebRequest) WebRequest.Create(config["AgentSettings"]["scheme"]+"://"+config["AgentSettings"]["agentHostname"]+":"
+                            +config["AgentSettings"]["port"]+"/CheckAuthCode?authcode="+Request.QueryString["authcode"]);
+HttpWebResponse response = (HttpWebResponse) request.GetResponse();
+if (response.StatusCode != HttpStatusCode.OK)        
+     throw new Exception("bad response!");
+var reader = new StreamReader(response.GetResponseStream());
+var respText = reader.ReadToEnd();
+Response.Write("<br>respText=" + respText);
+dynamic entry = js.Deserialize<dynamic>(respText);
+var conc = entry["userProfile"];
 
 string old_session_id = Request.QueryString["old_session_id"];
 HashAlgorithm hashAlgo = SHA256.Create();
 byte[] conckey_bytes=hashAlgo.ComputeHash(System.Text.Encoding.UTF8.GetBytes(old_session_id));
 string conckey = BitConverter.ToString(conckey_bytes).Replace("-","");
-//conckey = conckey.Substring(0,conckey.Length);
 Response.Write("<br>conckey=" + conckey);
 
+if (conckey!=entry["conckey"] || conckey!=Request.QueryString["conckey"])
+    throw new Exception("conckey mismatch!");
+var concdst= config["WebAppSettings"]["scheme"] + "://" + config["WebAppSettings"]["hostname"] + ":" + config["WebAppSettings"]["port"] 
+             + "?" + config["WebAppSettings"]["platform"]["name"];
+Response.Write("<br>concdst=" + concdst);
+if (concdst!=entry["concdst"])
+    throw new Exception("concdst mismatch!");
+
+/*
 UTF8Encoding utf8 = new UTF8Encoding();
 byte[] key = utf8.GetBytes(conckey).Take<byte>(256 / 8).ToArray<byte>();
 byte[] IV = utf8.GetBytes(conckey).Take<byte>(128 / 8).ToArray<byte>();
@@ -86,7 +112,7 @@ string decrypted= DecryptStringFromBytes_Aes(hex, key, IV);
 Response.Write("<br>" + decrypted + "<<<");
 JavaScriptSerializer js = new JavaScriptSerializer();
 dynamic conc = js.Deserialize<dynamic>(decrypted);
-
+*/
 
 Session["SVAuth_Email"] = conc["Email"];
 Session["SVAuth_UserID"] = conc["UserID"];
@@ -94,5 +120,5 @@ Session["SVAuth_FullName"] = conc["FullName"];
 Session["SVAuth_Authority"]= conc["Authority"]; 
 Response.Write("<br>session id=" + System.Web.HttpContext.Current.Session.SessionID);
 Response.Write( "LandingUrl=" + Request.Cookies["LandingUrl"].Value +"<br>");
-//Response.Redirect(Request.Cookies["LandingUrl"].Value);
+Response.Redirect(Request.Cookies["LandingUrl"].Value);
 %>

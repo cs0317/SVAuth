@@ -118,7 +118,7 @@ namespace SVAuth
             RandomNumberGenerator.Create().GetBytes(result);
             return result;
         }
-
+#if comment
         [BCTOmit]
         static byte[] EncryptStringToBytes_Aes(string plainText, byte[] Key, byte[] IV)
         {
@@ -144,7 +144,7 @@ namespace SVAuth
             return result;
 
         }
-        /*
+ 
         static string DecryptStringFromBytes_Aes(byte[] cipherText, byte[] Key, byte[] IV)
         {
             // Check arguments.
@@ -186,7 +186,8 @@ namespace SVAuth
 
             }
             return plaintext;
-        }*/
+        }
+#endif
         // Session management
 
         public static async Task AbandonAndCreateSessionAsync(GenericAuth.AuthenticationConclusion conclusion, SVAuthRequestContext context)
@@ -208,6 +209,8 @@ namespace SVAuth
             {
                 throw new Exception("This agent is not allowed to serve the host " + context.concdst);
             }
+
+#if comment
             string SerializedUserProfile = JsonConvert.SerializeObject(conclusion.userProfile);
             Console.WriteLine(SerializedUserProfile);
             string conckey = context.conckey;
@@ -226,8 +229,32 @@ namespace SVAuth
             string redir_url =
                concdst  + "/RemoteCreateNewSession." + platform +
                 "?encryptedUserProfile=" + encrypted_str;
-            //tmp
-            //redir_url += "&conckey=" + context.http.Request.Query["conckey"] + "&userProfile=" + SerializedUserProfile; ;
+#endif
+            AgentAuthCodeEntry entry = new AgentAuthCodeEntry();
+            entry.datetime = DateTime.Now;
+            entry.userProfile = conclusion.userProfile;
+            entry.concdst = context.concdst;
+            entry.conckey = context.conckey;
+            string AuthCode = Guid.NewGuid().ToString("n").Substring(0, 16); //"1234567";
+            try
+            {
+                AuthCodeDict.Add(AuthCode, entry);
+            }
+            catch (ArgumentException)
+            {
+                Console.WriteLine("Duplicate AuthCode generated!");
+                AuthCodeDict.Remove(AuthCode);
+                AuthCodeDict.Add(AuthCode, entry);
+            }
+            int pos = context.concdst.IndexOf('?');
+            if (pos < 1)
+                throw new Exception("platform info is missing in the concdst string");
+            string platform = context.concdst.Substring(pos + 1);
+            string concdst = context.concdst.Replace("?", "/SVAuth/adapters/");
+            string redir_url =
+               concdst + "/RemoteCreateNewSession." + platform +
+               "?authcode=" + AuthCode
+               + "&conckey=" + context.conckey;
             context.http.Response.StatusCode = 303;
             context.http.Response.Redirect(redir_url);
         }
@@ -275,6 +302,39 @@ namespace SVAuth
             context.http.Response.StatusCode = 303;
             context.http.Response.Redirect(redir_url);
         }
+       
+        class AgentAuthCodeEntry
+        {
+            public GenericAuth.UserProfile userProfile;
+            public string concdst, conckey;
+            public DateTime datetime;
+        }
+        static Dictionary<String, AgentAuthCodeEntry> AuthCodeDict = new Dictionary<string, AgentAuthCodeEntry>();
+        public static Task CheckAuthCode (HttpContext httpContext)
+        {
+            string authcode = httpContext.Request.Query["authcode"];
+            httpContext.Response.StatusCode = 200;
+            if (String.IsNullOrEmpty(authcode) || !AuthCodeDict.ContainsKey(authcode))
+            {
+                httpContext.Response.WriteAsync("authcode is missing or invalid");
+                return Task.CompletedTask;
+            }
+            AgentAuthCodeEntry entry = AuthCodeDict[authcode];
+            string SerializedEntry = JsonConvert.SerializeObject(entry);
+            httpContext.Response.WriteAsync(SerializedEntry);
+            if (AuthCodeDict.Count > 10000)
+                GarbageCollectAuthCodeDict();
+            return Task.CompletedTask;
+        }
+        static void GarbageCollectAuthCodeDict()
+        {
+            DateTime now = DateTime.Now;
+            foreach (KeyValuePair<string, AgentAuthCodeEntry> entry in AuthCodeDict)
+            {
+                if (entry.Value.datetime < now.AddSeconds(-10))
+                    AuthCodeDict.Remove(entry.Key);
+            }
+        }
     }
 
     public class SVAuthRequestContext
@@ -310,4 +370,6 @@ namespace SVAuth
             channel = SVX.Channel.Of(serverPrincipal, publicSessionId);
         }
     }
+
+
 }

@@ -106,6 +106,7 @@ namespace SVAuth
 
             var routeBuilder = new RouteBuilder(app);
             routeBuilder.MapGet("", MainPageHandler);
+            routeBuilder.MapRoute("CheckAuthCode", Utils.CheckAuthCode);
             ServiceProviders.Facebook.Facebook_RP.Init(routeBuilder);
             ServiceProviders.Microsoft.Microsoft_RP.Init(routeBuilder);
             ServiceProviders.Microsoft.MicrosoftAzureAD_RP.Init(routeBuilder);
