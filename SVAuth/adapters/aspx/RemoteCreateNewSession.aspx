@@ -79,9 +79,15 @@ for(int i=0; i<hex.Length; i++) {
 }
 */
 
-HttpWebRequest request = (HttpWebRequest) WebRequest.Create(config["AgentSettings"]["scheme"]+"://"+config["AgentSettings"]["agentHostname"]+":"
-                            +config["AgentSettings"]["port"]+"/CheckAuthCode?authcode="+Request.QueryString["authcode"]);
+var reqstr=config["AgentSettings"]["scheme"]+"://"+config["AgentSettings"]["agentHostname"]+":"
+                            +config["AgentSettings"]["port"]+"/CheckAuthCode?authcode="+Request.QueryString["authcode"];
+Response.Write("<br>reqstr=" + reqstr);
+
+HttpWebRequest request = (HttpWebRequest) WebRequest.Create(reqstr);
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | 
+             SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
 HttpWebResponse response = (HttpWebResponse) request.GetResponse();
+
 if (response.StatusCode != HttpStatusCode.OK)        
      throw new Exception("bad response!");
 var reader = new StreamReader(response.GetResponseStream());
