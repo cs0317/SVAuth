@@ -118,76 +118,7 @@ namespace SVAuth
             RandomNumberGenerator.Create().GetBytes(result);
             return result;
         }
-#if comment
-        [BCTOmit]
-        static byte[] EncryptStringToBytes_Aes(string plainText, byte[] Key, byte[] IV)
-        {
-            var buffer = Encoding.UTF8.GetBytes(plainText);
-            byte[] result;
-            using (var aes = Aes.Create())
-            {
-                aes.Key = Key;
-                aes.IV = IV;
 
-                using (var encryptor = aes.CreateEncryptor(aes.Key, aes.IV))
-                using (var resultStream = new MemoryStream())
-                {
-                    using (var aesStream = new CryptoStream(resultStream, encryptor, CryptoStreamMode.Write))
-                    using (var plainStream = new MemoryStream(buffer))
-                    {
-                        plainStream.CopyTo(aesStream);
-                    }
-
-                    result = resultStream.ToArray();
-                }
-            }
-            return result;
-
-        }
- 
-        static string DecryptStringFromBytes_Aes(byte[] cipherText, byte[] Key, byte[] IV)
-        {
-            // Check arguments.
-            if (cipherText == null || cipherText.Length <= 0)
-                throw new ArgumentNullException("cipherText");
-            if (Key == null || Key.Length <= 0)
-                throw new ArgumentNullException("Key");
-            if (IV == null || IV.Length <= 0)
-                throw new ArgumentNullException("IV");
-
-            // Declare the string used to hold
-            // the decrypted text.
-            string plaintext = null;
-
-            // Create an AesManaged object
-            // with the specified key and IV.
-            using (AesManaged aesAlg = new AesManaged())
-            {
-                aesAlg.Key = Key;
-                aesAlg.IV = IV;
-
-                // Create a decrytor to perform the stream transform.
-                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
-
-                // Create the streams used for decryption.
-                using (MemoryStream msDecrypt = new MemoryStream(cipherText))
-                {
-                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
-                    {
-                        using (StreamReader srDecrypt = new StreamReader(csDecrypt))
-                        {
-
-                            // Read the decrypted bytes from the decrypting stream
-                            // and place them in a string.
-                            plaintext = srDecrypt.ReadToEnd();
-                        }
-                    }
-                }
-
-            }
-            return plaintext;
-        }
-#endif
         // Session management
 
         public static async Task AbandonAndCreateSessionAsync(GenericAuth.AuthenticationConclusion conclusion, SVAuthRequestContext context)
@@ -210,26 +141,6 @@ namespace SVAuth
                 throw new Exception("This agent is not allowed to serve the host " + context.concdst);
             }
 
-#if comment
-            string SerializedUserProfile = JsonConvert.SerializeObject(conclusion.userProfile);
-            Console.WriteLine(SerializedUserProfile);
-            string conckey = context.conckey;
-           
-            UTF8Encoding utf8 = new UTF8Encoding();
-            byte[] key = utf8.GetBytes(conckey).Take<byte>(256 / 8).ToArray<byte>();
-            byte[] IV = utf8.GetBytes(conckey).Take<byte>(128 / 8).ToArray<byte>();
-            byte[] encrypted = EncryptStringToBytes_Aes(SerializedUserProfile, key, IV);
-            string encrypted_str = BitConverter.ToString(encrypted).Replace("-", "");
-
-            int pos = context.concdst.IndexOf('?');
-            if (pos < 1)
-                throw new Exception("platform info is missing in the concdst string");
-            string platform = context.concdst.Substring(pos + 1);
-            string concdst=context.concdst.Replace("?", "/SVAuth/adapters/");
-            string redir_url =
-               concdst  + "/RemoteCreateNewSession." + platform +
-                "?encryptedUserProfile=" + encrypted_str;
-#endif
             AgentAuthCodeEntry entry = new AgentAuthCodeEntry();
             entry.datetime = DateTime.Now;
             entry.userProfile = conclusion.userProfile;
