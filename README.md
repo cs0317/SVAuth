@@ -17,7 +17,7 @@ If your website needs SSO login, don't be overwhelmed by all kinds of libraries 
 [HotCRP with Facebook login](http://authjs.westus.cloudapp.azure.com:8000)
 
 ## How to use
-The easiest way to use SVAuth is through the "website adapter". [**See the instruction**]( https://github.com/cs0317/SVAuth/tree/master/SVAuth/adapters). Also, welcome to [email us](mailto:shuochen@live.com) if you decide to use SVAuth. We can help.  
+[**See the instruction**](https://github.com/cs0317/SVAuth/tree/master/SVAuth/adapters). If you want a little more details, here is [**a short paper**](https://github.com/cs0317/SVAuth/blob/master/doc/SVAuth-tool-paper-final.pdf). Also, welcome to [email us](mailto:shuochen@live.com) if you decide to use SVAuth. We can help.  
 
 ## Developers
 [Matt McCutchen](mailto:%22Matt%20McCutchen%22%20%3Cmatt@mattmccutchen.net%3E),
