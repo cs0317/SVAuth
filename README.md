@@ -29,6 +29,9 @@ Welcome to join us! [Email](mailto:shuochen@live.com) the contact below .
 #### Primary contact
 [Shuo Chen](mailto:shuochen@live.com)
 
+## Privacy & Cookies
+See [Microsoft Privacy Statement] (https://go.microsoft.com/fwlink/?LinkId=521839)
+
 ## Disclaimer
 SVAuth uses a technique called self-verifying execution (SVX) to prove the fundamental security properties of SSO systems: an attacker cannot log in to an innocent user's account, and an innocent user cannot be forced to log in to an attacker's account. This technique would catch bugs in the core SSO logic that have occurred in other implementations, such as [forgetting to verify the signature on an identity token](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2016-7191) or [that the token is addressed to the current relying party](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2008-3891). However, like other verification technologies, the verification is based on assumptions and has limitations, such as:
 
