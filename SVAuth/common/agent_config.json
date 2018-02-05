@@ -12,7 +12,7 @@
   "AgentSettings": {
     "scheme": "https",
     "port": "3000",
-    "agentScope": "local",
+    "agentScope": "*",
     "agentScope_valid_values": "The agentScope can be 'local', '.foo.com' or '*'. ",
     "agentHostname": "localhost",
     "SSLCertFile": "ssl-cert/certkey.p12",
@@ -47,11 +47,15 @@
     },
     "LinkedIn": {
       "clientID": "86qyssj0d8dtgx",
-      "clientSecret": "1QK0stw2jVDUTgCH",
+      "clientSecret": "1QK0stw2jVDUTgCH"
     },
     "Weibo": {
       "clientID": "1860713139",
       "clientSecret": "130188626a1b8a70516d84057db2ea18"
+    },
+    "CILogon": {
+      "clientID": "myproxy:oa4mp,2012:/client_id/56572f4cda76f13a8aef9565995e31",
+      "clientSecret": "EPVg8l9G3X2wODKZNXcbNatpZzcRyGOtKwDBG5LifSKr0Kf_kZ8xlghtJy3MlyVscH8mbQCCfVvGmKZzI4ulhQ"
     }
   },
 

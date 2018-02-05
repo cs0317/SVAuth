@@ -114,6 +114,7 @@ namespace SVAuth
             ServiceProviders.Yahoo.Yahoo_RP.Init(routeBuilder);
             ServiceProviders.LinkedIn.LinkedIn_RP.Init(routeBuilder);
             ServiceProviders.Weibo.Weibo_RP.Init(routeBuilder);
+            ServiceProviders.CILogon.CILogon_RP.Init(routeBuilder);
             app.UseRouter(routeBuilder.Build());
         }
 

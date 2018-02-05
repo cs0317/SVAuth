@@ -10,11 +10,12 @@
   $filename = $config["AgentSettings"]["scheme"] . "://" . $config["AgentSettings"]["agentHostname"] . ":"
                             . $config["AgentSettings"]["port"] . "/CheckAuthCode?authcode=" . $_GET["authcode"];
 
-  $respText = file_get_contents($filename);
-/*
-  ********  for some reason, file_get_contents may not always work. curl is an alternative *******
-  $respText = shell_exec("curl -k " . $filename);
-*/
+ 
+
+  /********  for some reason, file_get_contents may not always work. curl is an alternative *******/
+   //$respText = file_get_contents($filename);
+   $respText = shell_exec("\\\"program files\"\\curl\\curl -k " . $filename);
+   echo  ("\\\"program files\"\\curl\\curl -k " . $filename);
   echo "<br>" . $filename;
   echo "<br>respText=" . $respText . ".<br>";
   $entry = json_decode($respText, true);

@@ -6,7 +6,7 @@ using System.Diagnostics.Contracts;
 using BytecodeTranslator.Diagnostics;
 using System.IO;
 
-namespace SVAuth.ServiceProviders.LinkedIn
+namespace SVAuth.ServiceProviders.CILogon
 {
     public class AppRegistration
     {
@@ -29,14 +29,14 @@ namespace SVAuth.ServiceProviders.LinkedIn
     
     public class UserProfileResponse : OAuth20.UserProfileResponse
     {
-        public string id;
-        public string firstName,lastName,emailAddress;
+        public string sub;
+        public string given_name, family_name, email;
     }
 
-    public class LinkedIn_RP : OAuth20.Client
+    public class CILogon_RP : OAuth20.Client
     {
         public string UserProfileUrl;
-        public LinkedIn_RP(SVX.Entity rpPrincipal,
+        public CILogon_RP(SVX.Entity rpPrincipal,
             string client_id1 = null, string redierct_uri1 = null, string client_secret1 = null,
             string AuthorizationEndpointUrl1 = null, string TokenEndpointUrl1 = null, string UserProfileUrl1 = null,
             string stateKey = null)
@@ -46,7 +46,7 @@ namespace SVAuth.ServiceProviders.LinkedIn
         }
         protected override Type AccessTokenResponseType { get { return typeof(AccessTokenResponse); } }
         protected override OAuth20.ModelAuthorizationServer CreateModelAuthorizationServer() =>
-            new LinkedIn_IdP(LinkedIn_IdP.linkedInPrincipal);
+            new CILogon_IdP(CILogon_IdP.cilogonPrincipal);
 
         /*** implementing the methods for AuthorizationRequest ***/
         public override OAuth20.AuthorizationRequest createAuthorizationRequest(SVX.Channel client)
@@ -54,7 +54,7 @@ namespace SVAuth.ServiceProviders.LinkedIn
             var authorizationRequest = new OAuth20.AuthorizationRequest();
             authorizationRequest.client_id = client_id;      
             authorizationRequest.response_type = "code";
-            authorizationRequest.scope = "r_basicprofile r_emailaddress";
+            authorizationRequest.scope = "openid profile email org.cilogon.userinfo";
             authorizationRequest.redirect_uri = redirect_uri;
             var stateParams = new OAuth20.StateParams
             {
@@ -105,10 +105,8 @@ namespace SVAuth.ServiceProviders.LinkedIn
 
         public override HttpRequestMessage marshalUserProfileRequest(OAuth20.UserProfileRequest _UserProfileRequest)
         {
-            var RawRequestUrl = UserProfileUrl + "?" + "format=json";
-            var req = new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
-            req.Headers.Add("Authorization", "Bearer " + _UserProfileRequest.access_token);
-            return req;
+            var RawRequestUrl = UserProfileUrl + "?" + Utils.ObjectToUrlEncodedString(_UserProfileRequest);
+            return new HttpRequestMessage(HttpMethod.Get, RawRequestUrl);
         }
 
         /*** implementing the methods for AuthenticationConclusion ***/
@@ -121,51 +119,51 @@ namespace SVAuth.ServiceProviders.LinkedIn
             var conclusion = new GenericAuth.AuthenticationConclusion();
             conclusion.channel = authorizationResponse.SVX_sender;
             var UserProfile = new UserProfile();
-            UserProfile.UserID = UserProfileResponse.id;
-            UserProfile.Email = UserProfileResponse.emailAddress;
-            UserProfile.FullName = UserProfileResponse.firstName + " " + UserProfileResponse.lastName;
+            UserProfile.UserID = UserProfileResponse.sub;
+            UserProfile.Email = UserProfileResponse.email;
+            UserProfile.FullName = UserProfileResponse.given_name + " " + UserProfileResponse.family_name;
             conclusion.userProfile = UserProfile;
-            conclusion.userProfile.Authority = "LinkedIn.com";
+            conclusion.userProfile.Authority = "CILogon.org";
             return conclusion;
         }
 
         public static void Init(RouteBuilder routeBuilder)
         {
-            var RP = new LinkedIn_RP(
+            var RP = new CILogon_RP(
                 Config.config.rpPrincipal,
-                Config.config.AppRegistration.LinkedIn.clientID,
-                Config.config.agentRootUrl + "callback/LinkedIn",
-                Config.config.AppRegistration.LinkedIn.clientSecret,
-                "https://www.linkedin.com/oauth/v2/authorization",
-                "https://www.linkedin.com/oauth/v2/accessToken",
-                "https://api.linkedin.com/v1/people/~:(id,first-name,last-name,email-address)",
+                Config.config.AppRegistration.CILogon.clientID,
+                Config.config.agentRootUrl + "callback/CILogon",
+                Config.config.AppRegistration.CILogon.clientSecret,
+                "https://cilogon.org/authorize",
+                "https://cilogon.org/oauth2/token",
+                "https://cilogon.org/oauth2/userinfo",
                 Config.config.stateSecretKey
                 );
-            routeBuilder.MapRoute("login/LinkedIn", RP.Login_StartAsync);
-            routeBuilder.MapRoute("callback/LinkedIn", RP.AuthorizationCodeFlow_Login_CallbackAsync);
+            routeBuilder.MapRoute("login/CILogon", RP.Login_StartAsync);
+            routeBuilder.MapRoute("callback/CILogon", RP.AuthorizationCodeFlow_Login_CallbackAsync);
         }
     }
-    public class LinkedIn_IdP : OAuth20.ModelAuthorizationServer
+    public class CILogon_IdP : OAuth20.ModelAuthorizationServer
     {
 
-        public LinkedIn_IdP(SVX.Entity idpPrincipal)
+        public CILogon_IdP(SVX.Entity idpPrincipal)
             : base(idpPrincipal)
         {
             // We only support facebookPrincipal.
-            Contract.Assert(idpPrincipal == linkedInPrincipal);
+            Contract.Assert(idpPrincipal == cilogonPrincipal);
         }
 
-        public static SVX.Entity linkedInPrincipal = SVX.Entity.Of("linkedin.com");
+        public static SVX.Entity cilogonPrincipal = SVX.Entity.Of("CILogon.org");
 
         public override OAuth20.UserProfileResponse CreateUserProfileResponse(string userID)
         {
             return new UserProfileResponse
             {
-                id = userID,
+                sub = userID,
                 //email = userID,
-                firstName = SVX.VProgram_API.Nondet<string>(),
-                lastName = SVX.VProgram_API.Nondet<string>(),
-                emailAddress = SVX.VProgram_API.Nondet<string>()
+                given_name = SVX.VProgram_API.Nondet<string>(),
+                family_name = SVX.VProgram_API.Nondet<string>(),
+                email = SVX.VProgram_API.Nondet<string>()
             };
         }
 

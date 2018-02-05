@@ -67,7 +67,7 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
 <?php
 // Start the session
 session_start();
-$providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo', "LinkedIn", 'Weibo');
+$providers = array('Facebook', 'Microsoft', 'MicrosoftAzureAD', 'Google', 'Yahoo', "LinkedIn", 'Weibo', CILogon);
 ?>
 <div id="grad1">
 <?php if ($_SESSION["SVAuth_UserID"]!=null) { ?>

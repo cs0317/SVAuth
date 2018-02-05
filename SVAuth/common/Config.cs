@@ -64,6 +64,7 @@ namespace SVAuth
             public ServiceProviders.Yahoo.YahooAppRegistration Yahoo;
             public ServiceProviders.LinkedIn.AppRegistration LinkedIn;
             public ServiceProviders.Weibo.WBAppRegistration Weibo;
+            public ServiceProviders.Weibo.WBAppRegistration CILogon;
         }
 
         // The same key is used for all OAuth 2.0 IdPs, but the state value will
