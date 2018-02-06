@@ -54,23 +54,38 @@ hotcrp/lib/login.php
     }
 ```
 
-hotcrp/SVAuth/adapters/php/CreateNewSession.php
+hotcrp/pages/home.php
+Add a link to use SVAuth public agent
+```php
+<a href='http://authjs.westus.cloudapp.azure.com:8000/SVAuth/adapters/php/start.php?provider=CILogon'><img src='http://www.cilogon.org/_/rsrc/1304392039391/config/cilogon-logon-48-g.png' width='16%' height='16%'/></a>
+```
+
+
+hotcrp/SVAuth/adapters/php/RemoteCreateNewSession.php
 
 ```php
-<?php
-require_once("../../../src/initweb.php");
+...
 
-$UserID = $_POST['UserID'];
-$email = $_POST['Email'];
+$UserID = $conc['UserID'];
+$FullName = $conc['FullName'];
+$email = $conc['Email'];
+
+echo $UserID;
 
 if ((strlen($UserID) == 0)) {
+    file_put_contents($file, sprintf("recvd empty request, destroying session \n"), FILE_APPEND);
+    file_put_contents($file, sprintf("cookie %s \n", $_COOKIE['hotcrp']), FILE_APPEND);
     LoginHelper::logout(true);
 }
 else {
+    file_put_contents($file, sprintf("recvd login request for %s \n", $UserID), FILE_APPEND);
+    file_put_contents($file, sprintf("cookie %s \n", $_COOKIE['hotcrp']), FILE_APPEND);
     LoginHelper::authjs_login($email);
 }
-?>
+
+header ("location:" . "http://authjs.westus.cloudapp.azure.com:8000");
 ```
+
 
 ### Copy hotcrp source tree to /opt
 
@@ -80,25 +95,26 @@ cp -r hotcrp /opt
 
 ## Configure svAuth
 
-svAuth/config.json
+adapter_config.json
+
 ```
-  "__SECTION_1__": "This section configures the web server.",
+{
   "WebAppSettings": {
-    "hostname": "TODO: place your fqdn hostname here",
+    "hostname": "authjs.westus.cloudapp.azure.com",
     "scheme": "http",
     "port": "8000",
     "platform": {
-      "name": "php",
-      "fileExtension": "php"
+      "name": "php"
     }
   },
 
   "AgentSettings": {
     "scheme": "https",
-    "port": "4000"
-  },
-
-
+    "port": "3020",
+    "agentScope": "*",
+    "agentHostname": "authjs.westus.cloudapp.azure.com"
+  }
+}
 ```
 
 svAuth/common/util.cs
