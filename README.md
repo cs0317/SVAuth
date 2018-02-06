@@ -9,7 +9,9 @@ If your website needs SSO login, don't be overwhelmed by all kinds of libraries 
 
 **Goal**: To support all major web languages to integrate all major SSO services in the world.
 
-**Status**: Currently support ASP.NET and PHP. Current SSO solutions include Facebook, Microsoft, Microsoft Azure AD, Google, Yahoo, LinkedIn and Weibo. The list will grow.
+**Status**: 
+* Supported programming languages include ASP.NET, PHP, and Python. 
+* Supported SSO solutions include Facebook, Microsoft, Microsoft Azure AD, Google, Yahoo, LinkedIn, Weibo, and CILogon (which supports nearly a thousand [InCommon participants](https://www.incommon.org/participants/)). The list will grow.
 
 ## Demos
 [MediaWiki with Facebook login](http://authjs.westus.cloudapp.azure.com)
@@ -21,7 +23,7 @@ If your website needs SSO login, don't be overwhelmed by all kinds of libraries 
 
 ## Developers
 [Matt McCutchen](mailto:%22Matt%20McCutchen%22%20%3Cmatt@mattmccutchen.net%3E),
-[Phuong Cao](https://www.linkedin.com/in/pmcao),
+[Phuong Cao](https://pmcao.github.io),
 and [Shuo Chen](http://research.microsoft.com/en-us/people/shuochen/).
 
 Welcome to join us! [Email](mailto:shuochen@live.com) the contact below . 
