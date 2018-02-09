@@ -29,7 +29,7 @@ var reqstr=config["AgentSettings"]["scheme"]+"://"+config["AgentSettings"]["agen
 Response.Write("<br>reqstr=" + reqstr);
 
 HttpWebRequest request = (HttpWebRequest) WebRequest.Create(reqstr);
-ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | 
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.SystemDefault |
              SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
 HttpWebResponse response = (HttpWebResponse) request.GetResponse();
 
@@ -37,7 +37,7 @@ if (response.StatusCode != HttpStatusCode.OK)
      throw new Exception("bad response!");
 var reader = new StreamReader(response.GetResponseStream());
 var respText = reader.ReadToEnd();
-Response.Write("<br>respText=" + respText);
+Response.Write("<br>respText1=" + respText);
 dynamic entry = js.Deserialize<dynamic>(respText);
 var conc = entry["userProfile"];
 

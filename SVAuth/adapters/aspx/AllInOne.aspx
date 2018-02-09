@@ -73,7 +73,7 @@ if (String.Compare(config["AgentSettings"]["agentScope"],"local")==0) {
 
 
 <div id="grad1">
-<% string[] providers = new string[] {"Facebook", "Microsoft", "MicrosoftAzureAD", "Google", "Yahoo", "Weibo"};  
+<% string[] providers = new string[] {"Facebook", "Microsoft", "MicrosoftAzureAD", "Google", "Yahoo", "LinkedIn", "CILogon", "Weibo"};  
    if (Session["SVAuth_UserID"]!=null) { 
 %>
     <img OnClick="clearSession();" src="../resources/images/Sign_out.jpg" width=40 height=40>
