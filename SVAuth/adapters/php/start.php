@@ -1,4 +1,7 @@
+
 <?php
+setcookie("LandingUrl","",time()-10000,"/");
+setcookie("LandingUrl",$_SERVER['HTTP_REFERER'],0,"/");
 echo "start <br>";
 $json_string = file_get_contents("../adapter_config/adapter_config.json");
 $config = json_decode($json_string, true);

@@ -30,8 +30,7 @@ if (strcmp($config['AgentSettings']['agentScope'],'local')==0) {
       function login_start(provider) {
 	      scheme = <?php echo "'". $scheme . "'" ?>;
 		  port = <?php echo "'". $port . "'" ?>;
-		  document.cookie="LandingUrl=; path=/; expires=Thu, 01-Jan-70 00:00:01 GMT;";
-		  document.cookie="LandingUrl="+location+";path=/";
+
 		  hostname = location.host;
 		  if (provider.toLowerCase() === "Weibo".toLowerCase() && hostname=="localhost") {
                      hostname="127.0.0.1";
