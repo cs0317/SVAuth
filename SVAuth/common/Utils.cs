@@ -132,7 +132,45 @@ namespace SVAuth
                 RemoteAbandonAndCreateSessionAsync(conclusion, context);
             }
         }
-        
+        public static void PublicAgentConsent(string concdst, string redir_url, HttpContext httpContext) 
+        {
+            string htmlText = @"
+<html>
+<head>
+   <script>
+        function getCookie(cname) {
+            var name = cname + '=';
+            var decodedCookie = decodeURIComponent(document.cookie);
+            var ca = decodedCookie.split(';');
+            for (var i = 0; i < ca.length; i++)
+            {
+                var c = ca[i];
+                while (c.charAt(0) == ' ')
+                {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0)
+                {
+                    return c.substring(name.length, c.length);
+                }
+            }
+            return '';
+        }
+        function GoAhead() {
+             location = '" + redir_url + @"';
+        }
+        function Stop() {
+             location = getCookie('LandingUrl');
+        }
+    </script>
+</head>
+    <h2>Do you want to sign into website <font color='red'>" + concdst + "</font>?" + @"
+    <br> SVAuth will send your <font color='red'>user ID</font>, <font color='red'>full name</font> and <font color='red'>email address</font> to the website.
+    <br><button onClick='GoAhead()'> Yes </button> or <button onClick='Stop()'> No </button></h2>
+</html>       
+";
+            httpContext.Response.WriteAsync(htmlText);
+        }
         public static void RemoteAbandonAndCreateSessionAsync(GenericAuth.AuthenticationConclusion conclusion, SVAuthRequestContext context)
         {
             string agentscope = Config.config.AgentSettings.agentScope.ToLower();
@@ -166,8 +204,15 @@ namespace SVAuth
                concdst + "/RemoteCreateNewSession." + platform +
                "?authcode=" + AuthCode
                + "&conckey=" + context.conckey;
-            context.http.Response.StatusCode = 303;
-            context.http.Response.Redirect(redir_url);
+            if (Config.config.AgentSettings.agentScope != "*")
+            {
+                context.http.Response.StatusCode = 303;
+                context.http.Response.Redirect(redir_url);
+            }
+            else
+            {
+                PublicAgentConsent(concdst, redir_url, context.http);
+            }
         }
         public static async Task LocalAbandonAndCreateSessionAsync(GenericAuth.AuthenticationConclusion conclusion, SVAuthRequestContext context)
         {
