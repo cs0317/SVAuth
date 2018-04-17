@@ -17,7 +17,7 @@
     "agentHostname": "localhost",
     "SSLCertFile": "ssl-cert/certkey.p12",
     "SSLCertFilePassword": "",
-    "verifyIfNotInCache": true
+    "UseCachedTheoremsOnly": true
   },
 
   "__SECTION_2__": "This section provides the registration info of each 3rd-party service.",

@@ -28,7 +28,7 @@ namespace SVX
         // we store sha256 hash of a verified cert request in the memory
         private static ConcurrentDictionary<string, bool> certificationCache = new ConcurrentDictionary<string, bool>();
         private string agentHostname = "localhost";
-        private bool verifyIfNotInCache = true;
+        private bool UseCachedTheoremsOnly = true;
 
         // returns the certification result for a certificationRequest
         //  
@@ -57,7 +57,7 @@ namespace SVX
 	    // if SVX does not use cache, it means SVX runs on Linux
             // and cannot run verification (requires Windows executable)
             // return immediately
-	    if (this.verifyIfNotInCache == false){
+	    if (this.UseCachedTheoremsOnly == false){
 		return false;
 	    }
 
@@ -93,8 +93,7 @@ namespace SVX
             // load agent hostname from config file
             JObject config = JObject.Parse(File.ReadAllText("common/agent_config.json"));
             this.agentHostname = (string)config.SelectToken("AgentSettings")["agentHostname"];
-            this.verifyIfNotInCache = (bool)config.SelectToken("AgentSettings")["verifyIfNotInCache"];
-            Console.WriteLine("{0}", this.verifyIfNotInCache);
+            this.UseCachedTheoremsOnly = (bool)config.SelectToken("AgentSettings")["verifyIfNotInCache"];
 
             // create the cache directory and the directory to store failed cert requests if not exists
             // CreateDirectory will NOT overwrite an existing cache folder (see its document)
