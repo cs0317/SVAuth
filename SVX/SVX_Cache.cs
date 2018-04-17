@@ -28,7 +28,7 @@ namespace SVX
         // we store sha256 hash of a verified cert request in the memory
         private static ConcurrentDictionary<string, bool> certificationCache = new ConcurrentDictionary<string, bool>();
         private string agentHostname = "localhost";
-        private bool cache = true;
+        private bool verifyIfNotInCache = true;
 
         // returns the certification result for a certificationRequest
         //  
@@ -38,13 +38,6 @@ namespace SVX
         // 2. verify the cert request and add to memory cache 
         public bool TryAdd(CertificationRequest certRequest, Func<CertificationRequest, bool> verifyFunction)
         {
-	    // if SVX does not use cache, it means SVX runs on Linux
-            // and cannot run verification (requires Windows executable)
-            // return immediately
-	    if (this.cache == false){
-		return false;
-	    }
-
             // If we have the certRequest in certificationCache, return true immediately
             // because we only cache verified certRequests
             // force using Windows-style line ending in cache files
@@ -60,6 +53,13 @@ namespace SVX
             {
                 return true;
             }
+
+	    // if SVX does not use cache, it means SVX runs on Linux
+            // and cannot run verification (requires Windows executable)
+            // return immediately
+	    if (this.verifyIfNotInCache == false){
+		return false;
+	    }
 
             // When we don't have the certRequest in certificationCache, perform verification
             bool certResult = verifyFunction(certRequest);
@@ -93,7 +93,8 @@ namespace SVX
             // load agent hostname from config file
             JObject config = JObject.Parse(File.ReadAllText("common/agent_config.json"));
             this.agentHostname = (string)config.SelectToken("AgentSettings")["agentHostname"];
-            this.cache = (bool)config.SelectToken("AgentSettings")["cache"];
+            this.verifyIfNotInCache = (bool)config.SelectToken("AgentSettings")["verifyIfNotInCache"];
+            Console.WriteLine("{0}", this.verifyIfNotInCache);
 
             // create the cache directory and the directory to store failed cert requests if not exists
             // CreateDirectory will NOT overwrite an existing cache folder (see its document)
