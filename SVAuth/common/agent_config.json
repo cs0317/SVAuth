@@ -16,7 +16,8 @@
     "agentScope_valid_values": "The agentScope can be 'local', '.foo.com' or '*'. ",
     "agentHostname": "localhost",
     "SSLCertFile": "ssl-cert/certkey.p12",
-    "SSLCertFilePassword": ""
+    "SSLCertFilePassword": "",
+    "cache": true
   },
 
   "__SECTION_2__": "This section provides the registration info of each 3rd-party service.",
